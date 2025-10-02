@@ -15,25 +15,3 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-from setuptools import setup, find_packages
-
-setup(
-    name="acoustic-wave-solver",
-    version="0.1.0",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
-    install_requires=[
-        "numpy>=1.21.0",
-        "numba>=0.55.0",
-        "zarr>=2.11.0",
-        "soundfile>=0.10.0",
-        "pyopenvdb>=0.9.0",
-        "scipy>=1.7.0",
-        "matplotlib>=3.5.0",
-    ],
-    python_requires=">=3.8",
-    author="Your Name",
-    description="3D Acoustic Wave Solver for Animation to Sound Rendering",
-    keywords="acoustics, wave, solver, 3d, animation, sound",
-)

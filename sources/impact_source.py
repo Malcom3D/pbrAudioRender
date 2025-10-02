@@ -15,26 +15,3 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-__version__ = "0.1.0"
-__author__ = "malcom3D"
-
-from .core.solver import WaveSolver
-from .core.soxel import SoxelGrid
-from .core.boundary import BoundaryConditions
-from .rendering.ambisonic import AmbisonicRenderer
-from .io.openvdb_exporter import OpenVDBExporter
-from .io.zarr_store import ZarrStoreManager
-from .io.wav_loader import WAVLoader
-from .utils.config import SimulationConfig
-
-__all__ = [
-    "WaveSolver", 
-    "SoxelGrid", 
-    "BoundaryConditions",
-    "AmbisonicRenderer", 
-    "OpenVDBExporter",
-    "ZarrStoreManager",
-    "WAVLoader",
-    "SimulationConfig"
-]
