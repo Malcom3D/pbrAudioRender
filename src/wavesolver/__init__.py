@@ -1,0 +1,40 @@
+# Copyright (C) 2025 Malcom3D <malcom3d.gpl@gmail.com>
+#
+# This file is part of pbrAudio.
+#
+# pbrAudio is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# pbrAudio is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+__version__ = "0.1.0"
+__author__ = "malcom3D"
+
+from .core.solver import WaveSolver
+from .core.soxel import SoxelGrid
+from .core.boundary import BoundaryConditions
+from .rendering.ambisonic import AmbisonicRenderer
+from .io.openvdb_exporter import OpenVDBExporter
+from .io.zarr_store import ZarrStoreManager
+from .io.wav_loader import WAVLoader
+from .utils.config import SimulationConfig
+
+__all__ = [
+    "WaveSolver", 
+    "SoxelGrid", 
+    "BoundaryConditions",
+    "AmbisonicRenderer", 
+    "OpenVDBExporter",
+    "ZarrStoreManager",
+    "WAVLoader",
+    "SimulationConfig"
+]

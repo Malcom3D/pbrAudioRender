@@ -1,0 +1,26 @@
+pbrAudioRender/
+├── setup.py
+├── pyproject.toml
+├── README.md
+├── src/
+│   └── wavesolver/
+│       ├── __init__.py
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── solver.py
+│       │   ├── soxel.py
+│       │   └── boundary.py
+│       ├── io/
+│       │   ├── __init__.py
+│       │   ├── zarr_store.py
+│       │   ├── wav_loader.py
+│       │   └── openvdb_exporter.py
+│       ├── rendering/
+│       │   ├── __init__.py
+│       │   ├── ambisonic.py
+│       │   └── output_renderer.py
+│       └── utils/
+│           ├── __init__.py
+│           ├── config.py
+│           └── math_utils.py
+
