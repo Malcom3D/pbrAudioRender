@@ -35,7 +35,7 @@ class OpenVDBExporter:
         grid.copyFromArray(pressure_field)
         
         # Set grid name and transform
-        grid.name = f"pressure_frame_{frame_index:06d}"
+        grid.name = f"pressure"
         
         # Set voxel size
         transform = vdb.createLinearTransform(voxelSize=self.config.voxel_size)

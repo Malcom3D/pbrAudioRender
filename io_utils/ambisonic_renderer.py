@@ -28,7 +28,9 @@ class AmbisonicRenderer:
         self.sample_rate = sample_rate
         self.num_channels = (order + 1) ** 2
         
-    def pressure_to_ambisonics(self, pressures: List[Tuple[float, float, float, float]], 
+#    def pressure_to_ambisonics(self, pressures: List[Tuple[float, float, float, float]], 
+#                              listener_pos: Tuple[float, float, float]) -> np.ndarray:
+    def pressure_to_ambisonics(self, pressures: np.ndarray, 
                               listener_pos: Tuple[float, float, float]) -> np.ndarray:
         """Convert pressure samples at positions to ambisonic B-format"""
         # pressures: list of (x, y, z, pressure)

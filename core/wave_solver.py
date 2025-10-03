@@ -16,7 +16,6 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# core/wave_solver.py (fixed)
 import numpy as np
 import numba as nb
 from numba import prange
@@ -28,7 +27,7 @@ class WaveSolver3D:
     
     def __init__(self, config):
         self.config = config
-        self.dt = 1.0 / config.sample_rate
+        self.dt = config.dt
         self.dx = config.voxel_size
         self.c = config.speed_of_sound
         
@@ -38,7 +37,7 @@ class WaveSolver3D:
             raise ValueError("CFL condition violated")
     
     @staticmethod
-#    @nb.njit(parallel=True, fastmath=True)
+    @nb.njit(parallel=True, fastmath=True)
     def update_pressure_3d(pressure, velocity_x, velocity_y, velocity_z, 
                           dt, dx, c, rho, impedance_map, material_map):
         """Update pressure field using FDTD"""
@@ -57,9 +56,10 @@ class WaveSolver3D:
                     
                     pressure[1, i, j, k] = (pressure[0, i, j, k] - 
                                            dt * impedance * c * div_v)
+#        pressure[0] = pressure[1]
     
     @staticmethod
-#    @nb.njit(parallel=True, fastmath=True)
+    @nb.njit(parallel=True, fastmath=True)
     def update_velocity_3d(velocity_x, velocity_y, velocity_z, pressure,
                           dt, dx, rho):
         """Update velocity fields"""
@@ -79,6 +79,9 @@ class WaveSolver3D:
                                              dt * dp_dy / rho)
                     velocity_z[1, i, j, k] = (velocity_z[0, i, j, k] - 
                                              dt * dp_dz / rho)
+#        velocity_x[0] = velocity_x[1]
+#        velocity_y[0] = velocity_y[1]
+#        velocity_z[0] = velocity_z[1]
 
     @staticmethod
 #    @nb.njit(parallel=True)
@@ -92,4 +95,4 @@ class WaveSolver3D:
                     if dist <= radius:
                         weight = 1.0 - (dist / radius)
                         pressure[1, i, j, k] += source_value * weight
-                        print('WaveSolver3D.apply_source :', pressure[1, i, j, k])
+        pressure[0] = pressure[1]

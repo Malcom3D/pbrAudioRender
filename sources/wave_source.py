@@ -44,9 +44,10 @@ class SphericalWaveSource(WaveSource):
         if self.audio_data is not None:
             # Use provided audio data
             if self.current_sample < len(self.audio_data):
-                print('SphericalWaveSource.get_pressure curr_samp, len: ', self.current_sample, len(self.audio_data))
+#                print('SphericalWaveSource.get_pressure sample_num, sample_value: ', self.current_sample, self.audio_data[self.current_sample])
                 pressure = self.audio_data[self.current_sample] * self.amplitude
                 self.current_sample += 1
+#                print('SphericalWaveSource.get_pressure, current_sample, amplitude, pressure: ', self.current_sample, self.amplitude, pressure)
                 return pressure
             return 0.0
         elif self.frequency is not None:

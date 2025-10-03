@@ -55,6 +55,10 @@ class SoxelEngine:
         self.current_frame = 0
         self.sources = []
         self._initialize_simulation_grid()
+
+        # Exporter data
+#        self.ambisonic_array = []
+#        self.vdb_frame_index = 0
     
     def _initialize_simulation_grid(self):
         """Initialize simulation grid with PML"""
@@ -163,10 +167,8 @@ class SoxelEngine:
         dt = self.config.dt
         
         for source in self.sources:
-            print('SoxelEngine._apply_sources active:', source.active)
             if source.active:
                 source_value = source.get_pressure(current_time, dt)
-                print('SoxelEngine._apply_sources source_value:', source_value)
                 
                 # Convert position to grid coordinates
                 grid_pos = tuple(int(p / self.config.voxel_size) for p in source.position)
@@ -180,6 +182,8 @@ class SoxelEngine:
         """Simulate one frame of wave propagation"""
         current_time = self.current_frame * self.config.dt
         
+        self.pressure[1] = np.zeros((1,) + self.config.grid_shape, dtype=np.float32)
+
         # Apply sources
         self._apply_sources(current_time)
         
@@ -210,7 +214,6 @@ class SoxelEngine:
         self.zarr_store.store_frame(frame_data, self.current_frame)
         
         # Export to OpenVDB periodically
-#        if self.current_frame % 10 == 0:  # Export every 10 frames
         if self.current_frame % 1 == 0:  # Export every 1 frames
             filename = f"frame_{self.current_frame:06d}.vdb"
             filename = os.path.join('out_openvdb', filename)
@@ -230,5 +233,5 @@ class SoxelEngine:
         # Implementation would read from zarr store and render ambisonic output
         print(f"Rendering ambisonic output to {output_file}")
         # Actual implementation would process stored frames and create audio file
-        ambisonic_array = self.ambisonic_renderer.pressure_to_ambisonics(self.pressure, listener_positions)
-        np.savez_compressed(output_file, array1=ambisonic_array)
+        #ambisonic_array = self.ambisonic_renderer.pressure_to_ambisonics(self.pressure, listener_positions)
+        #np.savez_compressed(output_file, array1=ambisonic_array)

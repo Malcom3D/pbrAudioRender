@@ -35,7 +35,6 @@ class SoxelZarrStore:
         self.compressors = compressors
         
         # Initialize zarr store
-#        self.root = zarr.open(store_path, mode='w')
         self.root = zarr.create_group(store=store_path)
         
         # Create datasets
@@ -46,8 +45,7 @@ class SoxelZarrStore:
         grid_shape = self.config.grid_shape
         
         # Pressure field (time, x, y, z)
-#        self.root.zeros('pressure', 
-        self.pressure = self.root.create_array(
+        self.root.create_array(
                        name='pressure', 
                        shape=(0,) + grid_shape,
                        chunks=(1,) + grid_shape,
@@ -55,42 +53,16 @@ class SoxelZarrStore:
                        compressors=self.compressors)
         
         # Velocity fields
-#        for component in ['velocity_x', 'velocity_y', 'velocity_z']:
-#            self.root.zeros(component,
-#            self.root.create_array(
-#                           name=component,
-#                           shape=(0,) + grid_shape,
-#                           chunks=(1,) + grid_shape,
-#                           dtype=np.float32,
-#                           compressors=self.compressors)
+        for component in ['velocity_x', 'velocity_y', 'velocity_z']:
+            self.root.create_array(
+                           name=component,
+                           shape=(0,) + grid_shape,
+                           chunks=(1,) + grid_shape,
+                           dtype=np.float32,
+                           compressors=self.compressors)
 
-        # go manual...
-        self.velocity_x = self.root.create_array(
-                       name='velocity_x',
-                       shape=(0,) + grid_shape,
-                       chunks=(1,) + grid_shape,
-                       dtype=np.float32,
-                       compressors=self.compressors)
-
-        # go manual...
-        self.velocity_y = self.root.create_array(
-                       name='velocity_y',
-                       shape=(0,) + grid_shape,
-                       chunks=(1,) + grid_shape,
-                       dtype=np.float32,
-                       compressors=self.compressors)
-
-        # go manual...
-        self.velocity_z = self.root.create_array(
-                       name='velocity_z',
-                       shape=(0,) + grid_shape,
-                       chunks=(1,) + grid_shape,
-                       dtype=np.float32,
-                       compressors=self.compressors)
-        
         # Material properties
-#        self.root.zeros('material_map',
-        self.material_map = self.root.create_array(
+        self.root.create_array(
                        name='material_map',
                        shape=grid_shape,
                        chunks=(64, 64, 64),
@@ -104,7 +76,6 @@ class SoxelZarrStore:
     
     def store_frame(self, frame_data: Dict[str, np.ndarray], frame_index: int):
         """Store a single frame of simulation data"""
-#        print('zarr_store.store_frame: ', frame_data, frame_index)
         for field_name, data in frame_data.items():
             for name, array in self.root.arrays():
                 if field_name in name:
@@ -112,7 +83,4 @@ class SoxelZarrStore:
                     # Append to existing dataset
                     if len(data.shape) == 3:  # Spatial field
                         data = data[np.newaxis, ...]  # Add time dimension
-                        print('zarr_store.store_frame: ', data)
-                        filename_npz = field_name + '.npz'
-                        np.savez_compressed(filename_npz, array1=data)
                     dataset.append(data)
