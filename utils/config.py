@@ -16,38 +16,41 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
 import numpy as np
-import zarr
-import zarrs
 from dataclasses import dataclass
-from typing import Tuple, Optional, Dict, Any
+from typing import Dict, List, Any, Optional
+from pathlib import Path
 
-zarr.config.set({"codec_pipeline.path": "zarrs.ZarrsCodecPipeline"})
+class Config:
+    def __init__(self, config_path: str):
+        with open(config_path, 'r') as f:
+            data = json.load(f)
+            self.simulation = SimulationConfig(**data['config'])
+            self.sources = SourceConfig(**data['sources'])
+            self.outputs = OutputConfig(**data['outputs'])
 
 @dataclass
 class SimulationConfig:
-    """Configuration for acoustic simulation"""
     sample_rate: int = 48000
-    voxel_size: float = 0.01  # meters
-    grid_shape: Tuple[int, int, int] = (256, 256, 256)
-    cfl_number: float = 0.3
-    pml_thickness: int = 20
-    max_frequency: float = 20000.0
-    ambisonics_order: int = 3
-    speed_of_sound: float = 343.0
-    dt: float = 1 / sample_rate
+    voxel_size: float = 0.1  # meters
+    grid_size: tuple = (100, 100, 100)  # x, y, z
+    speed_of_sound: float = 343.0  # m/s
+    air_density: float = 1.225  # kg/m³
+    max_frames: int = 48000  # 1 second at 48kHz
+    pml_thickness: int = 10
+    ambisonic_order: int = 3
     
 @dataclass
-class PhysicalProperties:
-    """Physical properties of acoustic medium"""
-    density: float = 1.225  # kg/m³
-    speed_of_sound: float = 343.0  # m/s
-    impedance: float = 1.225 * 343.0  # Rayls
-    absorption_coeff: np.ndarray = None  # Frequency-dependent
-    reflection_coeff: np.ndarray = None
-    
-    def __post_init__(self):
-        if self.absorption_coeff is None:
-            # Default frequency-dependent absorption
-            freqs = np.linspace(20, 20000, 1000)
-            self.absorption_coeff = 0.1 * (freqs / 1000) ** 0.5
+class SourceConfig:
+    type: str  # "spherical" or "plane"
+    position: tuple  # (x, y, z)
+    rotation: tuple  # (roll, pitch, yaw) in radians
+    audio_file: str
+    gain: float = 1.0
+
+@dataclass
+class OutputConfig:
+    position: tuple
+    spatial_arrangement: str  # path to JSON file
+    ambisonic_order: int = 3

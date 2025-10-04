@@ -15,3 +15,22 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+from dataclasses import dataclass
+
+@dataclass
+class OmnidirectionalOutput:
+    config: dict
+    
+    def capture_pressure(self, pressure: float, velocity: np.ndarray, position: tuple) -> float:
+        """Capture pressure at this output position (omnidirectional)"""
+        return pressure
+    
+    @property
+    def position(self):
+        return self.config['position']
+    
+    @property
+    def type(self):
+        return "omnidirectional"

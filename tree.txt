@@ -1,0 +1,30 @@
+pbrAudioRender
+├── __init__.py
+├── core
+│   ├── soxel.py
+│   └── wave_propagation.py
+├── engine
+│   ├── fdtd_solver.py
+│   ├── boundary_conditions.py
+│   └── zarr_store.py
+├── renderer
+│   ├── ambisonic_encoder.py
+│   └── openvdb_exporter.py
+├── outputs
+│   ├── spatial_arrangement/
+│   │   ├── 4ch_tetrahedral.json
+│   │   └── 24ch_sphere.json
+│   ├── ambisonic_output.py
+│   ├── omnidirectional_output.py
+│   ├── figure8_output.py
+│   └── cardioid_output.py
+├── sources
+│   ├── spherical_source.py
+│   └── plane_source.py
+├── shaders
+│   ├── gas_shader.py
+│   ├── fluid_shader.py
+│   └── solid_shader.py
+└── utils
+    ├── config.py
+    └── gpu_acceleration.py

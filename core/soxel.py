@@ -16,29 +16,54 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import numba as nb
-import zarr
-import zarrs
-from numba import float32, int32
+import numpy as np
+from dataclasses import dataclass
+from typing import Union, Optional
+from enum import Enum
 
-zarr.config.set({"codec_pipeline.path": "zarrs.ZarrsCodecPipeline"})
+class SoxelType(Enum):
+    SOURCE = "source"
+    OUTPUT = "output"
+    MEDIUM = "medium"
+    BOUNDARY = "boundary"
 
-@nb.experimental.jitclass([
-    ('pressure', float32[:]),
-    ('velocity_x', float32[:]),
-    ('velocity_y', float32[:]),
-    ('velocity_z', float32[:]),
-    ('material_id', int32),
-    ('impedance', float32),
-    ('absorption', float32[:]),
-])
+@dataclass
+class PhysicalProperties:
+    speed_of_sound: float
+    density: float
+    absorption_coeff: np.ndarray  # frequency-dependent
+    reflection_coeff: np.ndarray  # frequency-dependent
+    impedance: np.ndarray  # frequency-dependent
+    
+    def __post_init__(self):
+        # Ensure arrays are properly shaped
+        if isinstance(self.absorption_coeff, list):
+            self.absorption_coeff = np.array(self.absorption_coeff)
+        if isinstance(self.reflection_coeff, list):
+            self.reflection_coeff = np.array(self.reflection_coeff)
+        if isinstance(self.impedance, list):
+            self.impedance = np.array(self.impedance)
+
 class Soxel:
-    """Sound voxel containing acoustic data"""
-    def __init__(self, buffer_size: int):
-        self.pressure = np.zeros(buffer_size, dtype=np.float32)
-        self.velocity_x = np.zeros(buffer_size, dtype=np.float32)
-        self.velocity_y = np.zeros(buffer_size, dtype=np.float32)
-        self.velocity_z = np.zeros(buffer_size, dtype=np.float32)
-        self.material_id = 0
-        self.impedance = 1.0
-        self.absorption = np.zeros(1000, dtype=np.float32)  # Frequency bins
+    def __init__(self, soxel_type: SoxelType, position: tuple, 
+                 physical_props: Optional[PhysicalProperties] = None):
+        self.type = soxel_type
+        self.position = position
+        self.physical_props = physical_props
+        self.pressure = 0.0
+        self.velocity = np.zeros(3)  # 3D velocity vector
+        self.pressure_history = []
+        
+    def update_pressure(self, pressure: float):
+        self.pressure = pressure
+        self.pressure_history.append(pressure)
+        
+    def update_velocity(self, velocity: np.ndarray):
+        self.velocity = velocity
+        
+    def get_impedance_at_freq(self, frequency: float) -> float:
+        if self.physical_props is None:
+            return 413.0  # Default air impedance
+        # Interpolate impedance at given frequency
+        freqs = np.linspace(20, 20000, len(self.physical_props.impedance))
+        return np.interp(frequency, freqs, self.physical_props.impedance)
