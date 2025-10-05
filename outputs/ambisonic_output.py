@@ -38,7 +38,7 @@ class AmbisonicOutput:
         
     def load_spatial_arrangement(self):
         """Load spatial arrangement from JSON file"""
-        arrangement_file = self.config.get('spatial_arrangement')
+        arrangement_file = self.config.spatial_arrangement
         if arrangement_file and Path(arrangement_file).exists():
             with open(arrangement_file, 'r') as f:
                 self.spatial_arrangement = json.load(f)
@@ -108,4 +108,4 @@ class AmbisonicOutput:
     
     @property
     def position(self):
-        return self.config['position']
+        return self.config.position

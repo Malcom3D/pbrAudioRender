@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import numpy as np
 import zarr
 import zarrs
@@ -121,7 +122,7 @@ class WavePropagation:
             )
             
             # Export visualization frame
-            if current_frame % 100 == 0:  # Export every 100 frames
+            if current_frame % 1 == 0:  # Export every 1 frames
                 self.export_visualization_frame(current_frame)
                 
             current_frame += 1
@@ -145,8 +146,10 @@ class WavePropagation:
         """Export frame for visualization"""
         from ..renderer.openvdb_exporter import OpenVDBExporter
         exporter = OpenVDBExporter()
+        if not os.path.exists('data/vdb'):
+            os.makedirs('data/vdb')
         exporter.export_frame(
             self.soxels, 
             frame, 
-            f"frame_{frame:06d}.vdb"
+            f"data/vdb/frame_{frame:06d}.vdb"
         )

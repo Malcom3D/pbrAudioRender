@@ -74,6 +74,6 @@ class PbrAudioRender:
         """Export ambisonic results"""
         from .renderer.ambisonic_encoder import AmbisonicEncoder
         
-        encoder = AmbisonicEncoder(self.config.simulation.ambisonic_order)
+        encoder = AmbisonicEncoder(self.config.outputs.ambisonic_order)
         for output in self.outputs:
             encoder.encode_output(output, output_path)
