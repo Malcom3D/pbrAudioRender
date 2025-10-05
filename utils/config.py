@@ -39,6 +39,8 @@ class SimulationConfig:
     air_density: float = 1.225  # kg/m³
     max_frames: int = 48000  # 1 second at 48kHz
     pml_thickness: int = 10
+    absorption_coeff: float = 0.99
+    frequency_range: tuple[float, float] = (20.0, 20000.0)
     ambisonic_order: int = 3
     
 @dataclass

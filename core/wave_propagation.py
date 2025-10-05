@@ -37,7 +37,6 @@ class WavePropagation:
         self.fdtd_solver = None
         self.boundary_conditions = None
         self.zarr_store = None
-        
         self.setup_engine()
         
     def setup_engine(self):
@@ -60,6 +59,9 @@ class WavePropagation:
         self.boundary_conditions = BoundaryConditions(
             grid_shape,
             self.config.pml_thickness,
+            self.config.absorption_coeff,
+            self.config.frequency_range,
+            self.config.sample_rate,
             self.gpu_config
         )
         
@@ -109,9 +111,13 @@ class WavePropagation:
             )
             
             # Apply boundary conditions
-            pressure_field, velocity_field = self.boundary_conditions.apply(
+#            pressure_field, velocity_field = self.boundary_conditions.apply(
+#                pressure_field, velocity_field
+#            )
+            pressure_field = self.boundary_conditions.apply(
                 pressure_field, velocity_field
             )
+            self.boundary_conditions.update(pressure_field)
             
             # Update soxels
             self.update_soxel_fields(pressure_field, velocity_field)
