@@ -17,47 +17,68 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-import soundfile as sf
+from typing import Dict, Any
 from dataclasses import dataclass
-from typing import Optional
+from lib.directivity_pattern import DirectivityPattern
+from lib.frequency_response import FrequencyResponse
 
 @dataclass
 class SphericalSource:
-    config: dict
-    audio_data: Optional[np.ndarray] = None
-    current_sample: int = 0
+    """Spherical sound source with frequency-dependent properties"""
     
-    def __post_init__(self):
-        """Load audio data from file"""
-        if self.config.audio_file:
-            self.audio_data, self.sample_rate_rate = sf.read(
-                self.config.audio_file, 
-                dtype='float32',
-                always_2d=False
-            )
-            # Convert to mono if needed
-            if len(self.audio_data.shape) > 1:
-                self.audio_data = np.mean(self.audio_data, axis=1)
+    idx: int
+    name: str
+    position: np.ndarray
+    radius: float
+    acoustic_shader: Dict[str, Any]
+    frequency_response: FrequencyResponse
+    directivity_pattern: DirectivityPattern
+    
+    def __init__(self, source_config):
+        self.idx = source_config.idx
+        self.name = source_config.name
+        self.radius = source_config.geometry.get('radius', 0.1)
+        self.acoustic_shader = source_config.acoustic_shader
+        
+        # Initialize frequency response
+        if source_config.frequency_response:
+            self.frequency_response = FrequencyResponse(source_config.frequency_response)
+        elif source_config.frequency_response_file:
+            self.frequency_response = FrequencyResponse()
+            self.frequency_response.load_from_file(source_config.frequency_response_file)
         else:
-            # Generate test signal if no file provided
-            duration = 1.0  # seconds
-            t = np.linspace(0, duration, int(self.config.get('sample_rate', 48000) * duration))
-            self.audio_data = 0.5 * np.sin(2 * np.pi * 440 * t)  # 440 Hz sine wave
-            
-    def get_sample(self, frame: int) -> float:
-        """Get audio sample for current frame"""
-        if self.audio_data is None or frame >= len(self.audio_data):
-            return 0.0
+            self.frequency_response = FrequencyResponse()
         
-        sample = self.audio_data[frame] * self.config.gain
+        # Initialize directivity pattern
+        if source_config.directivity_pattern:
+            self.directivity_pattern = DirectivityPattern(source_config.directivity_pattern)
+        elif source_config.directivity_pattern_file:
+            self.directivity_pattern = DirectivityPattern()
+            self.directivity_pattern.load_from_file(source_config.directivity_pattern_file)
+        else:
+            self.directivity_pattern = DirectivityPattern()
+    
+    def get_pressure_at_point(self, point: np.ndarray, frequency: float) -> float:
+        """Calculate pressure at a point considering spherical wave propagation"""
+        distance = np.linalg.norm(point - self.position)
         
-        # Apply spherical radiation pattern (omnidirectional)
-        return sample
+        if distance < self.radius:
+            return 1.0  # Inside source
+        
+        # Spherical wave attenuation
+        attenuation = self.radius / distance
+        
+        # Directivity
+        direction = point - self.position
+        azimuth, elevation = self._vector_to_spherical(direction)
+        directivity = self.directivity_pattern.get_directivity(azimuth, elevation, frequency)
+        
+        return attenuation * directivity
     
-    @property
-    def position(self):
-        return self.config.position
-    
-    @property  
-    def rotation(self):
-        return (self.config.rotation, (0.0, 0.0, 0.0))
+    def _vector_to_spherical(self, vector: np.ndarray) -> tuple:
+        """Convert 3D vector to spherical coordinates"""
+        x, y, z = vector
+        azimuth = np.arctan2(y, x) * 180 / np.pi
+        elevation = np.arctan2(z, np.sqrt(x*x + y*y)) * 180 / np.pi
+        return azimuth % 360, elevation
+

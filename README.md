@@ -4,29 +4,11 @@ This project is licensed under the **GNU General Public License v3.0 or later**.
 
 See the [LICENSE](LICENSE) file for the full text.
 
-## pbrAudio Render: sound to sound 3D acoustic simulation engine
-Physically based wavesolver inspired by the Stanford's paper: "Toward Wave-based Sound Synthesis for Computer Animation"
+## pbrAudioRender
 
+Physically based rendered audio render.
 
-https://graphics.stanford.edu/projects/wavesolver/assets/wavesolver2018_opt.pdf
-
-@article{Wang:2018:TWS:3197517.3201318,
- author = {Wang, Jui-Hsien and Qu, Ante and Langlois, Timothy R. and James, Doug L.},
- title = {Toward Wave-based Sound Synthesis for Computer Animation},
- journal = {ACM Trans. Graph.},
- issue_date = {August 2018},
- volume = {37},
- number = {4},
- month = jul,
- year = {2018},
- issn = {0730-0301},
- pages = {109:1--109:16},
- articleno = {109},
- numpages = {16},
- url = {http://doi.acm.org/10.1145/3197517.3201318},
- doi = {10.1145/3197517.3201318},
- acmid = {3201318},
- publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {acoustics, computer animation, finite-difference time-domain method, sound synthesis},
-}
+References [not confirmed]:
+- https://graphics.stanford.edu/projects/wavesolver/assets/wavesolver2018_opt.pdf as white paper resources.
+- https://github.com/videolabs/libspatialaudio as ambisonic render bridge.
+- https://www.acoular.org to generate 3D mappings of sound source from multichannel data recorded by a microphone array (ambisonic).

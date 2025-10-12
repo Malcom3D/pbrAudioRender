@@ -17,103 +17,83 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-import soundfile as sf
+from typing import Dict, Any
 from dataclasses import dataclass
-from typing import Optional
+from lib.directivity_pattern import DirectivityPattern
+from lib.frequency_response import FrequencyResponse
 
 @dataclass
 class PlaneSource:
-    config: dict
-    audio_data: Optional[np.ndarray] = None
-    current_sample: int = 0
+    """Plane wave sound source with directional properties"""
     
-    def __post_init__(self):
-        """Load audio data from file"""
-        if self.config.get('audio_file'):
-            self.audio_data, self.sample_rate = sf.read(
-                self.config['audio_file'], 
-                dtype='float32',
-                always_2d=False
-            )
-            # Convert to mono if needed
-            if len(self.audio_data.shape) > 1:
-                self.audio_data = np.mean(self.audio_data, axis=1)
+    idx: int
+    name: str
+    position: np.ndarray
+    normal: np.ndarray
+    dimensions: tuple
+    acoustic_shader: Dict[str, Any]
+    frequency_response: FrequencyResponse
+    directivity_pattern: DirectivityPattern
+    
+    def __init__(self, source_config):
+        self.idx = source_config.idx
+        self.name = source_config.name
+        self.dimensions = source_config.geometry.get('dimensions', (1.0, 1.0))
+        self.normal = np.array(source_config.geometry.get('normal', [0, 0, 1]))
+        self.acoustic_shader = source_config.acoustic_shader
+        
+        # Initialize frequency response
+        if source_config.frequency_response:
+            self.frequency_response = FrequencyResponse(source_config.frequency_response)
+        elif source_config.frequency_response_file:
+            self.frequency_response = FrequencyResponse()
+            self.frequency_response.load_from_file(source_config.frequency_response_file)
         else:
-            # Generate test signal if no file provided
-            duration = 1.0  # seconds
-            t = np.linspace(0, duration, int(self.config.get('sample_rate', 48000) * duration))
-            self.audio_data = 0.5 * np.sin(2 * np.pi * 440 * t)  # 440 Hz sine wave
+            self.frequency_response = FrequencyResponse()
+        
+        # Initialize directivity pattern
+        if source_config.directivity_pattern:
+            self.directivity_pattern = DirectivityPattern(source_config.directivity_pattern)
+        elif source_config.directivity_pattern_file:
+            self.directivity_pattern = DirectivityPattern()
+            self.directivity_pattern.load_from_file(source_config.directivity_pattern_file)
+        else:
+            self.directivity_pattern = DirectivityPattern()
     
-    def get_sample(self, frame: int) -> float:
-        """Get audio sample for current frame with plane wave directivity"""
-        if self.audio_data is None or frame >= len(self.audio_data):
-            return 0.0
+    def get_pressure_at_point(self, point: np.ndarray, frequency: float) -> float:
+        """Calculate pressure at a point considering plane wave propagation"""
+        # Vector from source to point
+        direction = point - self.position
         
-        sample = self.audio_data[frame] * self.config.get('gain', 1.0)
+        # Project onto plane
+        distance_along_normal = np.dot(direction, self.normal)
         
-        # Plane waves have directional characteristics
-        # For now, we'll implement basic plane wave behavior
-        # More sophisticated directivity can be added later
-        return sample
+        if distance_along_normal < 0:
+            return 0.0  # Behind the plane source
+        
+        # Check if point is within source dimensions
+        tangent1 = np.cross(self.normal, np.array([1, 0, 0]))
+        if np.linalg.norm(tangent1) < 0.1:
+            tangent1 = np.cross(self.normal, np.array([0, 1, 0]))
+        tangent1 = tangent1 / np.linalgg.norm(tangent1)
+        tangent2 = np.cross(self.normal, tangent1)
+        
+        proj1 = np.abs(np.dot(direction, tangent1))
+        proj2 = np.abs(np.dot(direction, tangent2))
+        
+        if proj1 > self.dimensions[0]/2 or proj2 > self.dimensions[1]/2:
+            return 0.0  # Outside source area
+        
+        # Directivity
+        azimuth, elevation = self._vector_to_spherical(direction)
+        directivity = self.directivity_pattern.get_directivity(azimuth, elevation, frequency)
+        
+        return directivity
     
-    def get_directivity(self, listener_pos: tuple) -> float:
-        """Calculate directivity factor based on listener position"""
-        source_pos = np.array(self.position)
-        listener_pos = np.array(listener_pos)
-        
-        # Vector from source to listener
-        direction = listener_pos - source_pos
-        direction_normalized = direction / np.linalg.norm(direction)
-        
-        # Source orientation
-        orientation = self.get_orientation_vector()
-        
-        # Cosine of angle between source orientation and listener direction
-        cos_theta = np.dot(orientation, direction_normalized)
-        
-        # Plane wave directivity (cardioid pattern)
-        directivity = 0.5 * (1 + cos_theta)
-        
-        return directivityivity
-    
-    def get_orientation_vector(self) -> np.ndarray:
-        """Convert Euler angles to orientation vector"""
-        roll, pitch, yaw = self.rotation
-        
-        # Calculate rotation matrix
-        R_x = np.array([
-            [1, 0, 0],
-            [0, np.cos(roll), -np.sin(roll)],
-            [0, np.sin(roll), np.cos.cos(roll)]
-        ])
-        
-        R_y = np.array([
-            [np.cos(pitch), 0, np.sin(pitch)],
-            [0, 1, 0],
-            [-np.sin(pitch), 0, np.cos(pitch)]
-        ])
-        
-        R_z = np.array([
-            [np.cos(yaw), -np.sin(yaw), 0],
-            [np.sin(yaw), np.cos(yaw), 0],
-            [0, 0, 1]
-        ])
-        
-        # Combined rotation matrix
-        R = R_z @ R_y @ R_x
-        
-        # Default forward vector
-        forward = np.array([1, 0, 0])
-        
-        # Rotated forward vector
-        orientation = R @ forward
-        
-        return orientation
-    
-    @property
-    def position(self):
-        return self.config['position']
-    
-    @property  
-    def rotation(self):
-        return self.config.get('rotation', (0.0, 0.0, 0.0))
+    def _vector_to_spherical(self, vector: np.ndarray) -> tuple:
+        """Convert 3D vector to spherical coordinates"""
+        x x, y, z = vector
+        azimuth = np.arctan2(y, x) * 180 / np.pi
+        elevation = np.arctan2(z, np.sqrt(x*x + y*y)) * 180 / np.pi
+        return azimuth % 360, elevation
+

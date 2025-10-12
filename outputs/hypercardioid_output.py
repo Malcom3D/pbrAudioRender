@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-Cardioid microphone output with heart-shaped directivity pattern.
+Hypercardioid microphone output with tighter directivity than cardioid.
 """
 
 import numpy as np
@@ -30,39 +30,38 @@ from ..lib.calibration import OutputCalibration
 
 
 @dataclass
-class CardioidOutput(OmnidirectionalOutput):
-    """Cardioid microphone with heart-shaped directivity pattern"""
+class HypercardioidOutput(OmnidirectionalOutput):
+    """Hypercardioid microphone with tighter directivity pattern"""
     
     def __init__(self, output_config):
         super().__init__(output_config)
         
-        # Override with cardioid directivity pattern
+        # Override with hypercardioid directivity pattern
         if (not output_config.directivity_pattern and 
             not output_config.directivity_pattern_file):
-            self.directivity_pattern = CommonDirectivityPatterns.cardioid()
+            self.directivity_pattern = CommonDirectivityPatterns.hypercardioid()
     
     def get_directivity(self, azimuth: float, elevation: float, 
                        frequency: Optional[float] = None) -> float:
         """
-        Get cardioid directivity coefficient.
-        Cardioid pattern: 0.5 * (1 + cos(θ))
+        Get hypercardioid directivity coefficient.
+        Hypercardioid pattern: 0.25 * (1 + 3*cos(θ))
         where θ is the angle from the microphone's front axis.
         """
-        # Convert global direction to local coordinates relative to microphone orientation
+        # Convert global direction to local coordinates
         local_azimuth, local_elevation = self._global_to_local_direction(azimuth, elevation)
         
-        # Cardioid pattern is primarily azimuth-dependent
-        # The angle θ is the azimuth relative to front (0°)
+        # Hypercardioid pattern is primarily azimuth-dependent
         theta = np.deg2rad(local_azimuth)
         
-        # Classic cardioid pattern
-        directivity = 0.5 * (1 + np.cos(theta))
+        # Classic hypercardioid pattern
+        directivity = 0.25 * (1 + 3 * np.cos(theta))
         
         # Optional: Apply frequency-dependent variations
         if frequency is not None:
-            # Cardioid pattern typically becomes more directional at high frequencies
-            freq_factor = min(1.0, frequency / 5000.0)  # More directional above 5kHz
-            directivity = directivity ** (1.0 / (1.0 + freq_factor))
+            # Hypercardioid becomes more directional at high frequencies
+            freq_factor = min(1.5, frequency / 3000.0)  # More directional above 3kHz
+            directivity = directivity ** (1.0 / (1.0 + 0.5 * freq_factor))
         
         return directivity
     
@@ -78,15 +77,44 @@ class CardioidOutput(OmnidirectionalOutput):
         Returns:
             Local (azimuth, elevation) relative to microphone orientation
         """
-        # Simplified implementation
-        # In practice, use quaternion rotation to transform coordinates
-        
-        # For now, assume microphone is oriented along global X-axis
-        # and return direction relative to that
-        local_azimuth = (global_azimuth - 0) % 360  # Adjust based on orientation
+        # Simplified implementation implementation
+        # Assume microphone is oriented along global X-axis
+        local_azimuth = (global_azimuth - 0) % 360
         local_elevation = global_elevation
         
         return local_azimuth, local_elevation
+    
+    def get_null_directions(self) -> List[Tuple[float, float]]:
+        """
+        Get directions where microphone has minimum sensitivity (nulls).
+        
+        Returns:
+            List of (azimuth, elevation) tuples for null directions
+        """
+        # Hypercardioid has nulls at approximately 110° and 250° from front
+        return [(110.0, 0.0), (250.0, 0.0)]
+    
+    def get_directivity_index(self, frequency: float = 1000.0) -> float:
+        """
+        Calculate directivity index (DI) in dB.
+        
+        Args:
+            frequency: Frequency for DI calculation
+        
+        Returns:
+            Directivity index in dB
+        """
+        # For hypercardioid, theoretical DI is about 6.0 dB
+        # This can vary with frequency
+        base_di = 6.0
+        
+        # Frequency-dependent adjustment
+        if frequency > 5000:
+            base_di += 1.0  # Slightly more directional at high frequencies
+        elif frequency < 500:
+            base_di -= 1.0  # Slightly less directional at low frequencies
+        
+        return base_di
     
     def get_polar_response(self, frequencies: List[float] = None) -> Dict[float, np.ndarray]:
         """

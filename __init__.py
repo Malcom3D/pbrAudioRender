@@ -16,64 +16,58 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import json
-from typing import List, Dict, Any
-from .utils.config import Config
-from .utils.gpu_acceleration import GPUConfig
-from .core.wave_propagation import WavePropagation
-from .sources.spherical_source import SphericalSource
-from .sources.plane_source import PlaneSource
+"""
+3D Acoustic Wave Propagation Simulation Engine
+"""
 
-class PbrAudioRender:
+from .core.acoustic_engine import AcousticEngine
+from .core.soxel import Soxel, SoxelGrid
+from .core.zarr_store import ZarrStore
+from .utils.config import Config
+from .renderer.ambisonic_encoder import AmbisonicEncoder
+
+__version__ = "0.1.0"
+__author__ = "Acoustic Simulation Engine"
+__description__ = "3D acoustic wave propagation simulation with voxel-based rendering"
+
+class pbrAudioRender:
+    """Main class for running 3D acoustic simulations"""
+    
     def __init__(self, config_file: str):
         # Load configuration
         self.config = Config(config_file)
         
-        # Setup GPU acceleration
-        self.gpu_config = GPUConfig()
+        # Initialize core components
+        self.soxel_grid = SoxelGrid(
+            self.config.voxel_grid,
+            self.config.sources,
+            self.config.objects
+        )
         
-        # Initialize engine
-        self.engine = WavePropagation(self.config.simulation, self.gpu_config)
+        self.engine = AcousticEngine(
+            self.config,
+            self.soxel_grid
+        )
         
-        # Store sources and outputs
-        self.sources = []
-        self.outputs = []
+        # Initialize renderers
+        self.ambisonic_encoder = AmbisonicEncoder(
+            self.config.voxel_grid.sample_rate,
+            self.config.voxel_grid.bit_depth,
+            self.config.outputs
+        )
+        
+    def run_simulation(self):
+        """Run the main simulation loop"""
+        self.engine.run_simulation()
+        
+    def encode_ambisonic(self):
+        """Encode simulation results to Ambisonic B-format"""
+        self.ambisonic_encoder.encode()
 
-        if self.config.sources:
-            self.add_source(self.config.sources)
-        elif self.config.outputs in name:
-            self.add_output(self.config.outputs)
-        
-    def add_source(self, source_config: Dict[str, Any]):
-        """Add a sound source to the simulation"""
-        if source_config.type == 'spherical':
-            source = SphericalSource(source_config)
-        elif source_config.type == 'plane':
-            source = PlaneSource(source_config)
-        else:
-            raise ValueError(f"Unknown source type: {source_config['type']}")
-            
-        self.sources.append(source)
-        self.engine.add_source(source_config, source)
-        
-    def add_output(self, output_config: Dict[str, Any]):
-        """Add an output point to the simulation"""
-        from .outputs.ambisonic_output import AmbisonicOutput
-        
-        output = AmbisonicOutput(output_config)
-        self.outputs.append(output)
-        self.engine.add_output(output_config, output)
-        
-    def run(self):
-        """Run the complete simulation"""
-        print("Starting 3D acoustic simulation...")
-        self.engine.run_simulation(self.sources, self.outputs)
-        print("Simulation completed!")
-        
-    def export_ambisonic(self, output_path: str):
-        """Export ambisonic results"""
-        from .renderer.ambisonic_encoder import AmbisonicEncoder
-        
-        encoder = AmbisonicEncoder(self.config.outputs.ambisonic_order)
-        for output in self.outputs:
-            encoder.encode_output(output, output_path)
+    def export_results(self):
+        """Export all simulation results"""
+        self.encode_ambisonic()
+        # Add other export methods here
+
+__all__ = ['pbrAudioRender', 'Config', 'AcousticEngine', 'SoxelGrid']
+

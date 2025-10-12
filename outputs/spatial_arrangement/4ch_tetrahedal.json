@@ -1,0 +1,43 @@
+{
+    "name": "4ch_tetrahedral",
+    "description": "4-channel tetrahedral microphone array",
+    "type": "omnidirectional",
+    "microphones": [
+        {
+            "id": 0,
+            "type": "omnidirectional",
+            "distance": 0.0,
+            "azimuth": 0.0,
+            "elevation": 35.264,
+            "calibration_file": null
+        },
+        {
+            "id": 1,
+            "type": "omnidirectional", 
+            "distance": 0.0,
+            "azimuth": 120.0,
+            "elevation": 35.264,
+            "calibration_file": null
+        },
+        {
+            "id": 2,
+            "type": "omnidirectional",
+            "distance": 0.0,
+            "azimuth": 240.0,
+            "elevation": 35.264,
+            "calibration_file": null
+        },
+        {
+            "id": 3,
+            "type": "omnidirectional",
+            "distance": 0.0,
+            "azimuth": 0.0,
+            "elevation": -35.264,
+            "calibration_file": null
+        }
+    ],
+    "reference_point": "center",
+    "coordinate_system": "spherical",
+    "units": "meters"
+}
+

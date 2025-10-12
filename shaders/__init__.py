@@ -15,3 +15,28 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+from .gas_shader import GasShader
+from .fluid_shader import FluidShader
+from .solid_shader import SolidShader
+
+def create_shader(shader_type: str, **kwargs):
+    """Factory function to create appropriate shader based on type"""
+    shader_type = shader_type.lower()
+    
+    if shader_type == "gas":
+        return GasShader(**kwargs)
+    elif shader_type == "fluid":
+        return FluidShader(**kwargs)
+    elif shader_type == "solid":
+        return SolidShader(**kwargs)
+    else:
+        raise ValueError(f"Unknown shader type: {shader_type}")
+
+__all__ = [
+    'GasShader',
+    'FluidShader', 
+    'SolidShader',
+    'create_shader'
+]
+
