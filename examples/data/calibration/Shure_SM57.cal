@@ -1,0 +1,22 @@
+Calibration file for Shure SM57 (Example)
+Serial Number: A1B234C
+Date: 2023-10-26
+Measured by: Example Labs
+Level: 94 dB SPL @ 1 kHz
+Voltage: 1 Pa / V
+
+* Calibration Data *
+Hz    dB
+20    -24.5
+30    -18.2
+50    -10.1
+100   -4.5
+200   -2.1
+500   -1.2
+1000   0.0
+2000  +1.5
+5000  +4.8
+8000  +6.1
+10000 +5.5
+15000 +2.8
+20000 -3.5

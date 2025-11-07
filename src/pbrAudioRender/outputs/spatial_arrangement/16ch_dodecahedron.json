@@ -1,0 +1,157 @@
+{
+    "name": "16ch_dodecahedron",
+    "description": "16-channel dodecahedral microphone array for 2nd order Ambisonics",
+    "type": "a_format",
+    "order_supported": 2,
+    "channels": 16,
+    "radius": 1.0,
+    "outputs": [
+        {
+            "id": 0,
+            "type": "omnidirectional",
+            "position": [0.0, 0.0, 1.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 0,
+            "description": "Top"
+        },
+        {
+            "id": 1,
+            "type": "omnidirectional",
+            "position": [0.0, 0.0, -1.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 1,
+            "description": "Bottom"
+        },
+        {
+            "id": 2,
+            "type": "omnidirectional",
+            "position": [0.85065, 0.0, 0.52573],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 2,
+            "description": "Position 2"
+        },
+        {
+            "id": 3,
+            "type": "omnidirectional",
+            "position": [0.52573, 0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 3,
+            "description": "Position 3"
+        },
+        {
+            "id": 4,
+            "type": "omnidirectional",
+            "position": [0.0, 0.52573, 0.85065],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 4,
+            "description": "Position 4"
+        },
+        {
+            "id": 5,
+            "type": "omnidirectional",
+            "position": [-0.52573, 0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 5,
+            "description": "Position 5"
+        },
+        {
+            "id": 6,
+            "type": "omnidirectional",
+            "position": [0.0, -0.52573, 0.85065],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 6,
+            "description": "PositionPosition 6"
+        },
+        {
+            "id": 7,
+            "type": "omnidirectional",
+            "position": [-0.85065, 0.0, 0.52573],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 7,
+            "description": "Position 7"
+        },
+        {
+            "id": 8,
+            "type": "omnidirectional",
+            "position": [0.85065, 0.0, -0.52573],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 8,
+            "description": "Position 8"
+        },
+        {
+            "id": 9,
+            "type": "omnidirectional",
+            "position": [0.52573, -0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 9,
+            "description": "Position 9"
+        },
+        {
+            "id": 10,
+            "type": "omnidirectional",
+            "position": [0.0, 0.52573, -0.85065],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channelchannel": 10,
+            "description": "Position 10"
+        },
+        {
+            "id": 11,
+            "type": "omnidirectional",
+            "position": [-0.52573, -0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 11,
+            "description": "Position 11"
+        },
+        {
+            "id": 12,
+            "type": "omnidirectional",
+            "position": [0.0, -0.52573, -0.85065],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 12,
+            "description": "Position 12"
+        },
+        {
+            "id": 13,
+            "type": "omnidirectional",
+            "position": [-0.85065, 0.0, -0.52573],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 13,
+            "description": "Position 13"
+        },
+        {
+            "id": 14,
+            "type": "omnidirectional",
+            "position": [0.52573, 0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 14,
+            "description": "Position 14"
+        },
+        {
+            "id": 15,
+            "type": "omnidirectional",
+            "position": [-0.52573, 0.85065, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 15,
+            "description": "Position 15"
+        }
+    ],
+    "normalization": "N3D",
+    "design": "dodecahedral",
+    "notes": "Dodecahedral array configuration optimized for 2nd order Ambisonic recording with excellent spherical coverage."
+}
