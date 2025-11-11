@@ -104,5 +104,13 @@ class AcousticEngine:
             self.entity_manager.register('wave_propagators', wave_propagator, config.idx)
 
     def update(self):
-        self.entity_manager.get('frames').next()
-        self.entity_manager.get('soxel_grid').update()
+        soxel_grid = self.entity_manager.get('soxel_grid')
+        soxel_grid.update()
+        wave_propagators = self.entity_manager.get('wave_propagators')
+        for index in wave_propagators.keys():
+            wave_propagator = wave_propagators.get(index)
+            print("wave_propagator.update", index)
+            wave_propagator.update()
+        frames = self.entity_manager.get('frames')
+        frames.next()
+

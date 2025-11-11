@@ -27,7 +27,8 @@ Physically based rendered Audio: 3D acoustic render.
      |/           |/
      .------------.
     /
-   x
+   /x
+
 
 Soxel: acoustic pressure, acoustic particle velocity and acoustic material properties in a voxel
 

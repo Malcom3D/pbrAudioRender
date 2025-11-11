@@ -25,8 +25,8 @@ import os
 
 from core.entity_manager import EntityManager
 from lib.soxel import Soxel
-from lib.functions import _np_to_shm_array, _flat_to_3d
-from utils.xp_wrapper import XpWrapper
+from lib.functions import _shm_array, _flat_to_3d
+#from utils.xp_wrapper import XpWrapper
 
 from lib.acoustic_shader import AcousticShader
 from lib.acoustic_field import AcousticField
@@ -34,7 +34,7 @@ from lib.acoustic_field import AcousticField
 from sources.spherical_source import SphericalSource
 from sources.planar_source import PlanarSource
 
-xp = XpWrapper()
+#xp = XpWrapper()
 
 class SoxelGrid():
     """Manages the 3D grid of soxels and their acoustic properties"""
@@ -48,13 +48,13 @@ class SoxelGrid():
         self.shape = self.config.acoustic_domain.shape
         self.default_shader = self.config.acoustic_domain.acoustic_shader
 
-        # Initialize soxel grid
-        self.soxels = np.empty(self.shape, dtype=object)
-
         # Initialize the grid
-        self._initialize_grid()
+#        self._initialize_grid()
 
     def _initialize_grid(self):
+        """Initialize soxel grid"""
+        self.soxels = np.empty(self.shape, dtype=object)
+
         """Initialize the soxel grid with default medium"""
         # Fill grid with default medium
         for i in range(self.shape[0]):
@@ -67,19 +67,21 @@ class SoxelGrid():
                         acoustic_shader = self.default_shader
                     )
 
+    def _init_sources(self):
         # Write soxels from sources to the grid
         for source_config in self.config.sources:
             source = self.entity_manager.get('sources', source_config.idx)
             soxel_list = source.get_soxels()
-            for coord, soxel in soxel_list:
-                self.soxels[coord] = soxel
+            for i,j,k, soxel in soxel_list:
+                self.soxels[i,j,k] = soxel
 
+    def _init_objects(self):
         # Write soxels from acoustic objects to the grid
-        for obj in self.config.objects:
-            obj = self.entity_manager.get('objects', obj.idx)
+        for obj_config in self.config.objects:
+            obj = self.entity_manager.get('objects', obj_config.idx)
             soxel_list = obj.get_soxels()
-            for coord, soxel in soxel_list:
-                self.soxels[coord] = soxel
+            for i,j,k, soxel in soxel_list:
+                self.soxels[i,j,k] = soxel
 
     def get_shm_array(self, element: str, low_freq: float = None, high_freq: float = None) -> mp.Array:
         elements_map = {
@@ -95,23 +97,22 @@ class SoxelGrid():
             if element in key:
                 val = elements_map.get(key)
 
-        shm_flat = _np_to_shm_array(self.shape)
+        shm_flat = _shm_array(self.shape)
         shm_grid = _flat_to_3d(shm_flat, self.shape)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
                 for k in range(self.shape[2]):
-                    if self.soxels[i,j,k].type == 1 and ('pressure' in val or 'vx' in val or 'vy' in val or 'vz' in val):
+                    if self.soxels[i,j,k].type == 1 and ('pressure' in val or 'x' in val or 'y' in val or 'z' in val):
                         if not low_freq == None and not high_freq == None:
                             for band_num in range(len(self.soxels[i,j,k].input_pressures.field)):
                                 low = self.soxels[i,j,k].input_pressures.field[band_num].low_freq
                                 high = self.soxels[i,j,k].input_pressures.field[band_num].high_freq
                                 if low == low_freq and high == high_freq:
                                     shm_grid[i,j,k] = eval(f"self.soxels[{i, j, k}].input_pressures.field[{band_num}].{val}")
-                    elif 'pressure' in val or 'vx' in val or 'vy' in val or 'vz' in val:
+                    elif 'pressure' in val or 'x' in val or 'y' in val or 'z' in val:
                         shm_grid[i,j,k] = 0.
                     else:
                         shm_grid[i,j,k] = eval(f"self.soxels[{i, j, k}].{val}")
-
         return shm_grid
 
     def get_input(self, source_idx: int):
@@ -127,3 +128,5 @@ class SoxelGrid():
     def update(self):
         # Initialize the grid
         self._initialize_grid()
+        self._init_sources()
+        self._init_objects()

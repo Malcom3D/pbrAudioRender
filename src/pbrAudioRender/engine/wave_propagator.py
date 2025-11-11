@@ -44,7 +44,7 @@ class WavePropagator:
     def update(self):
         if not self.layer_manager.ended: 
             self.mbf_fdtd.update()
-            self.damping.update()
-            self.boundary.update()
+#            self.damping.update()
+#            self.boundary.update()
 #            if not self.termination.update():
 #               self.layer_manager.ended = True

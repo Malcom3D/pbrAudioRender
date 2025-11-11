@@ -18,10 +18,12 @@
 
 import os
 import numpy as np
+import trimesh
 from typing import Tuple, Optional, List
 from dataclasses import dataclass, field
 
 from core.entity_manager import EntityManager
+from lib.soxel import Soxel
 from lib.functions import _audio_to_npz, _get_position, _world_to_grid, _is_in_bounds, _cartesian_to_spherical
 
 @dataclass
@@ -45,15 +47,15 @@ class AcousticObject:
 
     def get_soxels(self):
         """Voxelize an acoustic object into the grid"""
-        # Load object mesh from OBJ files
-        mesh_vertices, mesh_faces = self._load_object_mesh()
+        # Load object mesh from OBJ files using trimesh
+        mesh = self._load_object_mesh()
 
-        if mesh_vertices is None or mesh_faces is None:
+        if mesh is None:
             print(f"Warning: Could not load mesh for object: {self.object_config.name}")
             return
 
-        # Voxelize mesh
-        object_voxels = self._voxelize_mesh(mesh_vertices, mesh_faces)
+        # Voxelize mesh using trimesh
+        object_voxels = self._voxelize_mesh(mesh)
 
         # Update soxels at object positions
         soxels = []
@@ -61,124 +63,185 @@ class AcousticObject:
             if _is_in_bounds(self.shape, i, j, k):
                 soxel = Soxel(
                     idx=self.object_config.idx,
-                    type = 2,                  # mark as object
-                    input_pressures = None,
-                    acoustic_shader = self.object_config.acoustic_shader
+                    type=2,  # mark as object
+                    input_pressures=None,
+                    acoustic_shader=self.object_config.acoustic_shader
                 )
-                soxels.append([[i,j,k],soxel])
+                soxels.append([i, j, k, soxel])
         return soxels
 
-    def _load_object_mesh(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Load object mesh from OBJ files"""
-        # This is a simplified implementation
-        # In practice, you'd need to handle proper OBJ parsing
-
+    def _load_object_mesh(self) -> Optional[trimesh.Trimesh]:
+        """Load object mesh from OBJ files using trimesh"""
         current_frame = self.frames.get()
 
         if not self.object_config.obj_files:
-            return None, None
-    
-        try:
-            # Simple OBJ parser for demonstration
-            vertices = []
-            faces = []
-    
-            obj_file = self.object_config.obj_files[current_frame]
-            with open(obj_file, 'r') as f:
-                for line in f:
-                    if line.startswith('v '):
-                        # Vertex
-                        parts = line.strip().split()
-                        if len(parts) >= 4:
-                            vertex = [float(parts[1]), float(parts[2]), float(parts[3])]
-                            vertex = _world_to_grid(self.voxel_size, self.grid_geometry, vertex)
-                            vertices.append(vertex)
-                    elif line.startswith('f '):
-                        # Face
-                        parts = line.strip().split()
-                        if len(parts) >= 4:
-                            # Handle different face formats (v, v/vt, v/vt/vn)
-                            face_vertices = []
-                            for part in parts[1:]:
-                                vertex_index = part.split('/')[0]
-                                if vertex_index:
-                                    face_vertices.append(int(vertex_index) - 1)  # OBJ is 1-indexed
-                            if len(face_vertices) >= 3:
-                                faces.append(face_vertices)
+            return None
 
-            return np.array(vertices, dtype=np.int32), np.array(faces, dtype=np.int32)
+        try:
+            obj_files = self.object_config.obj_files
+            if not len(obj_files) == 1:
+                obj_file = obj_files[current_frame]
+            else:
+                obj_file = obj_files[0]
+            
+            # Load mesh using trimesh
+            mesh = trimesh.load_mesh(obj_file)
+            
+            # Ensure we have a triangular mesh
+            if not isinstance(mesh, trimesh.Trimesh):
+                # If it's a scene or other type, try to extract the first mesh
+                if hasattr(mesh, 'geometry'):
+                    mesh = list(mesh.geometry.values())[0]
+                else:
+                    print(f"Warning: Unsupported mesh type for {obj_file}")
+                    return None
+            
+            # Convert vertices to grid coordinates
+            vertices_world = mesh.vertices
+            vertices_grid = np.array([
+                _world_to_grid(self.voxel_size, self.grid_geometry, vertex) 
+                for vertex in vertices_world
+            ], dtype=np.int32)
+            
+            # Create new mesh with grid coordinates
+            mesh_grid = trimesh.Trimesh(vertices=vertices_grid, faces=mesh.faces)
+            
+            return mesh_grid
 
         except Exception as e:
-            print(f"Warning: Failed to load OBJ file {self.object_config.obj_files[0]}: {e}")
-            return None, None
+            print(f"Warning: Failed to load OBJ file {self.object_config.obj_files[current_frame]}: {e}")
+            return None
 
-    def _voxelize_mesh(self, vertices: np.ndarray, faces: np.ndarray) -> List[Tuple[int, int, int]]:
-        """Voxelize a mesh into grid positions"""
-        # Simple voxelization using bounding box and point-in-mesh test
-        # In practice, use more sophisticated voxelization algorithms
+    def _voxelize_mesh(self, mesh: trimesh.Trimesh) -> List[Tuple[int, int, int]]:
+        """Voxelize a mesh into grid positions using trimesh voxelization"""
         voxels = []
 
-        if vertices is None or len(vertices) == 0:
+        if mesh is None or mesh.vertices is None or len(mesh.vertices) == 0:
             return voxels
 
-        # Calculate bounding box
-        min_grid = np.min(vertices, axis=0)
-        max_grid = np.max(vertices, axis=0)
+        try:
+            # Method 1: Use trimesh's built-in voxelization
+            # This creates a voxel grid that fits the mesh
+            voxel_grid = mesh.voxelized(pitch=1.0)  # pitch=1.0 since we're in grid coordinates
+            
+            # Get the voxel centers in grid coordinates
+            if voxel_grid is not None and voxel_grid.shape is not None:
+                # voxel_grid.matrix is a 3D boolean array where True indicates occupied voxels
+                occupied_voxels = np.argwhere(voxel_grid.matrix)
+                
+                # Convert to global grid coordinates
+                # The voxel grid might have its own origin, so we need to transform
+#                voxel_origin = voxel_grid.origin
+                for voxel in occupied_voxels:
+                    global_coords = (
+                        int(voxel[0]),
+                        int(voxel[1]), 
+                        int(voxel[2])
+                    )
+#                    global_coords = (
+#                        int(voxel[0] + voxel_origin[0]),
+#                        int(voxel[1] + voxel_origin[1]), 
+#                        int(voxel[2] + voxel_origin[2])
+#                    )
+                    voxels.append(global_coords)
+                    
+        except Exception as e:
+            print(f"Warning: Trimesh voxelization failed, falling back to bounding box method:: {e}")
+            # Fallback to bounding box method
+            voxels = self._voxelize_mesh_bounding_box(mesh)
 
-        # Simple voxelization: check if voxel center is inside mesh
-        for i in range(max(0, min_grid[0]), min(self.shape[0], max_grid[0] + 1)):
-            for j in range(max(0, min_grid[1]), min(self.shape[1], max_grid[1] + 1)):
-                for k in range(max(0, min_grid[2]), min(self.shape[2], max_grid[2] + 1)):
-                    voxel_center = (i, j, k)
-
-                    if self._is_point_in_mesh(voxel_center, vertices, faces):
-                        if _is_in_bounds(self.shape, i, j, k):
-                            voxels.append((i, j, k))
         return voxels
 
-    def _is_point_in_mesh(self, point: np.ndarray, vertices: np.ndarray, faces: np.ndarray) -> bool:
-        """Check if a point is inside a mesh using ray casting"""
-        # Simplified point-in-mesh test
-        # In practice, use more robust algorithms
-        ray_direction = np.array([1.0, 0.0, 0.0])  # Arbitrary direction
-        intersection_count = 0
+    def _voxelize_mesh_bounding_box(self, mesh: trimesh.Trimesh) -> List[Tuple[int, int, int]]:
+        """Fallback voxelization using bounding box and point-in-mesh test"""
+        voxels = []
+        
+        # Get bounding box in grid coordinates
+        bbox = mesh.bounds
+        min_grid = np.floor(bbox[0]).astype(int)
+        max_grid = np.ceil(bbox[1]).astype(int)
+        
+        # Clamp to grid boundaries
+        min_grid = np.maximum(min_grid, [0, 0, 0])
+        max_grid = np.minimum(max_grid, self.shape)
+        
+        # Check each voxel in the bounding box
+        for i in range(min_grid[0], max_grid[0] + 1):
+            for j in range(min_grid[1], max_grid[1] + 1):
+                for k in range(min_grid[2], max_grid[2] + 1):
+                    point = np.array([i, j, k])
+                    
+                    # Use trimesh's contains_points method for robust point-in-mesh test
+                    if mesh.contains([point])[0]:
+                        voxels.append((i, j, k))
+        
+        return voxels
 
-        for face in faces:
-            if len(face) >= 3:
-                triangle = vertices[face[:3]]
-                if self._ray_triangle_intersection(point, ray_direction, triangle):
-                    intersection_count += 1
+    def _voxelize_mesh_raycasting(self, mesh: trimesh.Trimesh) -> List[Tuple[int, int, int]]:
+        """Alternative voxelization using ray casting (more accurate but slower)"""
+        voxels = []
+        
+        # Get bounding box
+        bbox = mesh.bounds
+        min_grid = np.floor(bbox[0]).astastype(int)
+        max_grid = np.ceil(bbox[1]).astype(int)
+        
+        # Clamp to grid boundaries
+        min_grid = np.maximum(min_grid, [0, 0, 0])
+        max_grid = np.minimum(max_grid, self.shape)
+        
+        # Create ray origins for each x-z plane
+        ray_origins = []
+        grid_points = []
+        
+        for i in range(min_grid[0], max_grid[0] + 1):
+            for k in range(min_grid[2], max_grid[2] + 1):
+                # Create ray from bottom to top of bounding box
+                origin = np.array([i, min_grid[1] - 1, k])
+                ray_origins.append(origin)
+                grid_points.append((i, k))
+        
+        if ray_origins:
+            ray_origins = np.array(ray_origins)
+            ray_directions = np.array([[0, 1, 0]] * len(ray_origins))  # All rays point upward
+            
+            # Find intersections with mesh
+            locations, index_ray, index_tri = mesh.ray.intersects_location(
+                ray_origins, ray_directions, multiple_hits=True
+            )
+            
+            # Process intersections to determine filled voxels
+            if len(locations) > 0:
+                voxels = self._process_ray_intersections(
+                    locations, index_ray, grid_points, min_grid, max_grid
+                )
+        
+        return voxels
 
-        return intersection_count % 2 == 1  # Odd number of intersections = inside
-
-    def _ray_triangle_intersection(self, ray_origin: np.ndarray, ray_dir: np.ndarray,
-                                 triangle: np.ndarray) -> bool:
-        """Check if ray intersects triangle (Möller–Trumbore algorithm)"""
-        # Simplified implementation
-        # In practice, use the full Möller–Trumbore algorithm
-        epsilon = 1e-6
-
-        edge1 = triangle[1] - triangle[0]
-        edge2 = triangle[2] - triangle[0]
-        h = np.cross(ray_dir, edge2)
-        a = np.dot(edge1, h)
-
-        if abs(a) < epsilon:
-            return False  # Ray parallel to triangle
-
-        f = 1.0 / a
-        s = ray_origin - triangle[0]
-        u = f * np.dot(s, h)
-
-        if u < 0.0 or u > 1.0:
-            return False
-
-        q = np.cross(s, edge1)
-        v = f * np.dot(ray_dir, q)
-
-        if v < 0.0 or u + v > 1.0:
-            return False
-
-        t = f * np.dot(edge2, q)
-
-        return t > epsilon
+    def _process_ray_intersections(self, locations: np.ndarray, index_ray: np.ndarray, 
+                                 grid_points: List[Tuple[int, int]], 
+                                 min_grid: np.ndarray, max_grid: np.ndarray) -> List[Tuple[int, int, int]]:
+        """Process ray intersections to determine filled voxels"""
+        voxels = []
+        
+        # Group intersections by ray
+        ray_intersections = {}
+        for loc, ray_idx in zip(locations, index_ray):
+            if ray_idx not in ray_intersections:
+                ray_intersections[ray_idx] = []
+            ray_intersections[ray_idx].append(loc[1])  # y-coordinate
+        
+        # For each ray, sort intersections and apply even-odd rule
+        for ray_idx, y_coords in ray_intersections.items():
+            y_coords.sort()
+            
+            # Even-odd rule: voxels between pairs of intersections are filled
+            for pair_idx in range(0, len(y_coords) - 1, 2):
+                y_start = max(min_grid[1], int(np.floor(y_coords[pair_idx])))
+                y_end = min(max_grid[1], int(np.ceil(y_coords[pair_idx + 1])))
+                
+                i, k = grid_points[ray_idx]
+                for j in range(y_start, y_end + 1):
+                    voxels.append((i, j, k))
+        
+        return voxels

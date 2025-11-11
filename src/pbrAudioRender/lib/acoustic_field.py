@@ -22,17 +22,17 @@ from typing import Tuple, List, Dict
 @dataclass
 class VelocityVectors:
     """Contains velocity vectors data"""
-    x: float = 0.
-    y: float = 0.
-    z: float = 0.
+    x: float = 0.000001
+    y: float = 0.000001
+    z: float = 0.000001
 
 @dataclass
 class FrequencyLimitedField:
     """Contains frequency band-limited pressure and velocity vector of acoustic field"""
-    low_freq: float = 0.
-    high_freq: float = 0.
-    pressure: float = 0.
-    velocity: VelocityVectors  = field(default_factory=VelocityVectors)
+    low_freq: float = 0.000001
+    high_freq: float = 0.000001
+    pressure: float = 0.000001
+    velocity: VelocityVectors = field(default_factory=lambda: VelocityVectors(0.0, 0.0, 0.0))
 
 @dataclass
 class AcousticField:
@@ -40,20 +40,14 @@ class AcousticField:
     # List of frequency-limited field components
     field: List[FrequencyLimitedField] = field(default_factory=list)
     
-    def add_field(self, low_freq: float, high_freq: float, 
-                          pressure: float, velocity: VelocityVectors) -> None:
+    def add_field(self, low_freq: float, high_freq: float, pressure: float, velocity: VelocityVectors) -> None:
         """Add a new frequency-limited field component if not exist"""
         high_band = self.get_bands(high_freq)
         low_band = self.get_bands(low_freq)
         if (low_band == None and high_band == None) or low_freq == low_band[1] or high_freq == high_band[0]:
-            field_component = FrequencyLimitedField(
-                low_freq=low_freq,
-                high_freq=high_freq,
-                pressure=pressure,
-                velocity=velocity
-            )
+            field_component = FrequencyLimitedField(low_freq=low_freq, high_freq=high_freq, pressure=pressure, velocity=velocity)
             self.field.append(field_component)
-#        elif low_freq < low_band[1] or high_freq > high_band[0] or high_band == low_band:
+            print(self.field[-1])
         else:
             print(f"Frequency band already exist: ", low_band, high_band)
 

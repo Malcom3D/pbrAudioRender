@@ -19,6 +19,7 @@
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
+from lib.acoustic_field import FrequencyLimitedField, VelocityVectors
 
 from utils.gpu_acceleration import GPUManager
 
@@ -29,4 +30,7 @@ class AcousticLayer:
     shape: Tuple[int, int, int]
 
     def __post_init__(self):
-        self.field = np.zeros(self.shape, dtype=object)
+        vel = VelocityVectors(x=0.0, y=0.0, z=0.0)
+        flf = FrequencyLimitedField(low_freq=0.0, high_freq=0.0, pressure=0.0, velocity=vel)
+        self.field = np.full((self.shape), flf, dtype=object)
+#        self.field = np.empty(self.shape, dtype=object)

@@ -94,7 +94,7 @@ class SphericalSource:
                     input_pressures = input_pressures,
                     acoustic_shader = self.source_config.acoustic_shader
                 )
-                soxels.append([[i,j,k],soxel])
+                soxels.append([i,j,k,soxel])
         return soxels
 
     def _get_sphere_voxels(self, center: Tuple[int, int, int], radius: Tuple[int, int, int]):
@@ -208,7 +208,7 @@ class SphericalSource:
             # Spherical source with radius
             # For a pulsating sphere, pressure is related to surface velocity
             # This is a simplified model - you might want to use more sophisticated acoustic models
-            k = 2 * np.pi * np.sqrt(low_freq * high_freq) / self.sound_speed  # Wave number (approximate)
+            k = 2 * np.pi * np.sqrt(low_freq * high_freq) / sound_speed  # Wave number (approximate)
         
             # For a pulsating sphere, the pressure at surface is:
             # p = (ρc * v) / (1 + 1/(jkr)) where v is surface velocity
@@ -218,15 +218,15 @@ class SphericalSource:
             # Complex impedance approach for spherical wave
             kr = k * radius
             if kr < 0.1:  # Small sphere approximation
-                pressure = density * self.sound_speed * surface_velocity
+                pressure = density * sound_speed * surface_velocity
             else:
                 # More general spherical wave solution
-                Z = density * self.sound_speed * (1j * kr) / (1 + 1j * kr)
+                Z = density * sound_speed * (1j * kr) / (1 + 1j * kr)
                 pressure = np.real(Z * surface_velocity)
     
         # Compute velocity vectors
         # For a spherical source, velocity is radial and proportional to pressure gradient
-        velocity_magnitude = np.abs(pressure) / (density * self.sound_speed)
+        velocity_magnitude = np.abs(pressure) / (density * sound_speed)
     
         # Create velocity vectors in 3D space
         # For a spherical source, velocity is radial from center

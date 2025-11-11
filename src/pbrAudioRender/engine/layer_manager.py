@@ -21,6 +21,7 @@ import multiprocessing as mp
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 
+from lib.functions import _shm_array, _shm_array_to_np, _flat_to_3d
 from core.entity_manager import EntityManager
 from lib.acoustic_layer import AcousticLayer
 from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
@@ -29,10 +30,12 @@ from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVec
 class LayerManager:
     entity_manager: EntityManager
     idx: int
-    ended: bool = False
+    ended: bool = field(default=False)
     layers : Dict[int, AcousticLayer] = field(default_factory=dict)
 
     def __post_init__(self):
+        config = self.entity_manager.get('config')
+        self.shape = config.acoustic_domain.shape
         self.elements_map = {
             'pressure': 'pressure',
             'vx': 'velocity.x',
@@ -41,8 +44,6 @@ class LayerManager:
         }
 
     def add_new(self, name: str, bands_idx: int) -> None:
-        config = self.entity_manager.get('config')
-        self.shape = config.acoustic_domain.shape
         if self.get_layer(name, bands_idx) == None:
             new_layer = AcousticLayer(name, bands_idx, shape=self.shape)
             self.layers[len(self.layers)] = new_layer
@@ -60,18 +61,18 @@ class LayerManager:
                 return self.layers.get(index)
 
     def get_shm_layer(self, name: str, bands_idx: int, element: str) -> mp.Array:
-        layer = self.layers[layer_idx]
+        layer = self.get_layer(name, bands_idx)
 
         for key in self.elements_map.keys():
             if element in key:
                 val = self.elements_map.get(key)
 
-        shm_flat = _np_to_shm_array(self.shape)
+        shm_flat = _shm_array(self.shape)
         shm_grid = _flat_to_3d(shm_flat, self.shape)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
                 for k in range(self.shape[2]):
-                    shm_grid[i,j,k] = layer[i,j,k].val
+                    shm_grid[i,j,k] = eval(f"layer.field[i,j,k].{val}")
 
         return shm_grid
 
@@ -87,5 +88,4 @@ class LayerManager:
             if element in key:
                 val = self.elements_map.get(key)
 
-        print(np_array.shape)
 '''

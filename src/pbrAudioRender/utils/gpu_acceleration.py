@@ -177,10 +177,9 @@ class GPUManager:
         high_freq = self.config.acoustic_domain.sample_rate / 2
         bands_per_octave = self.config.acoustic_domain.bands_per_octave
         num_bands_freq = len(em.frequencies)
-        vel = VelocityVectors(x=1.234, y=4.321, z=0.987)
         acoustic_field = AcousticField()
         for x in range(num_bands_freq):
-            acoustic_field.add_field(low_freq=low_freq, high_freq=high_freq, pressure=0.123, velocity=vel)
+            acoustic_field.add_field(low_freq=low_freq, high_freq=high_freq, pressure=0.123, vx=1.234, vy=4.321, vz=0.987)
         nbytes = asizeof.asizeof(acoustic_field)
         
         # Check memory limits

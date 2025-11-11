@@ -210,7 +210,7 @@ def _degrees_to_radians(phase_coeffs, input_unit='auto'):
 
     return phase
 
-def _np_to_shm_array(shape: Tuple[int, int, int]) -> mp.Array:
+def _shm_array(shape: Tuple[int, int, int]) -> mp.Array:
     # Create shared memory array
     #total_elements = len(original)
     total_elements = shape[0] * shape[1] * shape[2]
@@ -228,4 +228,5 @@ def _flat_to_3d(flat_array: np.ndarray, shape: Tuple[int, int, int]) -> np.ndarr
 
 def _shm_array_to_np(shared_array: mp.Array) -> np.ndarray:
     # Convert shared array back to numpy array
-    numpy_array = np.frombuffer(shared_array.get_obj(), dtype=np.float32).copy()
+    return np.frombuffer(shared_array.get_obj(), dtype=np.float32).copy()
+

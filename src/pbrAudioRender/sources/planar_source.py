@@ -89,7 +89,7 @@ class PlanarSource:
                     input_pressures = input_pressures,
                     acoustic_shader = self.source_config.acoustic_shader
                 )
-                soxels.append([[i,j,k],soxel])
+                soxels.append([i,j,k,soxel])
         return soxels
 
     def _get_planar_voxels(self, vertices: List[Tuple[float, float, float]]):
@@ -360,7 +360,7 @@ class PlanarSource:
             velocity_magnitude = np.abs(pressure) / (density * sound_speed)
         
             # Velocity direction follows the normal vector, magnitude varies with pressure
-            velocity_vectors.append(normal_vector * velocity_magnitude * np.sign(pressure))
+            velocity_vectors = normal_vector * velocity_magnitude * np.sign(pressure)
     
         return pressure, velocity_vectors
 
