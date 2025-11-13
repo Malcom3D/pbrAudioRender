@@ -18,81 +18,140 @@
 
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
-from ..lib.acoustic_io import AcousticEntity
+from dataclasses import dataclass, field
 
-class CardioidOutput(AcousticEntity):
-    """Cardioid microphone output"""
+from core.entity_manager import EntityManager
+from lib.functions import _get_position, _world_to_grid, _cartesian_to_spherical
+from outputs.omnidirectional_output import OmnidirectionalOutput
+
+@dataclass
+class CardioidOutput(OmnidirectionalOutput):
+    """Cardioid microphone output with frequency-dependent processing"""
     
-    def __init__(self, output_config):
-        super().__init__(output_config, "output")
-        self.output_config = output_config
-    
-    def get_recording_positions(self) -> List[Tuple[float, float, float]]:
-        """Get positions where this output should record"""
-        # Same implementation as OmnidirectionalOutput
-        positions = []
+    def process_audio(self) -> Dict[str, np.ndarray]:
+        """
+        Process audio for cardioid microphone across all frequency bands and layers
         
-        if self.output_config.position_file:
-            try:
-                position_data = np.load(self.output_config.position_file)
-                for pos in position_data:
-                    if len(pos) >= 3:
-                        positions.append(tuple(pos[:3]))
-            except:
-                print(f"Could not load positions from {self.output_config.position_file}")
+        Returns:
+            Dictionary with 'frequencies' and 'pressures' arrays
+        """
+        current_frame = self.entity_manager.get('frames').get()
+        positions = self.get_recording_positions()
         
-        if not positions and 'position' in self.output_config.geometry:
-            positions.append(tuple(self.output_config.geometry['position']))
-        
-        return positions
-    
-    def process_audio(self, pressure: float, velocity: np.ndarray,
-                     position: Tuple[float, float, float], frame: int) -> float:
-        """Process audio for cardioid microphone"""
-        # Cardioid combines pressure and velocity
-        # Cardioid = 0.5 * (Pressure + Velocity_component)
+        if not positions:
+            return {'frequencies': np.array([]), 'pressures': np.array([])}
         
         # Get microphone orientation
-        mic_orientation = self._get_orientation(frame)
+        mic_orientation = self._get_orientation(current_frame)
         
-        # Calculate velocity component in microphone direction
-        velocity_component = np.dot(velocity, mic_orientation)
+        # Initialize frequency-pressure arrays
+        all_frequencies = []
+        all_pressures = []
         
-        # Cardioid pattern: 0.5 * (P + V/c * ρ)
-        sound_speed = 343.0
-        density = 1.2
-        cardioid_signal = 0.5 * (pressure + velocity_component / sound_speed * density)
+        for position in positions:
+            grid_pos = _world_to_grid(self.voxel_size, self.grid_geometry, position)
+            
+            if not self._is_in_bounds(grid_pos):
+                continue
+                
+            # Process each frequency band
+            for band_idx, (low_freq, high_freq) in enumerate(self.bands):
+                center_freq = np.sqrt(low_freq * high_freq)
+                
+                # Get interpolated pressure and velocity
+                pressure = self._get_interpolated_pressure(position, grid_pos, band_idx, center_freq)
+                velocity = self._get_interpolated_velocity(position, grid_pos, band_idx, center_freq)
+                
+                # Calculate velocity component in microphone direction
+                velocity_component = np.dot(velocity, mic_orientation)
+                
+                # Cardioid pattern: 0.5 * (P + V/c * ρ)
+                sound_speed = 343.0
+                density = 1.2
+                cardioid_signal = 0.5 * (pressure + velocity_component / sound_speed * density)
+                
+                # Apply frequency response if available
+                if hasattr(self.output_config, 'spatial_freq_response'):
+                    # Get direction-dependent response
+                    azimuth, elevation, _ = _cartesian_to_spherical(
+                        mic_orientation[0], mic_orientation[1], mic_orientation[2]
+                    )
+                    magnitude_coeff = self.output_config.spatial_freq_response.get_avg_magnitude(
+                        azimuth, elevation,, low_freq, high_freq
+                    )
+                    cardioid_signal *= magnitude_coeff
+                
+                # Apply calibration if available
+                if hasattr(self.output_config, 'calibration'):
+                    cal_coeff = self.output_config.calibration.get_avg_magnitude(
+                        0, 0, low_freq, high_freq
+                    )
+                    cardioid_signal *= cal_coeff
+                
+                all_frequencies.append(center_freq)
+                all_pressures.append(cardioid_signal)
         
-        # Apply frequency response and calibration
-        processed = self.frequency_response.apply_response(
-            np.array([cardioid_signal]), frequency=1000
-        )[0]
+        return {
+            'frequencies': np.array(all_frequencies),
+            'pressures': np.array(all_pressures)
+        }
+
+    def _get_interpolated_velocity(self, world_pos: Tuple[float, float, float],
+                                 grid_pos: Tuple[int, int, int],
+                                 band_idx: int, frequency: float) -> np.ndarray:
+        """
+        Get sub-voxel interpolated velocity vector from all layers
+        """
+        total_velocity = np.zeros(3)
+        wave_propagators = self.entity_manager.get('wave_propagators')
         
-        if hasattr(self, 'calibration'):
-            processed = self.calibration.apply_calibration(
-                np.array([processed]), frequency=1000
-            )[0]
+        for wp_idx, wave_propagator in wave_propagators.items():
+            layer_manager = wave_propagator.layer_manager
+            
+            # Get velocity from FDTD layers
+            vx = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vx')
+            vy = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vy')
+            vz = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vz')
+            
+            total_velocity[0] += vx
+            total_velocity[1] += vy
+            total_velocity[2] += vz
+            
+            # Add velocity from reflection and scattering layers (simplified)
+            # In practice, you might want more sophisticated handling
         
-        return processed
-    
+        return total_velocity
+
+    def _get_fdtd_velocity_component(self, layer_manager, band_idx: int,
+                                   world_pos: Tuple[float, float, float],
+                                   grid_pos: Tuple[int, int, int],
+                                   component: str) -> float:
+        """Get interpolated velocity component from FDTD layers"""
+        try:
+            layer = layer_manager.get_layer('fdtd', band_idx)
+            if layer is None:
+                return 0.0
+                
+            velocity_component = self._trilinear_interpolate(layer, component, world_pos, grid_pos)
+            return velocity_component
+        except:
+            return 0.0
+
     def _get_orientation(self, frame: int) -> np.ndarray:
         """Get microphone orientation for current frame"""
-        # Load from position file or use default
-        if self.output_config.position_file:
+        if hasattr(self.output_config, 'position_file') and self.output_config.position_file:
             try:
                 position_data = np.load(self.output_config.position_file)
-                if frame < len(position_data) and len(position_data[frame]) >= 7:
-                    # Extract orientation from position data
-                    return position_data[frame][4:7]  # Assume orientation vector
+                if frame < len(position_data) and len(position_data[frame]) >= 6:
+                    # Extract orientation from position data (assuming format: x,y,z,ox,oy,oz)
+                    return position_data[frame][3:6]
             except:
                 pass
         
         # Default orientation (forward)
         return np.array([1.0, 0.0, 0.0])
-    
+
     def get_directivity(self, azimuth: float, elevation: float,
                        frequency: Optional[float] = None) -> float:
         """Cardioid directivity pattern"""
-        # Cardioid: 0.5 * (1 + cos(θ))
         return 0.5 * (1 + np.cos(np.deg2rad(azimuth)))
-

@@ -15,17 +15,3 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-"""
-Output classes for different microphone types
-"""
-
-from .omnidirectional_output import OmnidirectionalOutput
-from .cardioid_output import CardioidOutput
-from .figure8_output import Figure8Output
-from .hypercardioid_output import HypercardioidOutput
-
-__all__ = [
-    'OmnidirectionalOutput', 'CardioidOutput', 
-    'Figure8Output', 'HypercardioidOutput'
-]
