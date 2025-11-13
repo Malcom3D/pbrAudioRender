@@ -230,19 +230,19 @@
     "dispersion_order": 2
   },
   "interface": {
-    "enable_absorption": true,
-    "enable_transmission": true,
-    "enable_reflection": true,
-    "enable_scattering": true,
-    "enable_diffraction": true,
+    "enable_absorption": false,
+    "enable_transmission": false,
+    "enable_reflection": false,
+    "enable_scattering": false,
+    "enable_diffraction": false,
     "min_impedance_ratio": 0.1,
     "max_impedance_ratio": 10.0,
     "interaction_threshold": 0.01
   },
   "resonance": {
-    "enable_helmholtz": true,
-    "enable_parallel_wall": true,
-    "enable_tube": true,
+    "enable_helmholtz": false,
+    "enable_parallel_wall": false,
+    "enable_tube": false,
     "min_cavity_volume": 0.001,
     "max_resonance_modes": 10,
     "resonance_threshold": 0.1,

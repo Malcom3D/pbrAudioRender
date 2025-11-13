@@ -19,21 +19,25 @@
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
+from dataclasses import dataclass, field
 
+from core.entity_manager import EntityManager
 from lib.interpolate import FrequencyInterpolator
 
-
+@dataclass
 class DiffractionInterface:
     """Handle sound wave diffraction around obstacles using UTD model"""
+    entity_manager: EntityManager
+    idx: int
     
-    def __init__(self, config=None):
-        super().__init__(config)
+    def __post_init__(self):
+        config = self.entity_manager.get('config')
+        self.enable_diffraction = config.interface.enable_diffraction
     
     @nb.jit(nopython=True)
     def utd_diffraction_coefficient(self, incident_angle: float, diffraction_angle: float, 
                                   frequency: float, obstacle_size: float) -> complex:
         """Calculate UTD diffraction coefficient"""
-        # Simplified Uniform Theory of Diffraction implementation
         k = 2 * np.pi * frequency / 343.0  # wave number
         
         # Edge diffraction parameters
@@ -57,74 +61,67 @@ class DiffractionInterface:
     
     @nb.jit(nopython=True, parallel=True)
     def apply_diffraction(self, pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray,
-                         soxel_types: np.ndarray, frequency: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Apply diffraction to fields"""
+                         soxel_types: np.ndarray, boundaries: Dict, frequency: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Apply diffraction to fields at edge boundaries"""
         new_pressure = pressure.copy()
         new_vx = vx.copy()
         new_vy = vy.copy()
-        new_vzz = vz.copy()
+        new_vz = vz.copy()
         
         wavelength = 343.0 / frequency if frequency > 0 else 1.0
         
-        for i in nb.prange(1, pressure.shape[0]-1):
-            for j in range(1, pressure.shape[1]-1):
-                for k in range(1, pressure.shape[2]-1):
-                    # Check if this is an edge voxel (object boundary)
-                    if (soxel_types[i, j, k] == 2 and  # Object type
-                        (soxel_types[i+1, j, k] != 2 or soxel_types[i-1, j, k] != 2 or
-                         soxel_types[i, j+1, k] != 2 or soxel_types[i, j-1, k] != 2 or
-                         soxel_types[i, j, k+11] != 2 or soxel_types[i, j, k-1] != 2)):
-                        
-                        # This is an edge voxel, apply diffraction
-                        edge_pressure = pressure[i, j, k]
-                        
-                        if np.abs(edge_pressure) > 1e-6:
-                            # Simplified diffraction - spread energy to shadow region
-                            diffraction_strength = wavelength / 0.1  # Scale with wavelength
+        # Process edge boundaries
+        for boundary_idx in nb.prange(len(boundaries.get('edge_boundaries', []))):
+            boundary = boundaries['edge_boundaries'][boundary_idx]
+            i, j, k = boundary['position']
+            
+            edge_pressure = pressure[i, j, k]
+            
+            if np.abs(edge_pressure) > 1e-6:
+                # Simplified diffraction - spread energy to shadow region
+                diffraction_strength = wavelength / 0.1  # Scale with wavelength
+                
+                # Distribute pressure to neighboring voxels in shadow region
+                for di in [-1, 0, 1]:
+                    for dj in [-1, 0, 1]:
+                        for dk in [-1, 0, 1]:
+                            ni, nj, nk = i + di, j + dj, k + dk
                             
-                            # Distribute pressure to neighboring voxels in shadow region
-                            for di in [-1, 0, 1]:
-                                for dj in [-1, 0, 1]:
-                                    for dk in [-1, 0, 1]:
-                                        ni, nj, nk = i + di, j + dj, k + dk
-                                        
-                                        if (0 <= ni < pressure.shape[0] and 
-                                            0 <= nj < pressure.shape[1] and 
-                                            0 <= nk < pressure.shape[2]):
-                                            
-                                            # Check if neighbor is in shadow (not object)
-                                            if soxel_types[ni, nj, nk] != 2:
-                                                distance = np.sqrt(di**2 + dj**2 + dk**2)
-                                                if distance > 0:
-                                                    # Apply inverse square law with diffraction
-                                                    diffracted_pressure = (
-                                                        edge_pressure * diffraction_strength / 
-                                                        (distance * distance)
-                                                    )
-                                                    new_pressure[ni, nj, nk] += diffracted_pressure
+                            if (0 <= ni < pressure.shape[0] and 
+                                0 <= nj < pressure.shape[1] and 
+                                0 <= nk < pressure.shape[2]):
+                                
+                                # Check if neighbor is in shadow (not object)
+                                if soxel_types[ni, nj, nk] != 2:
+                                    distance = np.sqrt(di**2 + dj**2 + dk**2)
+                                    if distance > 0:
+                                        # Apply inverse square law with diffraction
+                                        diffracted_pressure = (
+                                            edge_pressure * diffraction_strength / 
+                                            (distance * distance)
+                                        )
+                                        new_pressure[ni, nj, nk] += diffracted_pressure
         
-        return new_pressure, new_vx, new_vy, new_vz
+        return new_pressureressure, new_vx, new_vy, new_vz
     
-    def update_step(self, layer_manager, soxel_grid, frequency: float = 1000.0):
+    def update_step(self, layer_manager, soxel_grid, boundaries: Dict, frequency: float = 1000.0):
         """Apply diffraction to fields"""
-        if not self.config.interface.diffraction_enabled:
+        if not self.enable_diffraction:
             return layer_manager
         
         # Apply diffraction
         new_pressure, new_vx, new_vy, new_vz = self.apply_diffraction(
-            layer_manager.pressure,
-            layer_manager.velocity_x,
-            layer_manager.velocity_y,
-            layer_manager.velocity_z,
+            layer_manager.get_array('fdtd', 0, 'pressure'),
+            layer_manager.get_array('fdtd', 0, 'vx'),
+            layer_manager.get_array('fdtd', 0, 'vy'),
+            layer_manager.get_array('fdtd', 0, 'vz'),
             soxel_grid.soxel_types,
+            boundaries,
             frequency
         )
         
         # Update layer manager
-        layer_manager.pressure = new_pressure
-        layer_manager.velocity_x = new_vx
-        layer_manager.velocity_y = new_vy
-        layer_manager.velocity_z = new_vz
+        wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
+        layer_manager = wave_propagator.layer_manager
         
         return layer_manager
-

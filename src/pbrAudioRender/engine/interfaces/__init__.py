@@ -23,10 +23,10 @@ Interface handlers for acoustic boundary interactions
 from .absorption import AbsorptionInterface
 from .diffraction import DiffractionInterface
 from .reflection import ReflectionInterface
-from .refraction import RefractionInterface
+from .transmission import TransmissionInterface
 from .scattering import ScatteringInterface
 
 __all__ = [
     'AbsorptionInterface', 'DiffractionInterface', 'ReflectionInterface',
-    'RefractionInterface', 'ScatteringInterface'
+    'TransmissionInterface', 'ScatteringInterface'
 ]
