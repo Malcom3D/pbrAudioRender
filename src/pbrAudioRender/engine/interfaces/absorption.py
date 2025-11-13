@@ -20,16 +20,14 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from ...lib.base import Configurable, GPUEnabled
-from ...lib.interpolate import FrequencyInterpolator
+from lib.interpolate import FrequencyInterpolator
 
 
-class AbsorptionInterface(Configurable, GPUEnabled):
+class AbsorptionInterface:
     """Handle sound energy absorption at material boundaries"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
     
     @nb.jit(nopython=True, parallel=True)
     def apply_absorption(self, pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray,

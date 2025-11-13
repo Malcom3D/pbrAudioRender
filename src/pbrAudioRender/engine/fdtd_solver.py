@@ -50,31 +50,31 @@ class FDTDSolver:
         self.high_freq = bands[self.bands_idx][1]
 
         # Initialize interfaces and resonances
-#        self.interface = Interface(config, self.gpu)
-#        self.resonance = Resonance(config, self.gpu)
+        self.interface = Interface(config, self.gpu)
+        self.resonance = Resonance(config, self.gpu)
 
     @staticmethod
     @nb.jit(nopython=True, parallel=True)
-    def _update_pressure(layer_pressure: np.ndarray, pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray, sound_speed: np.ndarray, density: np.ndarray, dt: float, dx: float) -> np.ndarray:
+    def _update_pressure(layer_pressure: np.ndarray, soxel_pressure: np.ndarray, soxel_vx: np.ndarray, soxel_vy: np.ndarray, soxel_vz: np.ndarray, sound_speed: np.ndarray, density: np.ndarray, dt: float, dx: float) -> np.ndarray:
         """Update pressure field using velocity divergence"""
-        new_pressure = np.zeros_like(pressure)
+        new_pressure = np.zeros_like(soxel_pressure)
 
         voxel_volume = dx**3
 
-        for i in nb.prange(1, pressure.shape[0]-1):
-            for j in range(1, pressure.shape[1]-1):
-                for k in range(1, pressure.shape[2]-1):
+        for i in nb.prange(1, soxel_pressure.shape[0]-1):
+            for j in range(1, soxel_pressure.shape[1]-1):
+                for k in range(1, soxel_pressure.shape[2]-1):
                     # Calculate velocity divergence
                     div_v = (
-                        (vx[i+1, j, k] - vx[i-1, j, k]) / (2 * dx) +
-                        (vy[i, j+1, k] - vy[i, j-1, k]) / (2 * dx) +
-                        (vz[i, j, k+1] - vz[i, j, k-1]) / (2 * dx)
+                        (soxel_vx[i+1, j, k] - soxel_vx[i-1, j, k]) / (2 * dx) +
+                        (soxel_vy[i, j+1, k] - soxel_vy[i, j-1, k]) / (2 * dx) +
+                        (soxel_vz[i, j, k+1] - soxel_vz[i, j, k-1]) / (2 * dx)
                     )
 
                     # Update pressure
                     c = sound_speed[i, j, k]
                     rho = density[i, j, k]
-                    _pressure = (layer_pressure[i, j, k]*voxel_volume + pressure[i, j, k]*voxel_volume)/(2*voxel_volume)
+                    _pressure = (layer_pressure[i, j, k]*voxel_volume + soxel_pressure[i, j, k]*voxel_volume)/(2*voxel_volume)
                     new_pressure[i, j, k] = (
                         _pressure -
                         rho * c**2 * dt * div_v
@@ -84,32 +84,32 @@ class FDTDSolver:
 
     @staticmethod
     @nb.jit(nopython=True, parallel=True)
-    def _update_velocity(layer_vx: np.ndarray, layer_vy: np.ndarray, layer_vz: np.ndarray, pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray, density: np.ndarray, dt: float, dx: float):
+    def _update_velocity(layer_vx: np.ndarray, layer_vy: np.ndarray, layer_vz: np.ndarray, soxel_pressure: np.ndarray, soxel_vx: np.ndarray, soxel_vy: np.ndarray, soxel_vz: np.ndarray, density: np.ndarray, dt: float, dx: float):
         """Update velocity fields using pressure gradient"""
-        new_vx = np.zeros_like(vx)
-        new_vy = np.zeros_like(vy)
-        new_vz = np.zeros_like(vz)
+        new_vx = np.zeros_like(soxel_vx)
+        new_vy = np.zeros_like(soxel_vy)
+        new_vz = np.zeros_like(soxel_vz)
 
         voxel_volume = dx**3
 
-        for i in nb.prange(1, pressure.shape[0]-1):
-            for j in range(1, pressure.shape[1]-1):
-                for k in range(1, pressure.shape[2]-1):
+        for i in nb.prange(1, soxel_pressure.shape[0]-1):
+            for j in range(1, soxel_pressure.shape[1]-1):
+                for k in range(1, soxel_pressure.shape[2]-1):
                     rho = density[i, j, k]
 
                     # Update x-velocity
-                    dp_dx = (pressure[i+1, j, k] - pressure[i-1, j, k]) / (2 * dx)
-                    _vx = (layer_vx[i, j, k]*voxel_volume + vx[i, j, k]*voxel_volume)/(2*voxel_volume)
+                    dp_dx = (soxel_pressure[i+1, j, k] - soxel_pressure[i-1, j, k]) / (2 * dx)
+                    _vx = (layer_vx[i, j, k]*voxel_volume + soxel_vx[i, j, k]*voxel_volume)/(2*voxel_volume)
                     new_vx[i, j, k] = _vx - (dt / rho) * dp_dx
 
                     # Update y-velocity
-                    dp_dy = (pressure[i, j+1, k] - pressure[i, j-1, k]) / (2 * dx)
-                    _vy = (layer_vy[i, j, k]*voxel_volume + vy[i, j, k]*voxel_volume)/(2*voxel_volume)
+                    dp_dy = (soxel_pressure[i, j+1, k] - soxel_pressure[i, j-1, k]) / (2 * dx)
+                    _vy = (layer_vy[i, j, k]*voxel_volume + soxel_vy[i, j, k]*voxel_volume)/(2*voxel_volume)
                     new_vy[i, j, k] = _vy - (dt / rho) * dp_dy
 
                     # Update z-velocity
-                    dp_dz = (pressure[i, j, k+1] - pressure[i, j, k-1]) / (2 * dx)
-                    _vz = (layer_vz[i, j, k]*voxel_volume + vz[i, j, k]*voxel_volume)/(2*voxel_volume)
+                    dp_dz = (soxel_pressure[i, j, k+1] - soxel_pressure[i, j, k-1]) / (2 * dx)
+                    _vz = (layer_vz[i, j, k]*voxel_volume + soxel_vz[i, j, k]*voxel_volume)/(2*voxel_volume)
                     new_vz[i, j, k] = _vz - (dt / rho) * dp_dz
 
         return new_vx, new_vy, new_vz
@@ -125,27 +125,27 @@ class FDTDSolver:
         """Perform one FDTD update step"""
         soxel_grid = self.entity_manager.get('soxel_grid')
         # Get acoustic pressure and velocity vectors for this frequency band
-        shm_pressure = soxel_grid.get_shm_array('pressure', self.low_freq, self.high_freq)
-        shm_vx = soxel_grid.get_shm_array('vx', self.low_freq, self.high_freq)
-        shm_vy = soxel_grid.get_shm_array('vy', self.low_freq, self.high_freq)
-        shm_vz = soxel_grid.get_shm_array('vz', self.low_freq, self.high_freq)
+        soxel_pressure = soxel_grid.get_array('pressure', self.low_freq, self.high_freq)
+        soxel_vx = soxel_grid.get_array('vx', self.low_freq, self.high_freq)
+        soxel_vy = soxel_grid.get_array('vy', self.low_freq, self.high_freq)
+        soxel_vz = soxel_grid.get_array('vz', self.low_freq, self.high_freq)
 
         # Get acoustic properties for this frequency band
-        shm_sound_speed = soxel_grid.get_shm_array('sound_speed')
-        shm_density = soxel_grid.get_shm_array('density')
+        sound_speed = soxel_grid.get_array('sound_speed')
+        density = soxel_grid.get_array('density')
 
         # Get owned layer
         wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
         layer_manager = wave_propagator.layer_manager
         layer = layer_manager.get_layer('fdtd', self.bands_idx)
-        shm_layer_pressure = layer_manager.get_shm_layer('fdtd', self.bands_idx, 'pressure')
-        shm_layer_vx = layer_manager.get_shm_layer('fdtd', self.bands_idx, 'vx')
-        shm_layer_vy = layer_manager.get_shm_layer('fdtd', self.bands_idx, 'vy')
-        shm_layer_vz = layer_manager.get_shm_layer('fdtd', self.bands_idx, 'vz')
+        layer_pressure = layer_manager.get_array('fdtd', self.bands_idx, 'pressure')
+        layer_vx = layer_manager.get_array('fdtd', self.bands_idx, 'vx')
+        layer_vy = layer_manager.get_array('fdtd', self.bands_idx, 'vy')
+        layer_vz = layer_manager.get_array('fdtd', self.bands_idx, 'vz')
 
         # Update pressure and velocity vectors
-        new_pressure = self._update_pressure(shm_layer_pressure, shm_pressure, shm_vx, shm_vy, shm_vz, shm_sound_speed, shm_density, self.dt, self.dx)
-        new_vx, new_vy, new_vz = self._update_velocity(shm_layer_vx, shm_layer_vy, shm_layer_vz, new_pressure, shm_vx, shm_vy, shm_vz, shm_density, self.dt, self.dx)
+        new_pressure = self._update_pressure(layer_pressure, soxel_pressure, soxel_vx, soxel_vy, soxel_vz, sound_speed, density, self.dt, self.dx)
+        new_vx, new_vy, new_vz = self._update_velocity(layer_vx, layer_vy, layer_vz, new_pressure, soxel_vx, soxel_vy, soxel_vz, density, self.dt, self.dx)
 
         # Update owned layer
         self._update_layer(layer, new_pressure, new_vx, new_vy, new_vz)
@@ -165,11 +165,9 @@ class FDTDManager:
         courant_number = config.fdtd.courant_number
         # Stability check
         self._check_stability(max_sound_speed, courant_number, dt, dx)
-#        self.fdtd_solvers = []
 
     @delayed
     def _fdtd_solver_update(self, bands_idx):
-        print('_fdtd_solver_update', bands_idx)
         # Layer selection or init
         wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
         layer_manger = wave_propagator.layer_manager
@@ -179,14 +177,10 @@ class FDTDManager:
         # Create FDTD solvers for all bands
         fdtd_solver = FDTDSolver(self.entity_manager, self.idx, bands_idx)
         fdtd_solver.update()
-#        self.fdtd_solvers.append(FDTDSolver(self.entity_manager, self.idx, bands_idx))
+
         # Initialize interface and resonance for this frequency band
 #        self.interface = Interface(self.entity_manager, self.idx)
 #        self.resonance = Resonance(self.entity_manager, self.idx)
-
-    # Run solvers
-#    for solver_id in range(len(self.fdtd_solvers)):
-#        self.fdtd_solvers[solver_id].update
 
     def _check_stability(self, max_sound_speed: float, courant_number: float, dt: float, dx: float):
         """Check FDTD stability conditions"""
@@ -204,7 +198,7 @@ class FDTDManager:
         frequency_bands = self.entity_manager.get('frequency_bands')
         bands = frequency_bands.get_bands()
         tasks = [self._fdtd_solver_update(bands_idx) for bands_idx in range(len(bands))]
-        results = compute(*tasks)
+        compute(*tasks)
         
         # Step 2: Interface interactions
 #        updated_layer = self.interface.update(updated_layer, soxel_grid)

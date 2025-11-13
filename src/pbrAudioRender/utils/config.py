@@ -27,19 +27,10 @@ from lib.frequency_response import SpatialFrequencyResponse
 @dataclass
 class SystemConfig:
     frame_limit: Optional[int] = None
-    use_gpu: bool = False
     export_vdb: bool = False
     max_workers: int = 4
     cache_path: str = "./pbrAudioCache/"
     vdb_export_path: str = "./exports/vdb/"
-
-@dataclass
-class GPUConfig:
-    use_gpu: bool = False
-    compute_device: str = "cuda"  # c cuda, hip, oneapi, opencl
-    device_id: int = 0
-    num_streams: int = 4
-    memory_limit: Optional[int] = None
 
 @dataclass
 class AcousticDomainConfig:
@@ -87,11 +78,6 @@ class ObjectConfig:
     name: str
     obj_files: List[str] = field(default_factory=list)
     acoustic_shader: Optional[AcousticShader] = None
-
-#dataclass
-class SoundShaderConfig:
-    idx: int
-    name: str
 
 @dataclass
 class WavePropagationConfig:
@@ -160,7 +146,6 @@ class Config:
             self.data = json.load(f)
         
         self.system = SystemConfig(**self.data.get('system', {}))
-        self.gpu = GPUConfig(**self.data.get('gpu', {}))
         self.wave_propagation = WavePropagationConfig(**self.data.get('wave_propagation', {}))
         self.fdtd = FDTDConfig(**self.data.get('fdtd', {}))
         self.interface = InterfaceConfig(**self.data.get('interface', {}))

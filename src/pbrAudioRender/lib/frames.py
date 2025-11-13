@@ -40,4 +40,4 @@ class FrameCounter:
         return self.current_frame
 
     def get_limit(self) -> int:
-        return self.frame_limit if not self.frame_limit == None else None
+        return self.frame_limit

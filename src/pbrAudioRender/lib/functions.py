@@ -19,16 +19,10 @@
 import os
 import numpy as np
 import soundfile as sf
-import multiprocessing as mp
-import ctypes
 from typing import List, Tuple, Union
-from utils.xp_wrapper import XpWrapper
 
 from lib.filter import LinkwitzRileyFilter
 
-#xp = XpWrapper()
-
-#@xp.jit(nopython=True)
 def _audio_to_npz(npz_path: str, audio_file: str, audio_npz: str, grid_sample_rate: int, frequency_bands: List[Tuple[float, float]]) -> str:
     """
     Convert audio_file to frequency dependent np.ndarray in npz file audio_npz.
@@ -68,7 +62,6 @@ def _audio_to_npz(npz_path: str, audio_file: str, audio_npz: str, grid_sample_ra
     np.savez_compressed(audio_npz, fd_samples)
     return audio_npz
 
-#@xp.jit(nopython=True)
 def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float, steps_per_octave: int):
     """
     Generate frequencies from lowest_frequency to higher_frequency with specified steps per octave
@@ -85,7 +78,6 @@ def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float,
 
     return frequencies
 
-#@xp.jit(nopython=True)
 def _soxel_grid_shape(geometry: List[Tuple[float, float, float]], voxel_size: float) -> Tuple[int, int, int]:
     # compute acoustic domain shape from geometry
     geometry = geometry if isinstance(geometry, np.ndarray) else np.array(geometry)
@@ -94,7 +86,6 @@ def _soxel_grid_shape(geometry: List[Tuple[float, float, float]], voxel_size: fl
     shape_x = (np.linalg.norm(geometry[2] - geometry[6]) / voxel_size).astype(int)
     return [int(shape_x), int(shape_y), int(shape_z)]
 
-#@xp.jit(nopython=True)
 def _world_to_grid(voxel_size: float, grid_geometry: Union[list, np.ndarray], world_pos: Union[float, list, tuple, np.ndarray]) -> Tuple[int, int, int]:
     """Convert world coordinates to grid indices"""
     if isinstance(world_pos, float):
@@ -104,14 +95,12 @@ def _world_to_grid(voxel_size: float, grid_geometry: Union[list, np.ndarray], wo
     grid_coords = ((world_pos - grid_geometry[0]) / voxel_size).astype(int)
     return grid_coords
 
-#@xp.jit(nopython=True)
 def _is_in_bounds(shape: Tuple[int, int, int], i: int, j: int, k: int) -> bool:
     """Check if grid indices are within bounds"""
     return (0 < i < shape[0] and
             0 < j < shape[1] and
             0 < k < shape[2])
 
-#@xp.jit(nopython=True)
 def _get_position(position_file: str, current_frame: int) -> Tuple[int, int, int]:
     """Get center grid position at time for a sound source"""
     # Load position data from file if available
@@ -126,7 +115,6 @@ def _get_position(position_file: str, current_frame: int) -> Tuple[int, int, int
         except Exception as e:
             print(f"Warnings: Failed to load position data from {position_file}: {e}")
 
-#@xp.jit(nopython=True)
 def _cartesian_to_spherical(x: float, y: float, z: float) -> Tuple[float, float, float]:
     """
     Convert cartesian coordinates to spherical coordinates.
@@ -147,7 +135,6 @@ def _cartesian_to_spherical(x: float, y: float, z: float) -> Tuple[float, float,
 
     return azimuth, elevation, radius
 
-#@xp.jit(nopython=True)
 def _degrees_to_radians(phase_coeffs, input_unit='auto'):
     """
     Verify if phase coefficients are in normalized radians and convert if needed.
@@ -209,24 +196,3 @@ def _degrees_to_radians(phase_coeffs, input_unit='auto'):
         phase = np.mod(phase + np.pi, 2 * np.pi) - np.pi
 
     return phase
-
-def _shm_array(shape: Tuple[int, int, int]) -> mp.Array:
-    # Create shared memory array
-    #total_elements = len(original)
-    total_elements = shape[0] * shape[1] * shape[2]
-    shared_array = mp.Array(ctypes.c_float, total_elements)
-    
-    # Initialize shared array with original data
-    shared_np_array = np.frombuffer(shared_array.get_obj(), dtype=np.float32)
-    #np.copyto(shared_np_array, original)
-
-    return shared_np_array
-
-def _flat_to_3d(flat_array: np.ndarray, shape: Tuple[int, int, int]) -> np.ndarray:
-    """Convert flat array to 3D view (no data copy)"""
-    return flat_array.reshape(shape)
-
-def _shm_array_to_np(shared_array: mp.Array) -> np.ndarray:
-    # Convert shared array back to numpy array
-    return np.frombuffer(shared_array.get_obj(), dtype=np.float32).copy()
-

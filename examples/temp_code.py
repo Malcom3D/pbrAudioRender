@@ -8,6 +8,93 @@ sys.path.append('../src/pbrAudioRender')
 #from pbrAudioRender import pbrAudioRender
 #config_file = 'config.json'
 #render = pbrAudioRender(config_file)
+###########################################################
+import sys, os
+sys.path.append(os.getcwd())
+sys.path.append('../src/pbrAudioRender')
+
+import dask.array as da
+from dask import delayed, compute
+
+import numpy as np
+
+from lib.soxel import Soxel
+from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
+from lib.acoustic_shader import AcousticCoefficients, AcousticProperties, AcousticShader
+
+freq_abs = np.array([20, 100, 500, 1000, 5000, 20000])
+coeffs_abs = np.array([0.8, 0.7, 0.6, 0.5, 0.4, 0.3])
+absorption = AcousticCoefficients(frequencies=freq_abs, coefficients=coeffs_abs)
+freq_refl = np.array([20, 100, 500, 1000, 5000, 20000])
+coeffs_refl = np.array([0.9, 0.85, 0.8, 0.75, 0.7, 0.65])
+reflection = AcousticCoefficients(frequencies=freq_refl, coefficients=coeffs_refl)
+freq_sca = np.array([125, 250, 500, 1000, 2000, 4000])
+coeffs_sca = np.array([0.3, 0.35, 0.4, 0.45, 0.5, 0.55])
+scattering = AcousticCoefficients(frequencies=freq_sca, coefficients=coeffs_sca)
+prop = AcousticProperties(absorption=absorption, reflection=reflection, scattering=scattering)
+
+sound_speed = 343.4
+density = 1225
+acusha = AcousticShader(sound_speed, density, prop)
+vel = VelocityVectors(x=1.324, y=3.345, z=1.2342)
+acufield = AcousticField()
+acufield.add_field(20,25,10,vel)
+soxel = Soxel(0,2,acufield.get_field(20,25), acusha)
+soxels = np.empty([100,100,100], dtype=object)
+soxel_grid = da.from_array(soxels, chunks=(10,100,100))
+
+@delayed
+def write_soxel(i,j,k, soxel):
+    return soxel
+
+@delayed
+def read_soxel(soxel_grid, i,j,k):
+    print(soxel_grid[i,j,k].compute().item().input_pressures)
+
+result = []
+for i in range(soxel_grid.shape[0]):
+    for j in range(soxel_grid.shape[1]):
+        for k in range(soxel_grid.shape[2]):
+            result.append(write_soxel(i,j,k, soxel))
+# Compute in parallel
+computed_results = compute(*results)
+# Reshape back to original grid shape
+soxel_grid = np.array(computed_results).reshape(soxel_grid.shape)
+
+result = []
+for i in range(soxel_grid.shape[0]):
+    for j in range(soxel_grid.shape[1]):
+        for k in range(soxel_grid.shape[2]):
+            if soxel_grid.soxels[i,j,k].type == 2:
+                print(i,j,k, soxel_grid[i,j,k].compute().item().input_pressures)
+
+# Compute in parallel
+compute(*results)
+
+#####################################################################
+import sys, os
+sys.path.append(os.getcwd())
+sys.path.append('../src/pbrAudioRender')
+config_file = 'config.json'
+from core.entity_manager import EntityManager
+em = EntityManager(config_file)
+from core.acoustic_engine import AcousticEngine
+ac = AcousticEngine(em)
+ac.update()
+config = em.get('config')
+soxel_grid = em.get('soxel_grid') 
+wave = em.get('wave_propagators',0)
+lm = wave.layer_manager
+for i in range(soxel_grid.shape[0]):
+    for j in range(soxel_grid.shape[1]):
+        for k in range(soxel_grid.shape[2]):
+            if soxel_grid.soxels[i,j,k].type == 1:
+                for id in lm.layers.keys():
+                    print(id, i,j,k, lm.layers[id].field[i,j,k])
+                    if not lm.layers[id].field[i,j,k] == 0:
+                        print(id, i,j,k, lm.layers[id].field[i,j,k])
+
+
 
 
 import sys, os
@@ -20,6 +107,7 @@ em = EntityManager(config_file)
 
 from core.acoustic_engine import AcousticEngine
 ac = AcousticEngine(em)
+
 ac.update()
 
 wave = em.get('wave_propagators',0)
@@ -28,21 +116,46 @@ lm.add_new('fdtd', 0)
 lm.add_new('fdtd', 1)
 lm.add_new('fdtd', 2)
 lm.len_by_name('fdtd')
-layer = lm[0]
+layer = lm.layers[0]
 
+config = em.get('config')
+soxel_grid = em.get('soxel_grid')
+for i in range(soxel_grid.shape[0]):
+    for j in range(soxel_grid.shape[1]):
+        for k in range(soxel_grid.shape[2]):
+            if soxel_grid.soxels[i,j,k].type == 2:
+                print(i,j,k)
 
 soxel_grid = em.get('soxel_grid')
+config = em.get('config')
+for source_config in config.sources:
+    source = em.get('sources', source_config.idx)
+    soxel_list = source.get_soxels()
+    for i,j,k, soxel in soxel_list:
+        print(i,j,k, soxel)
+        soxel_grid.soxels[coord] = soxel
+
+config = em.get('config')
+soxel_grid = em.get('soxel_grid')
+wave = em.get('wave_propagators',0)
+lm = wave.layer_manager
 
 for i in range(soxel_grid.shape[0]):
     for j in range(soxel_grid.shape[1]):
         for k in range(soxel_grid.shape[2]):
             if soxel_grid.soxels[i,j,k].type == 1:
-                for key in lm.layers.keys():
-                    lm.layers[key].field[i,j,k]
-                print(i,j,k)
+                print(i,j,k, soxel_grid.soxels[i,j,k].input_pressures)
 
 
+config = em.get('config')
+for obj in config.objects:
+    obj = em.get('objects', obj.idx)
+    obj.get_soxels()
+    soxel_list = obj.get_soxels()
+    for coord, soxel in soxel_list:
+        self.soxels[coord] = soxel
 
+soxel_grid = em.get('soxel_grid')
 shm_pressure = soxel_grid.get_shm_array('pressure', low_freq=1436.7514218360097, high_freq=1478.8514519965222)
 
 type(shm_pressure)
@@ -97,6 +210,29 @@ for source_config in config.sources:
                 if sub in type(obj):
                     entities = eval(f"self._{key}")
                     entities[idx] = obj
+
+
+
+
+
+
+from lib.acoustic_field import VelocityVectors, FrequencyLimitedField, AcousticField
+import numpy as np
+
+vel = VelocityVectors(x=23.4, y=12.5, z=9.23)
+ac = AcousticField()
+ac.add_field(low_freq=10, high_freq=20, pressure=5, velocity=vel)
+soxels = np.empty([10,10,10], dtype=object)
+soxels[0,0,0] = ac
+
+print(soxels[0,0,0])
+
+
+
+
+
+
+
 
 
 
@@ -273,6 +409,14 @@ for i in range(soxel_grid.shape[0]):
                    pressure = soxel_grid.soxels[i,j,k].input_pressures.get_field(987.0149282610902, 1015.936673259656).pressure
                    velocity = soxel_grid.soxels[i,j,k].input_pressures.get_field(987.0149282610902, 1015.936673259656).velocity
 
+config = em.get('config')
+soxel_grid = em.get('soxel_grid')
+for i in range(soxel_grid.shape[0]):
+    for j in range(soxel_grid.shape[1]):
+        for k in range(soxel_grid.shape[2]):
+            if soxel_grid.soxels[i,j,k].type == 2:
+                print(i,j,k)
+
 for i in range(soxel_grid.shape[0]):
     for j in range(soxel_grid.shape[1]):
         for k in range(soxel_grid.shape[2]):
@@ -291,6 +435,17 @@ for i in range(soxel_grid.shape[0]):
     for j in range(soxel_grid.shape[1]):
         for k in range(soxel_grid.shape[2]):
             if soxel_grid.soxels[i,j,k].type == 1:
+                for coord, soxel in soxel_list:
+                    soxel_grid.soxels[coord] = soxel
+
+config = em.get('config')
+for source_config in config.sources:
+    source = em.get('sources', source_config.idx)
+    soxel_list = source.get_soxels()
+    for i,j,k, soxel in soxel_list:
+        print(i,j,k, soxel)
+        soxel_grid.soxels[coord] = soxel
+
                 print(i,j,k)
             if not soxel_grid.soxels[i,j,k].type == 0:
                 print(i,j,k)

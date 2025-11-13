@@ -17,11 +17,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-import multiprocessing as mp
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 
-from lib.functions import _shm_array, _shm_array_to_np, _flat_to_3d
 from core.entity_manager import EntityManager
 from lib.acoustic_layer import AcousticLayer
 from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
@@ -38,9 +36,9 @@ class LayerManager:
         self.shape = config.acoustic_domain.shape
         self.elements_map = {
             'pressure': 'pressure',
-            'vx': 'velocity.x',
-            'vy': 'velocity.y',
-            'vz': 'velocity.z'
+            'vx': 'velocity.vx',
+            'vy': 'velocity.vy',
+            'vz': 'velocity.vz'
         }
 
     def add_new(self, name: str, bands_idx: int) -> None:
@@ -60,32 +58,17 @@ class LayerManager:
             if name in self.layers[index].name and bands_idx == self.layers[index].bands_idx:
                 return self.layers.get(index)
 
-    def get_shm_layer(self, name: str, bands_idx: int, element: str) -> mp.Array:
+    def get_array(self, name: str, bands_idx: int, element: str) -> np.ndarray:
         layer = self.get_layer(name, bands_idx)
 
         for key in self.elements_map.keys():
             if element in key:
                 val = self.elements_map.get(key)
 
-        shm_flat = _shm_array(self.shape)
-        shm_grid = _flat_to_3d(shm_flat, self.shape)
+        grid = np.empty(self.shape, dtype=float)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
                 for k in range(self.shape[2]):
-                    shm_grid[i,j,k] = eval(f"layer.field[i,j,k].{val}")
+                    grid[i,j,k] = eval(f"layer.field[i,j,k].{val}")
 
-        return shm_grid
-
-'''
-    def del_layer(self, layer_idx: int):
-        pass
-
-    def update_layer(self, layer_idx: int, element: str, low_freq: float, high_freq: float, shm_array: np.ndarray) -> None:
-        layer = self.layers[layer_idx]
-        np_array = _shm_array_to_np(shm_array)
-
-        for key in self.elements_map.keys():
-            if element in key:
-                val = self.elements_map.get(key)
-
-'''
+        return grid

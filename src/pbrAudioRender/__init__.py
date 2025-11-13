@@ -16,6 +16,10 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+__version__ = "0.9.0.1"
+__author__ = "Malcom3D"
+__description__ = "3D acoustic rendering engine"
+
 import os, sys
 from core.entity_manager import EntityManager
 from core.acoustic_engine import AcousticEngine
@@ -23,6 +27,16 @@ from core.acoustic_engine import AcousticEngine
 class pbrAudioRender:
     """Main class for running 3D acoustic simulations"""
     def __init__(self, config_file: str):
-        em = EntityManager(config_file)
-        ac = AcousticEngine(em)
+        self.em = EntityManager(config_file)
+        self.ac = AcousticEngine(em)
+#        self.ar = AmbisonicRender(em)
+        self.start()
 
+    def start()
+        frames = self.em.get('frames')
+
+        if not frame.get() == frames.get_limit():
+            self.ac.update()
+            frames.next()
+
+        self.ar.render()

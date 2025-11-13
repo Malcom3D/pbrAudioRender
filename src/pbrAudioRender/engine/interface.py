@@ -19,27 +19,23 @@
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 
-from ..lib.base import Configurable, GPUEnabled
-from ..lib.interpolate import FrequencyInterpolator, SpatialInterpolator
+from lib.interpolate import FrequencyInterpolator, SpatialInterpolator
 from .interfaces import (
     AbsorptionInterface, ReflectionInterface, RefractionInterface,
     ScatteringInterface, DiffractionInterface
 )
 
-
-class Interface(Configurable, GPUEnabled):
+class Interface:
     """Main interface manager handling all boundary interactions"""
     
-    def __init__(self, config=None, gpu_manager=None):
-        super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
+    def __init__(self, config=None):
         
         # Initialize individual interface handlers
-        self.absorption = AbsorptionInterface(config, self.gpu)
-        self.reflection = ReflectionInterface(config, self.gpu)
-        self.refraction = RefractionInterface(config, self.gpu)
-        self.scattering = ScatteringInterface(config, self.gpu)
-        self.diffraction = DiffractionInterface(config, self.gpu)
+        self.absorption = AbsorptionInterface(config)
+        self.reflection = ReflectionInterface(config)
+        self.refraction = RefractionInterface(config)
+        self.scattering = ScatteringInterface(config)
+        self.diffraction = DiffractionInterface(config)
         
         self.interaction_threshold = config.interface.interaction_threshold
     

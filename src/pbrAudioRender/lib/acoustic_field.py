@@ -22,9 +22,9 @@ from typing import Tuple, List, Dict
 @dataclass
 class VelocityVectors:
     """Contains velocity vectors data"""
-    x: float = 0.000001
-    y: float = 0.000001
-    z: float = 0.000001
+    vx: float = 0.000001
+    vy: float = 0.000001
+    vz: float = 0.000001
 
 @dataclass
 class FrequencyLimitedField:
@@ -32,7 +32,7 @@ class FrequencyLimitedField:
     low_freq: float = 0.000001
     high_freq: float = 0.000001
     pressure: float = 0.000001
-    velocity: VelocityVectors = field(default_factory=lambda: VelocityVectors(0.0, 0.0, 0.0))
+    velocity: VelocityVectors = field(default_factory=lambda: VelocityVectors())
 
 @dataclass
 class AcousticField:
@@ -47,7 +47,6 @@ class AcousticField:
         if (low_band == None and high_band == None) or low_freq == low_band[1] or high_freq == high_band[0]:
             field_component = FrequencyLimitedField(low_freq=low_freq, high_freq=high_freq, pressure=pressure, velocity=velocity)
             self.field.append(field_component)
-            print(self.field[-1])
         else:
             print(f"Frequency band already exist: ", low_band, high_band)
 

@@ -20,15 +20,12 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from ...lib.base import Configurable, GPUEnabled
 
-
-class ParallelWallResonance(Configurable, GPUEnabled):
+class ParallelWallResonance:
     """Handle standing wave resonances between parallel walls"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
     
     def detect(self, soxel_grid) -> List[Dict]:
         """Detect parallel wall structures in the scene"""

@@ -19,12 +19,14 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
+from dask import delayed, compute
+
 from core.entity_manager import EntityManager
 
 from core.soxel_grid import SoxelGrid
 from lib.frames import FrameCounter
 from lib.frequency_bands import FrequencyBands
-from utils.gpu_acceleration import GPUManager
+from dask import delayed, compute
 
 from sources.spherical_source import SphericalSource
 from sources.planar_source import PlanarSource
@@ -45,22 +47,20 @@ class AcousticEngine:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
-        self._add_singletons('gpu')
         self._add_singletons('frames')
         self._add_singletons('frequency_bands')
 
-        for source in config.sources:
-            self._add_source(source)
-        for obj in config.objects:
-            self._add_object(obj)
-        for output in config.outputs:
-            self._add_output(output)
+        tasks = [self._add_source(source) for source in config.sources]
+        tasks += [self._add_object(obj) for obj in config.objects]
+        tasks += [self._add_output(output) for output in config.outputs]
+        compute(*tasks)
         
         self._add_singletons('soxel_grid')
 
-        for source in config.sources:
-            self._add_solvers(source)
+        tasks = [self._add_solvers(source) for source in config.sources]
+        compute(*tasks)
 
+    @delayed
     def _add_source(self, config):
         source_map = {
             'spherical': SphericalSource,
@@ -70,11 +70,13 @@ class AcousticEngine:
             source = source_map.get(config.type)(self.entity_manager, config.idx)
             self.entity_manager.register('sources', source, config.idx)
 
+    @delayed
     def _add_object(self, config):
         if 'ObjectConfig' in str(type(config)):
             obj = AcousticObject(self.entity_manager, config.idx)
             self.entity_manager.register('objects', obj, config.idx)
 
+    @delayed
     def _add_output(self, config):
         output_map = {
             'omnidirectional': OmnidirectionalOutput,
@@ -88,7 +90,6 @@ class AcousticEngine:
 
     def _add_singletons(self, name: str):
         singletons_map = {
-            'gpu': GPUManager,
             'frames': FrameCounter,
             'frequency_bands': FrequencyBands,
             'soxel_grid': SoxelGrid
@@ -98,6 +99,7 @@ class AcousticEngine:
                 single = singletons_map.get(s)(self.entity_manager)
                 self.entity_manager.register(s, single)
 
+    @delayed
     def _add_solvers(self, config):
         if 'SourceConfig' in str(type(config)):
             wave_propagator = WavePropagator(self.entity_manager, config.idx)
@@ -109,8 +111,4 @@ class AcousticEngine:
         wave_propagators = self.entity_manager.get('wave_propagators')
         for index in wave_propagators.keys():
             wave_propagator = wave_propagators.get(index)
-            print("wave_propagator.update", index)
             wave_propagator.update()
-        frames = self.entity_manager.get('frames')
-        frames.next()
-

@@ -20,16 +20,14 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from ...lib.base import Configurable, GPUEnabled
-from ...lib.interpolate import FrequencyInterpolator
+from lib.interpolate import FrequencyInterpolator
 
 
-class ReflectionInterface(Configurable, GPUEnabled):
+class ReflectionInterface:
     """Handle sound wave reflection at material boundaries"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
         
         self.max_reflections = config.acoustic_domain.max_reflections
     

@@ -19,21 +19,19 @@
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 
-from ..lib.base import Configurable, GPUEnabled
 from .resonances import HelmholtzResonance, ParallelWallResonance, TubeResonance
 
 
-class Resonance(Configurable, GPUEnabled):
+class Resonance:
     """Main resonance manager handling all resonant phenomena"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
         
         # Initialize individual resonance handlers
-        self.helmholtz = HelmholtzResonance(config, self.gpu)
-        self.parallel_wall = ParallelWallResonance(config, self.gpu)
-        self.tube = TubeResonance(config, self.gpu)
+        self.helmholtz = HelmholtzResonance(config)
+        self.parallel_wall = ParallelWallResonance(config)
+        self.tube = TubeResonance(config)
         
         self.resonance_threshold = config.resonance.resonance_threshold
     

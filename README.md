@@ -6,7 +6,7 @@ See the [LICENSE](LICENSE) file for the full text.
 
 ## pbrAudioRender
 
-Physically based rendered Audio: 3D acoustic render.
+A physically-based 3D acoustic rendering engine for sound to sound propagation.
 
 
 

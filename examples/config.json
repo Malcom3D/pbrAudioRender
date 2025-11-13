@@ -1,18 +1,10 @@
 {
   "system": {
     "frame_limit": 1000,
-    "use_gpu": true,
     "export_vdb": true,
     "max_workers": 8,
     "cache_path": "./pbrAudioCache/",
     "vdb_export_path": "./exports/vdb/"
-  },
-  "gpu": {
-    "use_gpu": true,
-    "compute_device": "cuda",
-    "device_id": 0,
-    "num_streams": 4,
-    "memory_limit": 4096
   },
   "acoustic_domain": {
     "idx": 0,
@@ -61,7 +53,7 @@
       "idx": 0,
       "name": "speaker_left",
       "type": "spherical",
-      "geometry": 0.2,
+      "geometry": 1.0,
       "audio_file": "./data/audio/source_1.wav",
       "position_file": "./data/positions/source_1.npz",
       "spatial_freq_response": {
@@ -231,7 +223,7 @@
     "courant_number": 0.99,
     "stability_margin": 0.9,
     "lowest_frequency": 5,
-    "steps_per_octave": 24,
+    "steps_per_octave": 1,
     "max_frequency": 20000.0,
     "max_sound_speed": 500.0,
     "use_dispersion_correction": true,

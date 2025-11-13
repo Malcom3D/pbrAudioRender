@@ -20,15 +20,11 @@ import numba as nb
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 
-from ...lib.base import Configurable, GPUEnabled
-
-
-class TubeResonance(Configurable, GPUEnabled):
+class TubeResonance:
     """Handle tube resonator effects (open-open, open-closed, closed-closed)"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
         
         self.min_tube_length = getattr(config.resonance, 'min_tube_length', 0.1)
         self.max_resonance_modes = getattr(config.resonance, 'max_resonance_modes', 10)

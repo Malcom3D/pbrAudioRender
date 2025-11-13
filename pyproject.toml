@@ -45,7 +45,7 @@ dependencies = [
 dev = [
 ]
 
-project.urls]
+[project.urls]
 Homepage = "https://pbraudio.org"
 Repository = "https://github.com/Malcom3D/pbrAudioRender"
 

@@ -20,16 +20,14 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from ...lib.base import Configurable, GPUEnabled
-from ...lib.interpolate import FrequencyInterpolator
+from lib.interpolate import FrequencyInterpolator
 
 
-class DiffractionInterface(Configurable, GPUEnabled):
+class DiffractionInterface:
     """Handle sound wave diffraction around obstacles using UTD model"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
     
     @nb.jit(nopython=True)
     def utd_diffraction_coefficient(self, incident_angle: float, diffraction_angle: float, 

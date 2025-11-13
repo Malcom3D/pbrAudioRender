@@ -45,7 +45,6 @@ class EntityManager:
 
                 self.sigleton_map = {
                     'config': 'Config',
-                    'gpu': 'GPUManager',
                     'frames': 'FrameCounter',
                     'frequency_bands': 'FrequencyBands',
                     'soxel_grid': 'SoxelGrid'
@@ -54,7 +53,7 @@ class EntityManager:
                     'sources': ['SphericalSource', 'PlanarSource'],
                     'objects': ['AcousticObject'],
                     'outputs': ['OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
-                    'wave_propagators': 'WavePropagator',
+                    'wave_propagators': 'WavePropagator'
                 }
 
                 config = Config(config)

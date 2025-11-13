@@ -18,23 +18,18 @@
 
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
-import multiprocessing as mp
 import numpy as np
 import math
 import os
 
 from core.entity_manager import EntityManager
 from lib.soxel import Soxel
-from lib.functions import _shm_array, _flat_to_3d
-#from utils.xp_wrapper import XpWrapper
 
 from lib.acoustic_shader import AcousticShader
 from lib.acoustic_field import AcousticField
 
 from sources.spherical_source import SphericalSource
 from sources.planar_source import PlanarSource
-
-#xp = XpWrapper()
 
 class SoxelGrid():
     """Manages the 3D grid of soxels and their acoustic properties"""
@@ -83,37 +78,36 @@ class SoxelGrid():
             for i,j,k, soxel in soxel_list:
                 self.soxels[i,j,k] = soxel
 
-    def get_shm_array(self, element: str, low_freq: float = None, high_freq: float = None) -> mp.Array:
+    def get_array(self, element: str, low_freq: float = None, high_freq: float = None) -> np.ndarray:
         elements_map = {
             'sound_speed': 'acoustic_shader.sound_speed',
             'density': 'acoustic_shader.density',
             'pressure': 'pressure',
-            'vx': 'velocity.x',
-            'vy': 'velocity.y',
-            'vz': 'velocity.z'
+            'vx': 'velocity.vx',
+            'vy': 'velocity.vy',
+            'vz': 'velocity.vz'
         }
 
         for key in elements_map.keys():
             if element in key:
                 val = elements_map.get(key)
 
-        shm_flat = _shm_array(self.shape)
-        shm_grid = _flat_to_3d(shm_flat, self.shape)
+        grid = np.empty(self.shape, dtype=float)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
                 for k in range(self.shape[2]):
-                    if self.soxels[i,j,k].type == 1 and ('pressure' in val or 'x' in val or 'y' in val or 'z' in val):
+                    if self.soxels[i,j,k].type == 1 and ('pressure' in val or 'vx' in val or 'vy' in val or 'vz' in val):
                         if not low_freq == None and not high_freq == None:
                             for band_num in range(len(self.soxels[i,j,k].input_pressures.field)):
                                 low = self.soxels[i,j,k].input_pressures.field[band_num].low_freq
                                 high = self.soxels[i,j,k].input_pressures.field[band_num].high_freq
                                 if low == low_freq and high == high_freq:
-                                    shm_grid[i,j,k] = eval(f"self.soxels[{i, j, k}].input_pressures.field[{band_num}].{val}")
-                    elif 'pressure' in val or 'x' in val or 'y' in val or 'z' in val:
-                        shm_grid[i,j,k] = 0.
+                                    grid[i,j,k] = eval(f"self.soxels[{i, j, k}].input_pressures.field[{band_num}].{val}")
+                    elif 'pressure' in val or 'vx' in val or 'vy' in val or 'vz' in val:
+                        grid[i,j,k] = 0.
                     else:
-                        shm_grid[i,j,k] = eval(f"self.soxels[{i, j, k}].{val}")
-        return shm_grid
+                        grid[i,j,k] = eval(f"self.soxels[{i, j, k}].{val}")
+        return grid
 
     def get_input(self, source_idx: int):
         fields = []

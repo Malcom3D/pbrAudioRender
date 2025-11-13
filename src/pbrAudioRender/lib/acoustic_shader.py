@@ -19,33 +19,29 @@
 from dataclasses import dataclass, field
 from typing import Union, Optional, Any
 from typing import List
-from utils.xp_wrapper import XpWrapper
-#import numpy as np
+import numpy as np
 
 from lib.interpolator import FrequencyInterpolator
 
-xp = XpWrapper()
 
 @dataclass
 class AcousticCoefficients:
     """Represents frequency-dependent coefficients using numpy arrays."""
-    frequencies: xp.ndarray  # Frequency values array
-    coefficients: xp.ndarray  # Corresponding coefficient values array
+    frequencies: np.ndarray  # Frequency values array
+    coefficients: np.ndarray  # Corresponding coefficient values array
 
     def __post_init__(self):
         # Create interpolator
         self.coeffs_interpolator = FrequencyInterpolator(self.frequencies, self.coefficients, method='cubic')
 
-#    @xp.jit
-    def get_coeffs(self, low_freq: Optional[float] = None, high_freq: Optional[float] = None, num_points: Optional[int] = 0) -> xp.ndarray:
+    def get_coeffs(self, low_freq: Optional[float] = None, high_freq: Optional[float] = None, num_points: Optional[int] = 0) -> np.ndarray:
         low_freq = low_freq if low_freq else self.frequencies[0]
         high_freq = high_freq if high_freq else self.frequencies[-1]
         num_points = num_points if not num_points == 0 else len(self.frequencies)
         frequencies, coeffs = self.coeffs_interpolator.interpolate_band(low_freq, high_freq, num_points)
         return frequencies, coeffs
 
-#    @xp.jit
-    def get_avg_coeffs(self, low_freq: Optional[float] = None, high_freq: Optional[float] = None) -> xp.ndarray:
+    def get_avg_coeffs(self, low_freq: Optional[float] = None, high_freq: Optional[float] = None) -> np.ndarray:
         low_freq = low_freq if low_freq else self.frequencies[0]
         high_freq = high_freq if high_freq else self.frequencies[-1]
         return self.coeffs_interpolator.get_band_average(low_freq, high_freq)

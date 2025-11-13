@@ -20,16 +20,14 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from ...lib.base import Configurable, GPUEnabled
-from ...lib.interpolate import FrequencyInterpolator
+from lib.interpolate import FrequencyInterpolator
 
 
-class RefractionInterface(Configurable, GPUEnabled):
+class RefractionInterface:
     """Handle sound wave refraction at material boundaries"""
     
-    def __init__(self, config=None, gpu_manager=None):
+    def __init__(self, config=None):
         super().__init__(config)
-        GPUEnabled.__init__(self, gpu_manager)
     
     @nb.jit(nopython=True)
     def snells_law(self, incident_angle: float, sound_speed1: float, sound_speed2: float) -> float:
