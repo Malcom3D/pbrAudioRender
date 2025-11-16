@@ -41,6 +41,12 @@ class WavePropagator:
         self.boundary = BoundaryConditions(entity_manager=self.entity_manager, idx=self.idx)
         self.termination = SimulationTermination(entity_manager=self.entity_manager, idx=self.idx)
 
+        # init layers in layer_manager
+        frequencies = self.entity_manager.get('frequency_bands')
+        bands = frequencies.get_bands()
+        for bands_idx in range(len(bands)):
+            self.layer_manager.add_new('fdtd', bands_idx)
+
     def update(self):
         if not self.layer_manager.ended: 
             self.mbf_fdtd.update()

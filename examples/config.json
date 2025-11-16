@@ -33,7 +33,7 @@
           "frequencies": [125, 250, 500, 1000, 2000, 4000, 8000, 16000, 20000],
           "coefficients": [0.91201, 0.77625, 0.56234, 0.31623, 0.112202, 0.00501, 0, 0, 0.2]
         },
-        "transmission": {
+        "refraction": {
           "frequencies": [20, 100, 500, 1000, 5000, 20000],
           "coefficients": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         },
@@ -169,7 +169,7 @@
             "frequencies": [20, 100, 500, 1000, 5000, 20000],
             "coefficients": [0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
           },
-          "transmission": {
+          "refraction": {
             "frequencies": [100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 2000, 4000],
             "coefficients": [0.00101, 0.00025, 0.00315, 0.01849, 0.05585, 0.20277, 0.05970, 0.01786, 0.01621, 0.00931, 0.00635, 0.00200, 0.001]
           },
@@ -230,19 +230,19 @@
     "dispersion_order": 2
   },
   "interface": {
-    "enable_absorption": false,
-    "enable_transmission": false,
-    "enable_reflection": false,
-    "enable_scattering": false,
-    "enable_diffraction": false,
+    "enable_absorption": true,
+    "enable_refraction": true,
+    "enable_reflection": true,
+    "enable_scattering": true,
+    "enable_diffraction": true,
     "min_impedance_ratio": 0.1,
     "max_impedance_ratio": 10.0,
     "interaction_threshold": 0.01
   },
   "resonance": {
-    "enable_helmholtz": false,
-    "enable_parallel_wall": false,
-    "enable_tube": false,
+    "enable_helmholtz": true,
+    "enable_parallel_wall": true,
+    "enable_tube": true,
     "min_cavity_volume": 0.001,
     "max_resonance_modes": 10,
     "resonance_threshold": 0.1,

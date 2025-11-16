@@ -187,7 +187,7 @@ class OmnidirectionalOutput:
         total_scattering = 0.0
         scattering_count = layer_manager.len_by_name('scattering')
         
-        for scat_idx in range(sc(scattering_count):
+        for scat_idx in range(scattering_count):
             try:
                 layer = layer_manager.get_layer('scattering', scat_idx)
                 if layer is not None:

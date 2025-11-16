@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from core.entity_manager import EntityManager
 from lib.acoustic_layer import AcousticLayer
 from lib.acoustic_field import FrequencyLimitedField, VelocityVectors
+from engine.interface import InterfaceManager
 
 @dataclass
 class FDTDSolver:
@@ -48,10 +49,6 @@ class FDTDSolver:
         bands = frequency_bands.get_bands()
         self.low_freq = bands[self.bands_idx][0]
         self.high_freq = bands[self.bands_idx][1]
-
-        # Initialize interfaces and resonances
-        self.interface = Interface(config, self.gpu)
-        self.resonance = Resonance(config, self.gpu)
 
     @staticmethod
     @nb.jit(nopython=True, parallel=True)
@@ -114,16 +111,12 @@ class FDTDSolver:
 
         return new_vx, new_vy, new_vz
 
-    def _update_layer(self, layer: AcousticLayer, new_pressure: np.ndarray, new_vx: np.ndarray, new_vy: np.ndarray, new_vz: np.ndarray):
-        for i in range(layer.shape[0]):
-            for j in range(layer.shape[1]):
-                for k in range(layer.shape[2]):
-                    velocity_vectors = VelocityVectors(new_vx[i,j,k],new_vy[i,j,k],new_vz[i,j,k])
-                    layer.field[i,j,k] = FrequencyLimitedField(low_freq=self.low_freq, high_freq=self.high_freq, pressure=new_pressure[i,j,k], velocity=velocity_vectors)
-
     def update(self):
         """Perform one FDTD update step"""
         soxel_grid = self.entity_manager.get('soxel_grid')
+        wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
+        layer_manager = wave_propagator.layer_manager
+
         # Get acoustic pressure and velocity vectors for this frequency band
         soxel_pressure = soxel_grid.get_array('pressure', self.low_freq, self.high_freq)
         soxel_vx = soxel_grid.get_array('vx', self.low_freq, self.high_freq)
@@ -134,21 +127,25 @@ class FDTDSolver:
         sound_speed = soxel_grid.get_array('sound_speed')
         density = soxel_grid.get_array('density')
 
-        # Get owned layer
-        wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
-        layer_manager = wave_propagator.layer_manager
-        layer = layer_manager.get_layer('fdtd', self.bands_idx)
-        layer_pressure = layer_manager.get_array('fdtd', self.bands_idx, 'pressure')
-        layer_vx = layer_manager.get_array('fdtd', self.bands_idx, 'vx')
-        layer_vy = layer_manager.get_array('fdtd', self.bands_idx, 'vy')
-        layer_vz = layer_manager.get_array('fdtd', self.bands_idx, 'vz')
+        names = []
+        for index in range(len(layer_manager.layers)):
+            if not layer_manager.layers[index].name in names:
+                name = layer_manager.layers[index].name
+                names.append(name)
 
-        # Update pressure and velocity vectors
-        new_pressure = self._update_pressure(layer_pressure, soxel_pressure, soxel_vx, soxel_vy, soxel_vz, sound_speed, density, self.dt, self.dx)
-        new_vx, new_vy, new_vz = self._update_velocity(layer_vx, layer_vy, layer_vz, new_pressure, soxel_vx, soxel_vy, soxel_vz, density, self.dt, self.dx)
+                # Get band owned layer
+                layer_pressure = layer_manager.get_array(name, self.bands_idx, 'pressure')
+                layer_vx = layer_manager.get_array(name, self.bands_idx, 'vx')
+                layer_vy = layer_manager.get_array(name, self.bands_idx, 'vy')
+                layer_vz = layer_manager.get_array(name, self.bands_idx, 'vz')
 
-        # Update owned layer
-        self._update_layer(layer, new_pressure, new_vx, new_vy, new_vz)
+                # Update pressure and velocity vectors
+                new_pressure = self._update_pressure(layer_pressure, soxel_pressure, soxel_vx, soxel_vy, soxel_vz, sound_speed, density, self.dt, self.dx)
+                new_vx, new_vy, new_vz = self._update_velocity(layer_vx, layer_vy, layer_vz, new_pressure, soxel_vx, soxel_vy, soxel_vz, density, self.dt, self.dx)
+
+                # Update owned layer
+                layer = layer_manager.get_layer(name, self.bands_idx)
+                layer_manager.update_layer(layer.name, layer.bands_idx, self.low_freq, self.high_freq, new_pressure, new_vx, new_vy, new_vz)
 
 @dataclass
 class FDTDManager:
@@ -163,6 +160,11 @@ class FDTDManager:
         dt = 1/config.acoustic_domain.sample_rate
         max_sound_speed = config.fdtd.max_sound_speed # Conservative estimate
         courant_number = config.fdtd.courant_number
+
+        # enabled modules
+        self.enable_interface = config.fdtd.enable_interface
+        self.enable_resonance = config.fdtd.enable_resonance
+
         # Stability check
         self._check_stability(max_sound_speed, courant_number, dt, dx)
 
@@ -172,15 +174,19 @@ class FDTDManager:
         wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
         layer_manger = wave_propagator.layer_manager
         layer_manger.add_new('fdtd', bands_idx)
-        layer = layer_manger.get_layer('fdtd', bands_idx)
+#        layer = layer_manger.get_layer('fdtd', bands_idx)
 
         # Create FDTD solvers for all bands
         fdtd_solver = FDTDSolver(self.entity_manager, self.idx, bands_idx)
         fdtd_solver.update()
 
         # Initialize interface and resonance for this frequency band
-#        self.interface = Interface(self.entity_manager, self.idx)
-#        self.resonance = Resonance(self.entity_manager, self.idx)
+        if self.enable_interface:
+            interface = InterfaceManager(self.entity_manager, self.idx, bands_idx)
+            interface.update()
+#            if self.enable_resonance:
+#                resonance = Resonance(self.entity_manager, self.idx, bands_idx)
+#                resonance.update()
 
     def _check_stability(self, max_sound_speed: float, courant_number: float, dt: float, dx: float):
         """Check FDTD stability conditions"""
@@ -194,17 +200,8 @@ class FDTDManager:
 
     def update(self):
         """Perform multi-band update step with physical interactions"""
-        # Step 1: Basic FDTD update
+        # FDTD update
         frequency_bands = self.entity_manager.get('frequency_bands')
         bands = frequency_bands.get_bands()
         tasks = [self._fdtd_solver_update(bands_idx) for bands_idx in range(len(bands))]
         compute(*tasks)
-        
-        # Step 2: Interface interactions
-#        updated_layer = self.interface.update(updated_layer, soxel_grid)
-        
-        
-        # Step 3: Resonance effects
-#        updated_layer = self.resonance.update(updated_layer, soxel_grid)
-        
-#        return updated_layer

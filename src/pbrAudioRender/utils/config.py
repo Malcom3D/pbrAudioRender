@@ -109,7 +109,7 @@ class FDTDConfig:
 @dataclass
 class InterfaceConfig:
     enable_absorption: bool = True
-    enable_transmission: bool = True
+    enable_refraction: bool = True
     enable_reflection: bool = True
     enable_scattering: bool = True
     enable_diffraction: bool = True
@@ -212,9 +212,9 @@ class Config:
                 coefficients=np.array(abs_data['coefficients'])
             )
         
-        if 'transmission' in acoustic_props_data:
-            refr_data = acoustic_props_data['transmission']
-            acoustic_properties.transmission = AcousticCoefficients(
+        if 'refraction' in acoustic_props_data:
+            refr_data = acoustic_props_data['refraction']
+            acoustic_properties.refraction = AcousticCoefficients(
                 frequencies=np.array(refr_data['frequencies']),
                 coefficients=np.array(refr_data['coefficients'])
             )

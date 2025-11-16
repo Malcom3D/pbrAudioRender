@@ -46,10 +46,12 @@ class LayerManager:
             new_layer = AcousticLayer(name, bands_idx, shape=self.shape)
             self.layers[len(self.layers)] = new_layer
 
-    def len_by_name(self, name: str) -> int:
+    def len_by_name(self, name: str, bands_idx: int = None) -> int:
         layers_num = 0
         for index in self.layers.keys():
-            if name in self.layers[index].name:
+            if bands_idx == None and name in self.layers[index].name:
+                layers_num += 1
+            elif bands_idx == self.layers[index].bands_idx and name in self.layers[index].name:
                 layers_num += 1
         return layers_num
 
@@ -72,3 +74,11 @@ class LayerManager:
                     grid[i,j,k] = eval(f"layer.field[i,j,k].{val}")
 
         return grid
+
+    def update_layer(self, name: str, bands_idx: int, low_freq: float, high_freq: float, new_pressure: np.ndarray, new_vx: np.ndarray, new_vy: np.ndarray, new_vz: np.ndarray):
+        layer = self.get_layer(name, bands_idx)
+        for i in range(layer.shape[0]):
+            for j in range(layer.shape[1]):
+                for k in range(layer.shape[2]):
+                    velocity_vectors = VelocityVectors(new_vx[i,j,k],new_vy[i,j,k],new_vz[i,j,k])
+                    layer.field[i,j,k] = FrequencyLimitedField(low_freq=low_freq, high_freq=high_freq, pressure=new_pressure[i,j,k], velocity=velocity_vectors)

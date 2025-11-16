@@ -50,7 +50,7 @@ class AcousticCoefficients:
 class AcousticProperties:
     """Container for acoustic properties."""
     absorption: Optional[AcousticCoefficients] = None
-    tranmission: Optional[AcousticCoefficients] = None
+    refraction: Optional[AcousticCoefficients] = None
     reflection: Optional[AcousticCoefficients] = None
     scattering: Optional[AcousticCoefficients] = None
 

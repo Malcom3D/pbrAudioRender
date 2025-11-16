@@ -80,6 +80,7 @@ class SoxelGrid():
 
     def get_array(self, element: str, low_freq: float = None, high_freq: float = None) -> np.ndarray:
         elements_map = {
+            'type': 'type',
             'sound_speed': 'acoustic_shader.sound_speed',
             'density': 'acoustic_shader.density',
             'pressure': 'pressure',

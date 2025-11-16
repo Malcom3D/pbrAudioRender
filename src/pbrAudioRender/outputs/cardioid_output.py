@@ -77,7 +77,7 @@ class CardioidOutput(OmnidirectionalOutput):
                         mic_orientation[0], mic_orientation[1], mic_orientation[2]
                     )
                     magnitude_coeff = self.output_config.spatial_freq_response.get_avg_magnitude(
-                        azimuth, elevation,, low_freq, high_freq
+                        azimuth, elevation, low_freq, high_freq
                     )
                     cardioid_signal *= magnitude_coeff
                 
