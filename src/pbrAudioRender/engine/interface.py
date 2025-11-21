@@ -62,7 +62,7 @@ class InterfaceManager:
         impedance = density * sound_speed
         
         names = []
-        items = layer_manager.layers.items()
+        items = list(layer_manager.layers.items())
         for index, item in items:
             if not item.name in names and item.bands_idx == self.bands_idx:
                 name = item.name
@@ -246,3 +246,11 @@ class InterfaceManager:
         # 3. Refraction (wave propagation through boundaries)
         if boundaries['sound_speed_discontinuities']:
             self.refraction.update(boundaries)
+
+        # 4. Reflection with layer management
+        if boundaries['impedance_discontinuities']:
+            self.reflection.update(boundaries)
+
+        # 5. Scattering over reflection layers
+        if boundaries['impedance_discontinuities']:
+            self.scattering.update(boundaries)

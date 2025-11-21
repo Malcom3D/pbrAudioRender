@@ -86,7 +86,11 @@ class SoxelGrid():
             'pressure': 'pressure',
             'vx': 'velocity.vx',
             'vy': 'velocity.vy',
-            'vz': 'velocity.vz'
+            'vz': 'velocity.vz',
+            'absorption': 'acoustic_shader.acoustic_properties.absorption',
+            'refraction': 'acoustic_shader.acoustic_properties.refraction',
+            'reflection': 'acoustic_shader.acoustic_properties.reflection',
+            'scattering': 'acoustic_shader.acoustic_properties.scattering'
         }
 
         for key in elements_map.keys():
@@ -105,7 +109,13 @@ class SoxelGrid():
                                 if low == low_freq and high == high_freq:
                                     grid[i,j,k] = eval(f"self.soxels[{i, j, k}].input_pressures.field[{band_num}].{val}")
                     elif 'pressure' in val or 'vx' in val or 'vy' in val or 'vz' in val:
-                        grid[i,j,k] = 0.
+                        grid[i,j,k] = 0.0
+                    elif 'absorption' in val or 'refraction' in val or 'reflection' in val or 'scattering' in val:
+                        if not low_freq == None and not high_freq == None:
+                            if not eval(f"self.soxels[{i, j, k}].{val}") == None:
+                                grid[i,j,k] = eval(f"self.soxels[{i, j, k}].{val}.get_avg_coeffs({low_freq}, {high_freq})")
+                            else:
+                                grid[i,j,k] = 0.0
                     else:
                         grid[i,j,k] = eval(f"self.soxels[{i, j, k}].{val}")
         return grid

@@ -24,9 +24,9 @@ from dataclasses import dataclass, field
 from core.entity_manager import EntityManager
 
 @nb.jit(nopython=True)
-def _utd_diffraction_coefficient(incident_angle: float, diffraction_angle: float, frequency: float, obstacle_size: float, sound_speed: float) -> complex:
+def _utd_diffraction_coefficient(incident_angle: float, diffraction_angle: float, center_freq: float, obstacle_size: float, sound_speed: float) -> complex:
     """Calculate UTD diffraction coefficient using Uniform Theory of Diffraction"""
-    k = 2 * np.pi * frequency / sound_speed  # wave number
+    k = 2 * np.pi * center_freq / sound_speed  # wave number
     
     # Edge diffraction parameters
     L = obstacle_size
@@ -74,76 +74,68 @@ class DiffractionInterface:
 
     @staticmethod
 #    @nb.jit(nopython=True, parallel=True)
-    def _apply_diffraction(pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray, soxel_types: np.ndarray, boundaries: Dict, frequencies: np.ndarray, sound_speed: np.ndarray, voxel_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _apply_diffraction(pressure: np.ndarray, vx: np.ndarray, vy: np.ndarray, vz: np.ndarray, soxel_types: np.ndarray, boundaries: Dict, center_freq: float, sound_speed: np.ndarray, voxel_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Apply UTD diffraction to fields at edge boundaries"""
         new_pressure = pressure.copy()
         new_vx = vx.copy()
         new_vy = vy.copy()
         new_vz = vz.copy()
         
-        # Process each frequency in the band
-        for freq_idx in nb.prange(len(frequencies)):
-            frequency = frequencies[freq_idx]
+        # Process edge boundaries
+        for boundary_idx in nb.prange(len(boundaries.get('edge_boundaries', []))):
+            boundary = boundaries['edge_boundaries'][boundary_idx]
+            i, j, k = boundary['position']
+            obstacle_size = boundary['obstacle_size']
             
-            # Process edge boundaries
-            for boundary_idx in nb.prange(len(boundaries.get('edge_boundaries', []))):
-                boundary = boundaries['edge_boundaries'][boundary_idx]
-                i, j, k = boundary['position']
-                obstacle_size = boundary['obstacle_size']
+            edge_pressure = pressure[i, j, k]
+            
+            if np.abs(edge_pressure) > 1e-6:
+                # Calculate incident wave direction from velocity vectors
+                incident_direction = np.array([vx[i, j, k], vy[i, j, k], vz[i, j, k]])
+                incident_magnitude = np.linalg.norm(incident_direction)
                 
-                edge_pressure = pressure[i, j, k]
-                
-                if np.abs(edge_pressure) > 1e-6:
-                    # Calculate incident wave direction from velocity vectors
-                    incident_direction = np.array([vx[i, j, k], vy[i, j, k], vz[i, j, k]])
-                    incident_magnitude = np.linalg.norm(incident_direction)
-                    
-                    if incident_magnitude > 1e-6:
-                        incident_direction = incident_direction / incident_magnitude
+                if incident_magnitude > 1e-6:
+                    incident_direction = incident_direction / incident_magnitude
                         
-                        # For each diffraction direction (simplified - sample key directions)
-                        for di in [-1, 0, 1]:
-                            for dj in [-1, 0, 1]:
-                                for dk in [-1, 0, 1]:
-                                    if di == 0 and dj == 0 and dk == 0:
-                                        continue
+                    # For each diffraction direction (simplified - sample key directions)
+                    for di in [-1, 0, 1]:
+                        for dj in [-1, 0, 1]:
+                            for dk in [-1, 0, 1]:
+                                if di == 0 and dj == 0 and dk == 0:
+                                    continue
                                         
-                                    ni, nj, nk = i + di, j + dj, k + dk
+                                ni, nj, nk = i + di, j + dj, k + dk
+                                
+                                if (0 <= ni < pressure.shape[0] and 
+                                    0 <= nj < pressure.shape[1] and 
+                                    0 <= nk < pressure.shape[2]):
                                     
-                                    if (0 <= ni < pressure.shape[0] and 
-                                        0 <= nj < pressure.shape[1] and 
-                                        0 <= nk < pressure.shape[2]):
+                                    # Check if neighbor is in shadow region (free space)
+                                    if soxel_types[ni, nj, nk] == 0:
+                                        # Calculate diffraction direction
+                                        diffract_direction = np.array([di, dj, dk])
+                                        diffract_direction = diffract_direction / np.linalg.norm(diffract_direction)
                                         
-                                        # Check if neighbor is in shadow region (free space)
-                                        if soxel_types[ni, nj, nk] == 0:
-                                            # Calculate diffraction direction
-                                            diffract_direction = np.array([di, dj, dk])
-                                            diffract_direction = diffract_direction / np.linalg.norm(diffract_direction)
+                                        # Calculate angles for UTD
+                                        incident_angle = np.arccos(np.dot(incident_direction, diffract_direction))
+                                        diffraction_angle = np.pi - incident_angle  # For back diffraction
+                                        
+                                        # Apply UTD diffraction coefficient
+                                        D = _utd_diffraction_coefficient(incident_angle, diffraction_angle, center_freq, obstacle_size, sound_speed[ni, nj, nk])
+                                        
+                                        # Calculate diffracted field
+                                        distance = np.sqrt(di**2 + dj**2 + dk**2) * voxel_size
+                                        if distance > 0:
+                                            # Spreading factor and phase term
+                                            spreading = 1.0 / np.sqrt(distance)
+                                            phase_term = np.exp(1j * k * distance)
                                             
-                                            # Calculate angles for UTD
-                                            incident_angle = np.arccos(np.dot(incident_direction, diffract_direction))
-                                            diffraction_angle = np.pi - incident_angle  # For back diffraction
+                                            # Diffracted pressure
+                                            diffracted_pressure = (edge_pressure * D * spreading * phase_term)
                                             
-                                            # Apply UTD diffraction coefficient
-                                            D = _utd_diffraction_coefficient(
-                                                incident_angle, diffraction_angle, frequency, obstacle_size, sound_speed[ni, nj, nk]
-                                            )
-                                            
-                                            # Calculate diffracted field
-                                            distance = np.sqrt(di**2 + dj**2 + dk**2) * voxel_size
-                                            if distance > 0:
-                                                # Spreading factor and phase term
-                                                spreading = 1.0 / np.sqrt(distance)
-                                                phase_term = np.exp(1j * k * distance)
-                                                
-                                                # Diffracted pressure
-                                                diffracted_pressure = (
-                                                    edge_pressure * D * spreading * phase_term
-                                                )
-                                                
-                                                # Apply to neighbor (real part for acoustic simulation)
-                                                new_pressure[ni, nj, nk] += np.real(diffracted_pressure)
-        
+                                            # Apply to neighbor (real part for acoustic simulation)
+                                            new_pressure[ni, nj, nk] += np.real(diffracted_pressure)
+    
         return new_pressure, new_vx, new_vy, new_vz
     
     def update(self, boundaries: Dict[str, Any]):
@@ -153,6 +145,8 @@ class DiffractionInterface:
         if not enable_diffraction:
             return
 
+        center_freq = (self.low_freq + self.high_freq)/2
+
         voxel_size = config.acoustic_domain.voxel_size
         soxel_grid = self.entity_manager.get('soxel_grid')
         sound_speed = soxel_grid.get_array('sound_speed')
@@ -160,14 +154,11 @@ class DiffractionInterface:
         wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
         layer_manager = wave_propagator.layer_manager
 
-        # Generate frequency samples within the band
-        num_freq_samples = 5  # Sample 5 frequencies within the band
-        frequencies = np.geomspace(self.low_freq, self.high_freq, num_freq_samples)
-
         names = []
-        for index in layer_manager.layers.keys():
-            if not layer_manager.layers[index].name in names and layer_manager.layers[index].bands_idx == self.bands_idx:
-                name = layer_manager.layers[index].name
+        items = list(layer_manager.layers.items())
+        for index, item in items:
+            if not item.name in names and item.bands_idx == self.bands_idx:
+                name = item.name
                 names.append(name)
 
                 # Apply diffraction
@@ -178,7 +169,7 @@ class DiffractionInterface:
                     layer_manager.get_array(name, self.bands_idx, 'vz'),
                     soxel_types,
                     boundaries,
-                    frequencies,
+                    center_freq,
                     sound_speed,
                     voxel_size
                 )

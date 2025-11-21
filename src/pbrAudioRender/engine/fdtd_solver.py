@@ -128,9 +128,10 @@ class FDTDSolver:
         density = soxel_grid.get_array('density')
 
         names = []
-        for index in range(len(layer_manager.layers)):
-            if not layer_manager.layers[index].name in names:
-                name = layer_manager.layers[index].name
+        items = list(layer_manager.layers.items())
+        for index, item in items:
+            if not item.name in names and item.bands_idx == self.bands_idx:
+                name = item.name
                 names.append(name)
 
                 # Get band owned layer

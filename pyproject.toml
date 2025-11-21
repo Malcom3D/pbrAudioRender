@@ -50,4 +50,4 @@ Homepage = "https://pbraudio.org"
 Repository = "https://github.com/Malcom3D/pbrAudioRender"
 
 [tool.setuptools_scm]
-write_to = "src/pbrAudioRender/_version.py"
+write_to = "src/pbrAudioRender/__init__.py"

@@ -36,7 +36,7 @@ prop = AcousticProperties(absorption=absorption, reflection=reflection, scatteri
 sound_speed = 343.4
 density = 1225
 acusha = AcousticShader(sound_speed, density, prop)
-vel = VelocityVectors(x=1.324, y=3.345, z=1.2342)
+vel = VelocityVectors(vx=1.324, vy=3.345, vz=1.2342)
 acufield = AcousticField()
 acufield.add_field(20,25,10,vel)
 soxel = Soxel(0,2,acufield.get_field(20,25), acusha)
@@ -81,10 +81,17 @@ em = EntityManager(config_file)
 from core.acoustic_engine import AcousticEngine
 ac = AcousticEngine(em)
 ac.update()
+
+frequencies = em.get('frequency_bands')
+bands = frequencies.get_bands()
+
 config = em.get('config')
 soxel_grid = em.get('soxel_grid') 
 wave = em.get('wave_propagators',0)
 lm = wave.layer_manager
+frames = em.get('frames')
+frames.next()
+ac.update()
 for i in range(soxel_grid.shape[0]):
     for j in range(soxel_grid.shape[1]):
         for k in range(soxel_grid.shape[2]):

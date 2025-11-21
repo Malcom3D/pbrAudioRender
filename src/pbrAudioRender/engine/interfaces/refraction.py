@@ -131,9 +131,10 @@ class RefractionInterface:
         layer_manager = wave_propagator.layer_manager
 
         names = []
-        for index in layer_manager.layers.keys():
-            if not layer_manager.layers[index].name in names and layer_manager.layers[index].bands_idx == self.bands_idx:
-                name = layer_manager.layers[index].name
+        items = list(layer_manager.layers.items())
+        for index, item in items:
+            if not item.name in names and item.bands_idx == self.bands_idx:
+                name = item.name
                 names.append(name)
 
                 # Apply refraction

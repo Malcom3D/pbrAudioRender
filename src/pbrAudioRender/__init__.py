@@ -16,7 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.9.0.7"
+__version__ = "0.9.1.1"
 __author__ = "Malcom3D"
 __description__ = "3D acoustic rendering engine"
 
