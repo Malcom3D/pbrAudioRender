@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass, field
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
 @dataclass
 class FrameCounter:

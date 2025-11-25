@@ -20,8 +20,8 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
+from ..core.entity_manager import EntityManager
+from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
 
 @dataclass
 class InterfaceManager:

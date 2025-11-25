@@ -21,10 +21,10 @@ import numpy as np
 from typing import Tuple, Optional
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from lib.functions import _audio_to_npz, _get_position, _world_to_grid, _is_in_bounds, _cartesian_to_spherical
-from lib.acoustic_field import VelocityVectors, AcousticField
-from lib.soxel import Soxel
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _audio_to_npz, _get_position, _get_rotation, _world_to_grid, _is_in_bounds, _cartesian_to_spherical
+from ..lib.acoustic_field import VelocityVectors, AcousticField
+from ..lib.soxel import Soxel
 
 @dataclass
 class SphericalSource:

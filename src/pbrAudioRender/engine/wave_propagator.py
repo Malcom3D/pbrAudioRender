@@ -20,13 +20,13 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 import numpy as np
 
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
-from engine.layer_manager import LayerManager
-from engine.fdtd_solver import FDTDManager
-from engine.damping import Damping
-from engine.boundary_conditions import BoundaryConditions
-from engine.termination import SimulationTermination
+from ..engine.layer_manager import LayerManager
+from ..engine.fdtd_solver import FDTDManager
+from ..engine.damping import Damping
+from ..engine.boundary_conditions import BoundaryConditions
+from ..engine.termination import SimulationTermination
 
 @dataclass
 class WavePropagator:
@@ -52,5 +52,5 @@ class WavePropagator:
             self.mbf_fdtd.update()
 #            self.damping.update()
 #            self.boundary.update()
-#            if not self.termination.update():
-#               self.layer_manager.ended = True
+            if self.termination.update():
+               self.layer_manager.ended = True

@@ -22,14 +22,14 @@ import numpy as np
 import math
 import os
 
-from core.entity_manager import EntityManager
-from lib.soxel import Soxel
+from ..core.entity_manager import EntityManager
+from ..lib.soxel import Soxel
 
-from lib.acoustic_shader import AcousticShader
-from lib.acoustic_field import AcousticField
+from ..lib.acoustic_shader import AcousticShader
+from ..lib.acoustic_field import AcousticField
 
-from sources.spherical_source import SphericalSource
-from sources.planar_source import PlanarSource
+from ..sources.spherical_source import SphericalSource
+from ..sources.planar_source import PlanarSource
 
 class SoxelGrid():
     """Manages the 3D grid of soxels and their acoustic properties"""

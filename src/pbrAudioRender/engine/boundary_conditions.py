@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
 @dataclass
 class BoundaryConditions:

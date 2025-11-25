@@ -16,138 +16,78 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from lib.functions import _get_position, _world_to_grid, _cartesian_to_spherical
-from outputs.omnidirectional_output import OmnidirectionalOutput
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _get_position, _get_rotation, _world_to_grid, _cartesian_to_spherical
+from ..lib.interpolator import FrequencyInterpolator
 
 @dataclass
-class HypercardioidOutput(OmnidirectionalOutput):
+class HypercardioidOutput:
     """Hypercardioid microphone output with frequency-dependent processing"""
-    
-    def process_audio(self) -> Dict[str, np.ndarray]:
+    entity_manager: EntityManager
+    idx: int
+    id: int = None # microphone id for ambisonic configuration
+
+    def __post_init__(self):
+        config = self.entity_manager.get('config')
+        self.output_config = None
+
+        for output_config in config.outputs:
+            if output_config.idx == self.idx:
+                self.output_config = output_config
+
+                if not self.id == None:
+                    with open(self.output_config.spatial_arrangement_file, 'r') as f:
+                        spatial_config = json.load(f)
+                        for mic_config in spatial_config.get('outputs', []):
+                            if mic_config['id'] == self.id:
+                                self.relative_pos = np.array(mic_config['position'])
+                                self.relative_rot = np.array(mic_config['rotation'])
+
+   
+    def process_audio(self) -> float:
         """
         Process audio for hypercardioid microphone across all frequency bands and layers
-        
+
         Returns:
-            Dictionary with 'frequencies' and 'pressures' arrays
+            Float: the sum of the higher accuracy encoded pressure and velocity vector of all layers in the sub voxel interpolated recording position with sub-voxel accuracy at current frame after apply frequency response and calibration.
         """
-        current_frame = self.entity_manager.get('frames').get()
-        positions = self.get_recording_positions()
-        
-        if not positions:
-            return {'frequencies': np.array([]), 'pressures': np.array([])}
-        
-        # Get microphone orientation
-        mic_orientation = self._get_orientation(current_frame)
-        
-        # Initialize frequency-pressure arrays
-        all_frequencies = []
-        all_pressures = []
-        
-        for position in positions:
-            grid_pos = _world_to_grid(self.voxel_size, self.grid_geometry, position)
-            
-            if not self._is_in_bounds(grid_pos):
-                continue
-                
-            # Process each frequency band
-            for band_idx, (low_freq, high_freq) in enumerate(self.bands):
-                center_freq = np.sqrt(low_freq * high_freq)
-                
-                # Get interpolated pressure and velocity
-                pressure = self._get_interpolated_pressure(position, grid_pos, band_idx, center_freq)
-                velocity = self._get_interpolated_velocity(position, grid_pos, band_idx, center_freq)
-                
-                # Calculate velocity component in microphone direction
-                velocity_component = np.dot(velocity, mic_orientation)
-                
-                # Hypercardioid: 0.25 * (1 + 3 * cos(θ)) but in pressure-velocity form:
-                # Hypercardioid = 0.25 * (P + 3 * V_component/c * ρ)
-                sound_speed = 343.0
-                density = 1.2
-                hypercardioid_signal = 0.25 * (pressure + 3 * velocity_component / sound_speed * density)
-                
-                # Apply frequency response if available
-                if hasattr(self.output_config, 'spatial_freq_response'):
-                    # Get direction-dependent response
-                    azimuth, elevation, _ = _cartesian_to_spherical(
-                        mic_orientation[0], mic_orientation[1], mic_orientation[2]
-                    )
-                    magnitude_coeff = self.output_config.spatial_freq_response.get_avg_magnitude(
-                        azimuth, elevation, low_freq, high_freq
-                    )
-                    hypercardioid_signal *= magnitude_coeff
-                
-                # Apply calibration if available
-                if hasattr(self.output_config, 'calibration'):
-                    cal_coeff = self.output_config.calibration.get_avg_magnitude(
-                        0, 0, low_freq, high_freq
-                    )
-                    hypercardioid_signal *= cal_coeff
-                
-                all_frequencies.append(center_freq)
-                all_pressures.append(hypercardioid_signal)
-        
-        return {
-            'frequencies': np.array(all_frequencies),
-            'pressures': np.array(all_pressures)
-        }
+        return 1
 
-    def _get_interpolated_velocity(self, world_pos: Tuple[float, float, float],
-                                 grid_pos: Tuple[int, int, int],
-                                 band_idx: int, frequency: float) -> np.ndarray:
-        """
-        Get sub-voxel interpolated velocity vector from all layers
-        """
-        total_velocity = np.zeros(3)
-        wave_propagators = self.entity_manager.get('wave_propagators')
-        
-        for wp_idx, wave_propagator in wave_propagators.items():
-            layer_manager = wave_propagator.layer_manager
-            
-            # Get velocity from FDTD layers
-            vx = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vx')
-            vy = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vy')
-            vz = self._get_fdtd_velocity_component(layer_manager, band_idx, world_pos, grid_pos, 'vz')
-            
-            total_velocity[0] += vx
-            total_velocity[1] += vy
-            total_velocity[2] += vz
-        
-        return total_velocity
+    def _get_position(self) -> Tuple[float, float, float]:
+        """Get positions where this output should record"""
+        frames = self.entity_manager.get('frames')
+        current_frame = frames.get()
+        position = _get_position(self.output_config.position_file, current_frame)
+        if hasattr(self, 'relative_pos'):
+            position = position + self.relative_pos
+        return position
 
-    def _get_fdtd_velocity_component(self, layer_manager, band_idx: int,
-                                   world_pos: Tuple[float, float, float],
-                                   grid_pos: Tuple[int, int, int],
-                                   component: str) -> float:
-        """Get interpolated velocity component from FDTD layers"""
-        try:
-            layer = layer_manager.get_layer('fdtd', band_idx)
-            if layer is None:
-                return 0.0
-                
-            velocity_component = self._trilinear_interpolate(layer, component, world_pos, grid_pos)
-            return velocity_component
-        except:
-            return 0.0
-
-    def _get_orientation(self, frame: int) -> np.ndarray:
+    def _get_orientation(self, frame: int) -> Tuple[float, float, float]:
         """Get microphone orientation for current frame"""
-        if hasattr(self.output_config, 'position_file') and self.output_config.position_file:
-            try:
-                position_data = np.load(self.output_config.position_file)
-                if frame < len(position_data) and len(position_data[frame]) >= 6:
-                    return position_data[frame][3:6]
-            except:
-                pass
-        
-        return np.array([1.0, 0.0, 0.0])
+        frames = self.entity_manager.get('frames')
+        current_frame = frames.get()
+        rotation = _get_rotation(self.output_config.rotation_file, current_frame)
+        if hasattr(self, 'relative_rot'):
+            rotation = rotation + self.relative_pos
+        return rotation
 
-    def get_directivity(self, azimuth: float, elevation: float,
-                       frequency: Optional[float] = None) -> float:
+    def _get_interpolated_pressure(self, recording_position: Tuple[float, float, float]) -> float:
+        """
+        Get interpolated pressure from all layers with sub-voxel accuracy
+        """
+        pass
+
+    def _get_interpolated_velocity(self, recording_position: Tuple[float, float, float]) -> Tuple[float, float, float]:
+        """
+        Get interpolated velocity vectors from all layers with sub-voxel accuracy
+        """
+        pass
+
+    def _get_directivity(self, azimuth: float, elevation: float) -> float:
         """Hypercardioid directivity pattern"""
         return 0.25 * (1 + 3 * np.cos(np.deg2rad(azimuth)))

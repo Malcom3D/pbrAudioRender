@@ -21,24 +21,24 @@ from typing import List, Tuple
 
 from dask import delayed, compute
 
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
-from core.soxel_grid import SoxelGrid
-from lib.frames import FrameCounter
-from lib.frequency_bands import FrequencyBands
-from dask import delayed, compute
+from ..core.soxel_grid import SoxelGrid
+from ..lib.frames import FrameCounter
+from ..lib.frequency_bands import FrequencyBands
 
-from sources.spherical_source import SphericalSource
-from sources.planar_source import PlanarSource
+from ..sources.spherical_source import SphericalSource
+from ..sources.planar_source import PlanarSource
 
-from objects.acoustic_object import AcousticObject
+from ..objects.acoustic_object import AcousticObject
 
-from engine.wave_propagator import WavePropagator
+from ..engine.wave_propagator import WavePropagator
 
-from outputs.omnidirectional_output import OmnidirectionalOutput
-from outputs.cardioid_output import CardioidOutput
-from outputs.hypercardioid_output import HypercardioidOutput
-from outputs.figure8_output import Figure8Output
+from ..outputs.ambisonic_output import AmbisonicOutput
+from ..outputs.omnidirectional_output import OmnidirectionalOutput
+from ..outputs.cardioid_output import CardioidOutput
+from ..outputs.hypercardioid_output import HypercardioidOutput
+from ..outputs.figure8_output import Figure8Output
 
 @dataclass
 class AcousticEngine:
@@ -79,6 +79,7 @@ class AcousticEngine:
     @delayed
     def _add_output(self, config):
         output_map = {
+            'ambisonic': AmbisonicOutput,
             'omnidirectional': OmnidirectionalOutput,
             'cardioid': CardioidOutput,
             'hypercardioid': HypercardioidOutput,

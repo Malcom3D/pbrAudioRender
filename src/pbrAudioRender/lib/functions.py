@@ -22,8 +22,24 @@ import soundfile as sf
 import numba as nb
 from typing import List, Tuple, Union, Dict, Any
 
-from lib.filter import LinkwitzRileyFilter
+from ..lib.filter import LinkwitzRileyFilter
 
+def _append_to_npz(npz_path: str, value):
+    """Append value to array saved as npz file """
+    try:
+        file_array = np.load(npz_path)
+    except FileNotFoundError:
+        np.savez_compressed(npz_path, value)
+        return
+    try:
+        array = file_array[file_array.files[0]]
+    except ValueError:
+        file_array.allow_pickle = True
+        array = file_array[file_array.files[0]]
+    array = np.append(array, [value], axis=0)
+    np.savez_compressed(npz_path, array)
+    file_array.close()
+    
 def _audio_to_npz(npz_path: str, audio_file: str, audio_npz: str, grid_sample_rate: int, frequency_bands: List[Tuple[float, float]]) -> str:
     """
     Convert audio_file to frequency dependent np.ndarray in npz file audio_npz.
@@ -103,7 +119,7 @@ def _is_in_bounds(shape: Tuple[int, int, int], i: int, j: int, k: int) -> bool:
             0 < k < shape[2])
 
 def _get_position(position_file: str, current_frame: int) -> Tuple[int, int, int]:
-    """Get center grid position at time for a sound source"""
+    """Get grid position at frame from npz file"""
     # Load position data from file if available
     if position_file and os.path.exists(position_file):
         try:
@@ -115,6 +131,19 @@ def _get_position(position_file: str, current_frame: int) -> Tuple[int, int, int
             return center
         except Exception as e:
             print(f"Warnings: Failed to load position data from {position_file}: {e}")
+
+def _get_rotation(rotation_file: str, current_frame: int) -> Tuple[int, int, int]:
+    """Get grid rotation at frame from npz file"""
+    # Load rotation data from file if available
+    if rotation_file and os.path.exists(position_file):
+        try:
+            directions = np.load(rotation_file)
+            directions = directions[centers.files[0]]
+            direction = directions[current_frame]
+    
+            return direction
+        except Exception as e:
+            print(f"Warnings: Failed to load direction data from {rotation_file}: {e}")
 
 def _cartesian_to_spherical(x: float, y: float, z: float) -> Tuple[float, float, float]:
     """
@@ -197,3 +226,33 @@ def _degrees_to_radians(phase_coeffs, input_unit='auto'):
         phase = np.mod(phase + np.pi, 2 * np.pi) - np.pi
 
     return phase
+
+@nb.jit(nopython=True)
+def _trilinear_interpolate(field: np.ndarray, position: Tuple[float, float, float]) -> float:
+    """Fast trilinear interpolation using numba"""
+    i, j, k = position
+    
+    i0, j0, k0 = int(np.floor(i)), int(np.floor(j)), int(np.floor(k))
+    i1, j1, k1 = i0 + 1, j0 + 1, k0 + 1
+    
+    # Check bounds
+    if (i0 < 0 or i1 >= field.shape[0] or 
+        j0 < 0 or j1 >= field.shape[1] or 
+        k0 < 0 or k1 >= field.shape[2]):
+        return 0.0
+    
+    # Calculate interpolation weights
+    di, dj, dk = i - i0, j - j0, k - k0
+    
+    # Trilinear interpolation
+    c00 = field[i0, j0, k0] * (1 - di) + field[i1, j0, k0] * di
+    c01 = field[i0, j0, k1] * (1 - di) + field[i1, j0, k1] * di
+    c10 = field[i0, j1, k0] * (1 - di) + field[i1, j1, k0] * di
+    c11 = field[i0, j1, k1] * (1 - di) + field[i1, j1, k1] * di
+    
+    c0 = c00 * (1 - dj) + c10 * dj
+    c1 = c01 * (1 - dj) + c11 * dj
+    
+    value = c0 * (1 - dk) + c1 * dk
+    
+    return value

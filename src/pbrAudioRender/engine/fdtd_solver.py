@@ -25,10 +25,11 @@ import numba as nb
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from lib.acoustic_layer import AcousticLayer
-from lib.acoustic_field import FrequencyLimitedField, VelocityVectors
-from engine.interface import InterfaceManager
+from ..core.entity_manager import EntityManager
+from ..lib.acoustic_layer import AcousticLayer
+from ..lib.acoustic_field import FrequencyLimitedField, VelocityVectors
+from ..engine.interface import InterfaceManager
+#from ..engine.resonance import Resonance
 
 @dataclass
 class FDTDSolver:

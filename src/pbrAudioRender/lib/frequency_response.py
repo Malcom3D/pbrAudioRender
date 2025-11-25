@@ -20,8 +20,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 import numpy as np
 
-from lib.interpolator import Frequency3DInterpolator
-from lib.functions import _degrees_to_radians
+from ..lib.interpolator import Frequency3DInterpolator
+from ..lib.functions import _degrees_to_radians
 
 @dataclass
 class SpatialFrequencyResponse:

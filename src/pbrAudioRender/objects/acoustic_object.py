@@ -22,9 +22,9 @@ import trimesh
 from typing import Tuple, Optional, List
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from lib.soxel import Soxel
-from lib.functions import _audio_to_npz, _get_position, _world_to_grid, _is_in_bounds, _cartesian_to_spherical
+from ..core.entity_manager import EntityManager
+from ..lib.soxel import Soxel
+from ..lib.functions import _audio_to_npz, _get_position, _get_rotation, _world_to_grid, _is_in_bounds, _cartesian_to_spherical
 
 @dataclass
 class AcousticObject:

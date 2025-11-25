@@ -21,7 +21,7 @@ import numba as nb
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
+from ...core.entity_manager import EntityManager
 
 @nb.jit(nopython=True)
 def _utd_diffraction_coefficient(incident_angle: float, diffraction_angle: float, center_freq: float, obstacle_size: float, sound_speed: float) -> complex:

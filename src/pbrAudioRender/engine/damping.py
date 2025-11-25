@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 import numba as nb
 
 #from ..lib.field_ops import calculate_acoustic_energy
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
 @dataclass
 class Damping:

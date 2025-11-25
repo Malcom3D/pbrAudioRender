@@ -20,9 +20,9 @@ import numpy as np
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
-from lib.acoustic_layer import AcousticLayer
-from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
+from ..core.entity_manager import EntityManager
+from ..lib.acoustic_layer import AcousticLayer
+from ..lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
 
 @dataclass
 class LayerManager:

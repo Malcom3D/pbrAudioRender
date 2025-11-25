@@ -21,38 +21,78 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
 import numba as nb
 
-#from ..lib.field_ops import calculate_acoustic_energy
-from core.entity_manager import EntityManager
+from ..core.entity_manager import EntityManager
 
 @dataclass
 class SimulationTermination:
-    """Handle simulation termination conditions"""
+    """Handle simulation termination conditions for multi-band, multi-layer architecture"""
     entity_manager: EntityManager
     idx: int
     
     def __post_init__(self):
-        pass
+        # State tracking
+        self.frame_count = 0
+        self.inactive_frames = 0
+        self.energy_history = []
+        self.ended = False
+
+    def calculate_acoustic_energy(self) -> float:
+        """Calculate total acoustic energy across all layers and frequency bands"""
+        total_energy = 0.0
+        wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
+        layer_manager = wave_propagator.layer_manager
         
-#        self.energy_threshold = getattr(config.wave_propagation, 'termination_energy_threshold', 1e-6)
-#        self.max_frames = getattr(config.acoustic_domain, 'sample_frame_limit', 10000)
-#        self.min_activity_frames = getattr(config.wave_propagation, 'min_activity_frames', 10)
+        # Get frequency bands for energy weighting
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        bands = frequency_bands.get_bands()
         
-#        self.energy_history = []
-#        self.frame_count = 0
-#        self.inactive_frames = 0
-    
-    def update_step(self, layer_manager):
-        """Check termination conditions"""
+        # Calculate energy for each layer and frequency band
+        for layer_idx, layer in layer_manager.layers.items():
+            try:
+                # Get pressure and velocity arrays for this layer and band
+                pressure = layer_manager.get_array(layer.name, layer.bands_idx, 'pressure')
+                vx = layer_manager.get_array(layer.name, layer.bands_idx, 'vx')
+                vy = layer_manager.get_array(layer.name, layer.bands_idx, 'vy')
+                vz = layer_manager.get_array(layer.name, layer.bands_idx, 'vz')
+                
+                # Calculate energy density: E = 0.5 * (p²/(ρc²) + ρ(vx² + vy² + vz²))
+                # Simplified version for relative energy tracking
+                energy_density = (
+                    np.sum(pressure**2) + 
+                    np.sum(vx**2 + vy**2 + vz**2)
+                )
+                
+                # Weight by frequency band (higher frequencies typically have more energy)
+                band_center = np.sqrt(bands[layer.bands_idx][0] * bands[layer.bands_idx][1])
+                frequency_weight = band_center / 1000.0  # Normalize by 1kHz
+                
+                total_energy += energy_density * frequency_weight
+                
+            except (AttributeError, IndexError, KeyError):
+                # Skip layers that don't have the required data
+                continue
+        
+        return total_energy
+
+    def update(self) -> bool:
+        """Check termination conditions for current simulation state"""
+        config = self.entity_manager.get('config')
+        wave_propagator = self.entity_manager.get('wave_propagators', self.idx)
+        layer_manager = wave_propagator.layer_manager
+        
+        if layer_manager.ended:
+            return True
+
+        # Termination parameters
+        termination_config = config.wave_propagation
+        termination_energy_threshold = termination_config.termination_energy_threshold
+        min_activity_frames = termination_config.min_activity_frames
+        max_frames = config.system.frame_limit if config.system.frame_limit else float('inf')
+
         self.frame_count += 1
         
-        # Calculate current energy
-        fields = {
-            'pressure': layer_manager.pressure,
-            'velocity_x': layer_manager.velocity_x,
-            'velocity_y': layer_manager.velocity_y,
-            'velocity_z': layer_manager.velocity_z
-        }
-        current_energy = calculate_acoustic_energy(fields)
+        # Calculate current energy across all layers and bands
+        current_energy = self.calculate_acoustic_energy()
         
         # Store energy history
         self.energy_history.append(current_energy)
@@ -60,9 +100,9 @@ class SimulationTermination:
             self.energy_history.pop(0)
         
         # Check for energy decay (simulation has effectively ended)
-        if len(self.energy_history) >= self.min_activity_frames:
-            recent_energy = np.mean(self.energy_history[-self.min_activity_frames:])
-            if recent_energy < self.energy_threshold:
+        if len(self.energy_history) >= min_activity_frames:
+            recent_energy = np.mean(self.energy_history[-min_activity_frames:])
+            if recent_energy < termination_energy_threshold:
                 self.inactive_frames += 1
             else:
                 self.inactive_frames = 0
@@ -71,35 +111,23 @@ class SimulationTermination:
         should_terminate = False
         
         # Condition 1: Maximum frames reached
-        if self.frame_count >= self.max_frames:
+        if self.frame_count >= max_frames:
             should_terminate = True
-            print(f"Termination: Reached maximum frame limit ({self.max_frames})")
+            print(f"{self.idx} Termination: Reached maximum frame limit ({max_frames})")
         
         # Condition 2: Energy below threshold for sufficient time
-        elif self.inactive_frames >= self.min_activity_frames:
+        elif self.inactive_frames >= min_activity_frames:
             should_terminate = True
-            print(f"Termination: Energy below threshold for {self.inactive_frames} frames")
+            print(f"{self.idx} Termination: Energy below threshold for {self.inactive_frames} frames")
         
         # Condition 3: Energy has decayed to negligible levels
-        elif current_energy < self.energy_threshold * 0.1:
+        elif current_energy < termination_energy_threshold * 0.1:
             should_terminate = True
-            print(f"Termination: Energy decayed to negligible level ({current_energy:.2e})")
+            print(f"{self.idx} Termination: Energy decayed to negligible level ({current_energy:.2e})")
+        
+        # Condition 4: All layers have ended (from LayerManager)
+        elif hasattr(wave_propagator.layer_manager, 'ended') and wave_propagator.layer_manager.ended:
+            should_terminate = True
+            print("{self.idx} Termination: All layers have ended")
         
         return should_terminate
-    
-    def get_termination_stats(self) -> Dict[str, Any]:
-        """Get termination statistics"""
-        return {
-            'frame_count': self.frame_count,
-            'inactive_frames': self.inactive_frames,
-            'current_energy': self.energy_history[-1] if self.energy_history else 0.0,
-            'energy_threshold': self.energy_threshold,
-            'max_frames': self.max_frames
-        }
-    
-    def reset(self):
-        """Reset termination conditions for new simulation"""
-        self.energy_history.clear()
-        self.frame_count = 0
-        self.inactive_frames = 0
-

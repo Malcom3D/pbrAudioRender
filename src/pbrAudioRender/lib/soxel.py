@@ -18,8 +18,8 @@
 
 from dataclasses import dataclass, field
 
-from lib.acoustic_shader import AcousticShader
-from lib.acoustic_field import AcousticField
+from ..lib.acoustic_shader import AcousticShader
+from ..lib.acoustic_field import AcousticField
 
 @dataclass
 class Soxel:

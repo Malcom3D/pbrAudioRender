@@ -21,8 +21,8 @@ import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 
-from lib.acoustic_shader import AcousticShader, AcousticProperties, AcousticCoefficients
-from lib.frequency_response import SpatialFrequencyResponse
+from ..lib.acoustic_shader import AcousticShader, AcousticProperties, AcousticCoefficients
+from ..lib.frequency_response import SpatialFrequencyResponse
 
 @dataclass
 class SystemConfig:
@@ -54,6 +54,7 @@ class SourceConfig:
     geometry: Optional[Dict[str, Any]] = None
     audio_file: str = ""
     position_file: str = ""
+    rotation_file: str = ""
     spatial_freq_response: Optional[SpatialFrequencyResponse] = None
     spatial_freq_response_file: Optional[str] = None
     acoustic_shader: Optional[AcousticShader] = None
@@ -62,11 +63,12 @@ class SourceConfig:
 class OutputConfig:
     idx: int
     name: str
-    type: str  # "omnidirectional", "cardioid", "figure8", "hypercardioid"
+    type: str  # "ambisonic", "omnidirectional", "cardioid", "figure8", "hypercardioid"
     geometry: Optional[Dict] = None
     spatial_arrangement_file: str = ""
     render_output_path: str = ""
     position_file: str = ""
+    rotation_file: str = ""
     spatial_freq_response: Optional[SpatialFrequencyResponse] = None
     spatial_freq_response_file: Optional[str] = None
     calibration: Optional[SpatialFrequencyResponse] = None

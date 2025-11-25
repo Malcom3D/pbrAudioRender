@@ -17,18 +17,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Union
+import numba as nb
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
-from ..lib.acoustic_field import FrequencyLimitedField, VelocityVectors
+
+from ...core.entity_manager import EntityManager
 
 @dataclass
-class AcousticLayer:
-    name: str
+class HelmholtzResonance:
+    entity_manager: EntityManager
+    idx: int
     bands_idx: int
-    shape: Tuple[int, int, int]
 
     def __post_init__(self):
-#        vel = VelocityVectors()
-        flf = FrequencyLimitedField()
-        self.field = np.full((self.shape), flf, dtype=object)
-#        self.field = np.empty(self.shape, dtype=object)
+        # Get low and high frequency
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        bands = frequency_bands.get_bands()
+        self.low_freq = bands[self.bands_idx][0]
+        self.high_freq = bands[self.bands_idx][1]

@@ -22,7 +22,7 @@ import numba as nb
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from core.entity_manager import EntityManager
+from ...core.entity_manager import EntityManager
 
 @dataclass
 class ReflectionInterface:

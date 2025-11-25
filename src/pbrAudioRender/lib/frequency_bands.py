@@ -19,8 +19,8 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
-from core.entity_manager import EntityManager
-from lib.functions import _generate_band_frequencies
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _generate_band_frequencies
 
 @dataclass
 class FrequencyBands:

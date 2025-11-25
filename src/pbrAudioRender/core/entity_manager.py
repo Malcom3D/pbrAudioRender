@@ -18,8 +18,8 @@
 
 import threading
 from typing import List, Tuple, Any
-from utils.config import Config
-from lib.functions import _soxel_grid_shape
+from ..utils.config import Config
+from ..lib.functions import _soxel_grid_shape
 
 class EntityManager:
     _instance = None

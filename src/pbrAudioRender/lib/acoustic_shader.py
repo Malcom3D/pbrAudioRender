@@ -21,7 +21,7 @@ from typing import Union, Optional, Any
 from typing import List
 import numpy as np
 
-from lib.interpolator import FrequencyInterpolator
+from ..lib.interpolator import FrequencyInterpolator
 
 
 @dataclass
