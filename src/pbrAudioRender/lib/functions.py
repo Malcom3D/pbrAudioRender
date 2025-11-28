@@ -29,7 +29,8 @@ def _append_to_npz(npz_path: str, value):
     try:
         file_array = np.load(npz_path)
     except FileNotFoundError:
-        np.savez_compressed(npz_path, value)
+        array = np.array(value)
+        np.savez_compressed(npz_path, array)
         return
     try:
         array = file_array[file_array.files[0]]
@@ -131,6 +132,8 @@ def _get_position(position_file: str, current_frame: int) -> Tuple[int, int, int
             return center
         except Exception as e:
             print(f"Warnings: Failed to load position data from {position_file}: {e}")
+    else:
+        return np.array([0,0,0])
 
 def _get_rotation(rotation_file: str, current_frame: int) -> Tuple[int, int, int]:
     """Get grid rotation at frame from npz file"""
@@ -144,6 +147,8 @@ def _get_rotation(rotation_file: str, current_frame: int) -> Tuple[int, int, int
             return direction
         except Exception as e:
             print(f"Warnings: Failed to load direction data from {rotation_file}: {e}")
+    else:
+        return np.array([0,0,0])
 
 def _cartesian_to_spherical(x: float, y: float, z: float) -> Tuple[float, float, float]:
     """
@@ -243,16 +248,27 @@ def _trilinear_interpolate(field: np.ndarray, position: Tuple[float, float, floa
     
     # Calculate interpolation weights
     di, dj, dk = i - i0, j - j0, k - k0
-    
+    di1, dj1, dk1 = 1.0 - di, 1.0 - dj, 1.0 - dk
+
+    # Get the 8 corner values
+    v000 = field[i0, j0, k0]
+    v001 = field[i0, j0, k1]
+    v010 = field[i0, j1, k0]
+    v011 = field[i0, j1, k1]
+    v100 = field[i1, j0, k0]
+    v101 = field[i1, j0, k1]
+    v110 = field[i1, j1, k0]
+    v111 = field[i1, j1, k1]
+
     # Trilinear interpolation
-    c00 = field[i0, j0, k0] * (1 - di) + field[i1, j0, k0] * di
-    c01 = field[i0, j0, k1] * (1 - di) + field[i1, j0, k1] * di
-    c10 = field[i0, j1, k0] * (1 - di) + field[i1, j1, k0] * di
-    c11 = field[i0, j1, k1] * (1 - di) + field[i1, j1, k1] * di
+    c00 = v000 * di1 + v100 * di
+    c01 = v001 * di1 + v101 * di
+    c10 = v010 * di1 + v110 * di
+    c11 = v011 * di1 + v111 * di
+
+    c0 = c00 * dj1 + c10 * dj
+    c1 = c01 * dj1 + c11 * dj
     
-    c0 = c00 * (1 - dj) + c10 * dj
-    c1 = c01 * (1 - dj) + c11 * dj
-    
-    value = c0 * (1 - dk) + c1 * dk
-    
+    value = c0 * dk1 + c1 * dk
+
     return value

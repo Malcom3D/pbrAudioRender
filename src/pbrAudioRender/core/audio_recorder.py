@@ -26,6 +26,7 @@ from pathlib import Path
 from dask import delayed, compute
 
 from ..core.entity_manager import EntityManager
+from ..lib.functions import _append_to_npz
 
 @dataclass
 class AudioRecorder:
@@ -41,11 +42,24 @@ class AudioRecorder:
         """Process audio for all microphones and save to files"""
         frames = self.entity_manager.get('frames')
         current_frame = frames.get()
-        
-        # Process audio for each microphone
+
+        mic_done = []
         outputs = self.entity_manager.get('outputs')
-        for index in range(len(outputs)):
-            output = outputs[index]
-            npz_file = f"{output.output_config.render_output_path/output.output_config.idx}.npz"
-            sample = output.process_audio()
-            _append_to_npz(npz_file, sample)
+        # Find and process audio for each ambisonic output
+        for index in outputs.keys():
+            if 'AmbisonicOutput' in str(type(outputs[index])):
+                output = outputs[index]
+                for mic in output.get_mics():
+                    mic_idx = int(f"{mic.idx*1000}{mic.id}")
+                    mic_done.append(mic_idx)
+                sample = output.process_audio()
+                npz_file = f"{output.output_config.render_output_path}/{output.output_config.idx}.npz"
+                _append_to_npz(npz_file, sample)
+
+        # Process audio for each microphone output
+        for index in outputs.keys():
+            if not index in mic_done:
+                output = outputs[index]
+                npz_file = f"{output.output_config.render_output_path}/{output.output_config.idx}.npz"
+                sample = output.process_audio()
+                _append_to_npz(npz_file, sample)

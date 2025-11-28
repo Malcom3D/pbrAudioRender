@@ -52,7 +52,7 @@ class EntityManager:
                 self.entities_map = {
                     'sources': ['SphericalSource', 'PlanarSource'],
                     'objects': ['AcousticObject'],
-                    'outputs': ['OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
+                    'outputs': ['AmbisonicOutput', 'OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
                     'wave_propagators': 'WavePropagator'
                 }
 

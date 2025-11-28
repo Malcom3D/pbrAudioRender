@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
 import os
 import numpy as np
 from typing import Tuple, List
@@ -29,7 +30,7 @@ from ..lib.soxel import Soxel
 @dataclass
 class PlanarSource:
     """
-    Planar source
+    Planar source with directional orientation
     """
     entity_manager: EntityManager
     idx: int
@@ -65,23 +66,30 @@ class PlanarSource:
         self.fd_samples = fd_samples[fd_samples.files[0]]
 
     def get_soxels(self):
-        """Voxelize a sound source into the grid"""
+        """Voxelize a sound source into the grid with directional orientation"""
 
         current_frame = self.frames.get()
 
         center_pos = _get_position(self.source_config.position_file, current_frame)
         center = _world_to_grid(self.voxel_size, self.grid_geometry, center_pos)
+        
+        # Get rotation for directional orientation
+        rotation = _get_rotation(self.source_config.rotation_file, current_frame)
+        rotation_matrix = self._euler_to_rotation_matrix(rotation)
+        
+        # Rotate vertices to match orientation
         vertices = self.source_config.geometry
-        voxels = self._get_planar_voxels(vertices)
+        rotated_vertices = self._rotate_vertices(vertices, rotation_matrix, center_pos)
+        
+        voxels = self._get_planar_voxels(rotated_vertices)
 
         # Update soxels at source positions
         soxels = []
         for voxel in voxels:
             i, j, k = voxel
-            x, y, z = center
             if _is_in_bounds(self.shape, i, j, k):
                 type = 1  # Mark as source
-                input_pressures = self.get_field(center=center, point=voxel, sound_speed=self.sound_speed, density=self.density)
+                input_pressures = self.get_field(center=center, point=voxel, rotation_matrix=rotation_matrix, sound_speed=self.sound_speed, density=self.density)
 
                 soxel = Soxel(
                     idx=self.source_config.idx,
@@ -91,6 +99,55 @@ class PlanarSource:
                 )
                 soxels.append([i,j,k,soxel])
         return soxels
+
+    def _euler_to_rotation_matrix(self, euler_angles: Tuple[float, float, float]) -> np.ndarray:
+        """
+        Convert Euler angles (x, y, z) to rotation matrix.
+        Uses ZYX convention (yaw, pitch, roll).
+        """
+        rx, ry, rz = np.radians(euler_angles)
+        
+        # Rotation matrices for each axis
+        Rx = np.array([
+            [1, 0, 0],
+            [0, np.cos(rx), -np.sin(rx)],
+            [0, np.sin(rx), np.cos(rx)]
+        ])
+        
+        Ry = np.array([
+            [np.cos(ry), 0, np.sin(ry)],
+            [0, 1, 0],
+            [-np.sin(ry), 0, np.cos(ry)]
+        ])
+        
+        Rz = np.array([
+            [np.cos(rz), -np.sin(rz), 0],
+            [np.sin(rz), np.cos(rz), 0],
+            [0, 0, 1]
+        ])
+        
+        # Combined rotation matrix (ZYX convention)
+        rotation_matrix = Rz @ Ry @ Rx
+        return rotation_matrix
+
+    def _rotate_vertices(self, vertices: List[Tuple[float, float, float]], rotation_matrix: np.ndarray, center: Tuple[float, float, float]) -> List[Tuple[float, float, float]]:
+        """Rotate vertices around center using rotation matrix"""
+        center_array = np.array(center)
+        rotated_vertices = []
+        
+        for vertex in vertices:
+            vertex_array = np.array(vertex)
+            # Translate to origin, rotate, then translate back
+            translated_vertex = vertex_array - center_array
+            rotated_vertex = rotation_matrix @ translated_vertex
+            final_vertex = rotated_vertex + center_array
+            rotated_vertices.append(tuple(final_vertex))
+            
+        return rotated_vertices
+
+    def _rotate_vector(self, vector: np.ndarray, rotation_matrix: np.ndarray) -> np.ndarray:
+        """Apply rotation matrix to a vector"""
+        return rotation_matrix @ vector
 
     def _get_planar_voxels(self, vertices: List[Tuple[float, float, float]]):
         """
@@ -220,16 +277,19 @@ class PlanarSource:
 
         return True
 
-    def get_field(self, center: Tuple[int, int, int], point: Tuple[int, int, int], sound_speed: float = None, density: float = None) -> AcousticField:
+    def get_field(self, center: Tuple[int, int, int], point: Tuple[int, int, int], 
+                 rotation_matrix: np.ndarray, sound_speed: float = None, density: float = None) -> AcousticField:
         """
-        Compute acoustic pressure and velocity vectors at the boundary of a planar sound source.
+        Compute acoustic pressure and velocity vectors at the boundary of a planar sound source with directional orientation.
 
         Parameters:
         -----------
         center: Tuple[int, int, int]
-            Center of sphere
+            Center of plane
         point: Tuple[int, int, int]
             Coordinate of point on plane surface
+        rotation_matrix: np.ndarray
+            3x3 rotation matrix for directional orientation
         sound_speed : float
             Sound speed of medium on boundary
         density : float
@@ -246,9 +306,14 @@ class PlanarSource:
         if density == None:
            density = self.density
 
-        # carthesian to azimuth and elevation
-        x, y, z = np.array(point) - np.array(center)
-        azimuth, elevation, r = _cartesian_to_spherical(x,y,z)
+        # carthesian to azimuth and elevation in local coordinates
+        local_vector = np.array(point) - np.array(center)
+        
+        # Apply rotation to get global coordinates
+        global_vector = self._rotate_vector(local_vector, rotation_matrix)
+        
+        x, y, z = global_vector
+        azimuth, elevation, r = _cartesian_to_spherical(x, y, z)
 
         fd_field = AcousticField([])
         for index in range(len(self.fd_samples)):
@@ -267,7 +332,11 @@ class PlanarSource:
             sample = np.real(complex_sample)
 
             pressure, velocity = self._compute_acoustic_fields(low_freq, high_freq, sample, self.sound_speed, self.density)
-            velocity_vectors = VelocityVectors(velocity[0], velocity[1], velocity[2])
+            
+            # Rotate velocity vectors to match source orientation
+            velocity_rotated = self._rotate_vector(velocity, rotation_matrix)
+            velocity_vectors = VelocityVectors(velocity_rotated[0], velocity_rotated[1], velocity_rotated[2])
+            
             fd_field.add_field(low_freq=low_freq, high_freq=high_freq, pressure=pressure, velocity=velocity_vectors)
         return fd_field
 

@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
 import os
 import numpy as np
 from typing import Tuple, Optional
@@ -29,7 +30,7 @@ from ..lib.soxel import Soxel
 @dataclass
 class SphericalSource:
     """
-    Spherical source
+    Spherical source with directional orientation
     """
     entity_manager: EntityManager
     idx: int
@@ -65,25 +66,30 @@ class SphericalSource:
         self.fd_samples = fd_samples[fd_samples.files[0]]
 
     def get_soxels(self):
-        """Voxelize a spherical sound source into the grid"""
+        """Voxelize a spherical sound source into the grid with directional orientation"""
 
         current_frame = self.frames.get()
 
         center_pos = _get_position(self.source_config.position_file, current_frame)
         center = _world_to_grid(self.voxel_size, self.grid_geometry, center_pos)
         radius = _world_to_grid(self.voxel_size, self.grid_geometry, self.source_config.geometry)
+        
+        # Get rotation for directional orientation
+        rotation = _get_rotation(self.source_config.rotation_file, current_frame)
+        rotation_matrix = self._euler_to_rotation_matrix(rotation)
+        
         voxels = self._get_sphere_voxels(center, radius)
 
         # Update soxels at source positions
         soxels = []
         for voxel in voxels:
             i, j, k = voxel
-            x, y, z = center
             if _is_in_bounds(self.shape, i, j, k):
                 dist = np.linalg.norm(center - voxel)
                 if radius >= dist > radius-1:
                     type = 1  # Mark as source
-                    input_pressures = self.get_field(center=center, point=voxel, sound_speed=self.sound_speed, density=self.density)
+                    # Apply rotation to get direction-aware field
+                    input_pressures = self.get_field(center=center, point=voxel, rotation_matrix=rotation_matrix, sound_speed=self.sound_speed, density=self.density)
                 else:
                     type = 2  # Mark as object - acoustic_shader
                     input_pressures = None
@@ -114,17 +120,44 @@ class SphericalSource:
                         voxels.append([x, y, z])
         return voxels
 
-    def update(self):
-        """Update soxel grid for current frame"""
-
-        current_frame = self.frames.get()
-
-        # Initialize the grid
-        #self._initialize_grid()
-
-    def get_field(self, center: Tuple[int, int, int], point: Tuple[int, int, int], sound_speed: float = None, density: float = None) -> AcousticField:
+    def _euler_to_rotation_matrix(self, euler_angles: Tuple[float, float, float]) -> np.ndarray:
         """
-        Compute acoustic pressure and velocity vectors at the boundary of a spherical sound source.
+        Convert Euler angles (x, y, z) to rotation matrix.
+        Uses ZYX convention (yaw, pitch, roll).
+        """
+        rx, ry, rz = np.radians(euler_angles)
+        
+        # Rotation matrices for each axis
+        Rx = np.array([
+            [1, 0, 0],
+            [0, np.cos(rx), -np.sin(rx)],
+            [0, np.sin(rx), np.cos(rx)]
+        ])
+        
+        Ry = np.array([
+            [np.cos(ry), 0, np.sin(ry)],
+            [0, 1, 0],
+            [-np.sin(ry), 0, np.cos(ry)]
+        ])
+        
+        Rz = np.array([
+            [np.cos(rz), -np.sin(rz), 0],
+            [np.sin(rz), np.cos(rz), 0],
+            [0, 0, 1]
+        ])
+        
+        # Combined rotation matrix (ZYX convention)
+        rotation_matrix = Rz @ Ry @ Rx
+        return rotation_matrix
+
+    def _rotate_vector(self, vector: np.ndarray, rotation_matrix: np.ndarray) -> np.ndarray:
+        """Apply rotation matrix to a vector"""
+        return rotation_matrix @ vector
+
+    def get_field(self, center: Tuple[int, int, int], point: Tuple[int, int, int], 
+                 rotation_matrix: np.ndarray, sound_speed: float = None, density: float = None) -> AcousticField:
+        """
+        Compute acoustic pressure and velocity vectors at the boundary of a spherical sound source with directional orientation.
 
         Parameters:
         -----------
@@ -132,6 +165,8 @@ class SphericalSource:
             Center of sphere
         point: Tuple[int, int, int]
             Coordinate of point on sphere surface
+        rotation_matrix: np.ndarray
+            3x3 rotation matrix for directional orientation
         sound_speed : float
             Sound speed of medium on boundary
         density : float
@@ -149,9 +184,14 @@ class SphericalSource:
         if density == None:
            density = self.density
 
-        # carthesian to azimuth and elevation
-        x, y, z = np.array(point) - np.array(center)
-        azimuth, elevation, r = _cartesian_to_spherical(x,y,z)
+        # carthesian to azimuth and elevation in local coordinates
+        local_vector = np.array(point) - np.array(center)
+        
+        # Apply rotation to get global coordinates
+        global_vector = self._rotate_vector(local_vector, rotation_matrix)
+        
+        x, y, z = global_vector
+        azimuth, elevation, r = _cartesian_to_spherical(x, y, z)
 
         fd_field = AcousticField([])
         for index in range(len(self.fd_samples)):
@@ -170,7 +210,11 @@ class SphericalSource:
             sample = np.real(complex_sample)
 
             pressure, velocity = self._compute_acoustic_fields(azimuth, elevation, low_freq, high_freq, sample, self.sound_speed, self.density)
-            velocity_vectors = VelocityVectors(velocity[0], velocity[1], velocity[2])
+            
+            # Rotate velocity vectors to match source orientation
+            velocity_rotated = self._rotate_vector(velocity, rotation_matrix)
+            velocity_vectors = VelocityVectors(velocity_rotated[0], velocity_rotated[1], velocity_rotated[2])
+            
             fd_field.add_field(low_freq=low_freq, high_freq=high_freq, pressure=pressure, velocity=velocity_vectors)
         return fd_field
 
@@ -230,11 +274,6 @@ class SphericalSource:
     
         # Create velocity vectors in 3D space
         # For a spherical source, velocity is radial from center
-        # We'll create unit vectors pointing outward
-        # For demonstration, we'll assume the source is at origin and compute
-        # velocity vectors for points on a unit sphere
-    
-        v_mag = velocity_magnitude
         vx = velocity_magnitude * np.cos(elevation) * np.cos(azimuth)
         vy = velocity_magnitude * np.cos(elevation) * np.sin(azimuth)
         vz = velocity_magnitude * np.sin(elevation)
