@@ -29,7 +29,7 @@ def _append_to_npz(npz_path: str, value):
     try:
         file_array = np.load(npz_path)
     except FileNotFoundError:
-        array = np.array(value)
+        array = np.array([value])
         np.savez_compressed(npz_path, array)
         return
     try:
@@ -37,7 +37,10 @@ def _append_to_npz(npz_path: str, value):
     except ValueError:
         file_array.allow_pickle = True
         array = file_array[file_array.files[0]]
-    array = np.append(array, [value], axis=0)
+    if type(value) == complex:
+        array = np.append(array, [value])
+    elif type(value) == list:
+        array = np.append(array, [value], axis=0)
     np.savez_compressed(npz_path, array)
     file_array.close()
     

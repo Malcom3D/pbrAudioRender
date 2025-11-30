@@ -49,6 +49,7 @@ class AudioRecorder:
         for index in outputs.keys():
             if 'AmbisonicOutput' in str(type(outputs[index])):
                 output = outputs[index]
+                mic_done.append(output.idx)
                 for mic in output.get_mics():
                     mic_idx = int(f"{mic.idx*1000}{mic.id}")
                     mic_done.append(mic_idx)
@@ -62,4 +63,5 @@ class AudioRecorder:
                 output = outputs[index]
                 npz_file = f"{output.output_config.render_output_path}/{output.output_config.idx}.npz"
                 sample = output.process_audio()
+                print('sample', sample, output)
                 _append_to_npz(npz_file, sample)
