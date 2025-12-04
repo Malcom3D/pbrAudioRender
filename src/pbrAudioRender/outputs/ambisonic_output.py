@@ -68,13 +68,13 @@ class AmbisonicOutput:
         }
         if config['type'] in output_map:
             output = output_map.get(config['type'])(self.entity_manager, self.idx, config['id'])
-            idx = int(f"{self.idx*1000}{config['id']}")
+            idx = int(f"{(1+self.idx)*1000}{config['id']}")
             self.entity_manager.register('outputs', output, idx)
 
     def get_mics(self):
         mics = []
         for output in self.spatial_config['outputs']:
-            idx = int(f"{self.idx*1000}{output['id']}")
+            idx = int(f"{(1+self.idx)*1000}{output['id']}")
             mics.append(self.entity_manager.get('outputs', idx))
         return mics
 

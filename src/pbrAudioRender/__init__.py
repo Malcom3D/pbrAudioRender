@@ -16,7 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.9.1.5"
+__version__ = "0.9.1.7"
 __author__ = "Malcom3D"
 __description__ = "3D acoustic rendering engine"
 
@@ -24,6 +24,8 @@ import os, sys
 from .core.entity_manager import EntityManager
 from .core.acoustic_engine import AcousticEngine
 from .core.audio_recorder import AudioRecorder
+from .renderer.ambisonic_render import AmbisonicRender
+from .renderer.mono_render import MonoRender
 
 class pbrAudioRender:
     """Main class for running 3D acoustic simulations"""
@@ -31,7 +33,8 @@ class pbrAudioRender:
         self.em = EntityManager(config_file)
         self.ac = AcousticEngine(self.em)
         self.ar = AudioRecorder(self.em)
-#        self.am = AmbisonicRender(self.em)
+        self.am = AmbisonicRender(self.em)
+        self.mr = MonoRender(self.em)
 
     def start(self):
         frames = self.em.get('frames')
@@ -41,4 +44,6 @@ class pbrAudioRender:
             self.ar.update()
             frames.next()
 
-#        self.am.render()
+        # Render both mono and ambisonic audio
+        self.mr.render()  # Render mono outputs
+        self.am.render()  # Render ambisonic outputs

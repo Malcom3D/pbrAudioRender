@@ -135,7 +135,7 @@ class AudioRecorderConfig:
     path: str = "./exports/audio/"
 
 @dataclass
-class AmbisonicEncoderConfig:
+class AmbisonicRenderConfig:
     file_format: str = "wav" # bwf, wav
     order: int = 1
     sample_rate: int = 48000
@@ -153,7 +153,7 @@ class Config:
         self.interface = InterfaceConfig(**self.data.get('interface', {}))
         self.resonance = ResonanceConfig(**self.data.get('resonance', {}))
         self.audio_recorder = AudioRecorderConfig(**self.data.get('audio_recorder', {}))
-        self.ambisonic_encoder = AmbisonicEncoderConfig(**self.data.get('ambisonic_encoder', {}))
+        self.ambisonic_render = AmbisonicRenderConfig(**self.data.get('ambisonic_render', {}))
 
         # Handle acoustic domain with nested acoustic_shader
         acoustic_domain_data = self.data.get('acoustic_domain', {})
