@@ -2,7 +2,7 @@
 
 ### Physically Based Rendering (PBR) for Audio
 
-`PbrAudioRender` is a sophisticated audio rendering engine that implements a physically based rendering (PBR) model to simulate the interaction of sound waves with environments. The engine processes audio signals using a Finite-Difference Time-Domain (FDTD) model, simulating how sound waves travel, reflect, refract, diffuse, scatter, and are absorbed by different materials with realistic physical accuracy.
+**PbrAudioRender** is a sophisticated audio rendering engine that implements a physically based rendering (PBR) model to simulate the interaction of sound waves with environments. The engine processes audio signals using a Finite-Difference Time-Domain (FDTD) model, simulating how sound waves travel, reflect, refract, diffuse, scatter, and are absorbed by different materials with realistic physical accuracy.
 
 ## Overview
 

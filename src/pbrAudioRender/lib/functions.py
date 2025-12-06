@@ -18,6 +18,7 @@
 
 import os
 import numpy as np
+import resampy
 import soundfile as sf
 import numba as nb
 from typing import List, Tuple, Union, Dict, Any

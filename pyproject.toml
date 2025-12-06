@@ -31,7 +31,7 @@ readme = "README.md"
 license = {text = "GPLv3"}
 keywords = ["template", "modular", "extensible"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",

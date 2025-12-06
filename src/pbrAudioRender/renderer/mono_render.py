@@ -18,6 +18,7 @@
 
 
 import os
+import resampy
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
@@ -34,28 +35,26 @@ class MonoRender:
     entity_manager: EntityManager
     
     def __post_init__(self):
-        self.config = self.entity_manager.get('config')
-        
-        # Get render configuration from ambisonic_render config (reusing same settings)
-        self.render_config = self.config.ambisonic_render
+        config = self.entity_manager.get('config')
         
         # Create output directory
-        output_dir = Path(self.render_config.path)
+        output_dir = Path(config.ambisonic_render.path)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get all non-ambisonic outputs from configuration
-        self.mono_outputs = []
-        for output_config in self.config.outputs:
-            if output_config.type != 'ambisonic':
-                self.mono_outputs.append(output_config)
-        
-        print(f"Found {len(self.mono_outputs)} mono outputs to render")
-    
     def render(self):
         """Render mono audio for all non-ambisonic outputs"""
         print("Starting mono audio rendering...")
+        config = self.entity_manager.get('config')
+
+        # Get all non-ambisonic outputs from configuration
+        mono_outputs = []
+        for output_config in config.outputs:
+            if output_config.type != 'ambisonic':
+                mono_outputs.append(output_config)
         
-        for output_config in self.mono_outputs:
+        print(f"Found {len(mono_outputs)} mono outputs to render")
+    
+        for output_config in mono_outputs:
             print(f"Processing mono output: {output_config.name} (type: {output_config.type})")
             
             # Load microphone data from npz file
@@ -102,24 +101,18 @@ class MonoRender:
                 # Resample if needed
                 mic_signals_real = self._resample_audio(
                     mic_signals_real,
-                    self.config.acoustic_domain.sample_rate,
-                    self.render_config.sample_rate
+                    config.acoustic_domain.sample_rate,
+                    config.ambisonic_render.sample_rate
                 )
                 
                 # Normalize to prevent clipping
                 mic_signals_real = self._normalize_audio(mic_signals_real)
                 
                 # Convert bit depth
-                mic_signals_real = self._convert_bit_depth(
-                    mic_signals_real,
-                    self.render_config.bit_depth
-                )
+                mic_signals_real = self._convert_bit_depth(mic_signals_real, config.ambisonic_render.bit_depth)
                 
                 # Save to file
-                self._save_mono_file(
-                    mic_signals_real,
-                    output_config
-                )
+                self._save_mono_file(mic_signals_real, output_config)
                 
                 print(f"Successfully rendered mono audio for {output_config.name}")
                 
@@ -132,24 +125,19 @@ class MonoRender:
                        input_sample_rate: int,
                        output_sample_rate: int) -> np.ndarray:
         """Resample audio to target sample rate"""
+        config = self.entity_manager.get('config')
         if input_sample_rate == output_sample_rate:
             return audio_data
         
-        # Calculate resampling ratio
-        ratio = output_sample_rate / input_sample_rate
-        
-        # Calculate new number of samples
-        num_samples = len(audio_data)
-        new_num_samples = int(num_samples * ratio)
-        
-        # Resample using scipy.signal.resample
-        resampled_data = signal.resample(audio_data, new_num_samples)
+        # Resample using resampy
+        resampled_data = resampy.resample(audio_data, input_sample_rate, output_sample_rate)
         
         return resampled_data
     
-    def _normalnormalize_audio(self, audio_data: np.ndarray, 
+    def _normalize_audio(self, audio_data: np.ndarray, 
                         headroom_db: float = -1.0) -> np.ndarray:
         """Normalize audio to prevent clipping with optional headroom"""
+        config = self.entity_manager.get('config')
         if len(audio_data) == 0:
             return audio_data
         
@@ -171,9 +159,9 @@ class MonoRender:
         
         return normalized_audio
     
-    def _convert_bit_depth(self, audio_data: np.ndarray,
-                         target_bit_depth_depth: int) -> np.ndarray:
+    def _convert_bit_depth(self, audio_data: np.ndarray, target_bit_depth: int = 32) -> np.ndarray:
         """Convert audio to target bit depth"""
+        config = self.entity_manager.get('config')
         # Ensure audio is in float32 format for processing
         if audio_data.dtype != np.float32:
             audio_data = audio_data.astype(np.float32)
@@ -193,18 +181,15 @@ class MonoRender:
         elif target_bit_depth == 32:
             # Keep as float32
             audio_data = audio_data.astype(np.float32)
-        else:
-            # Default to float32
-            warnings.warn(f"Unsupported bit depth {target_bit_depth}, defaulting to float32")
-            audio_data = audio_data.astype(np.float32)
         
         return audio_data
     
     def _save_mono_file(self, audio_data: np.ndarray,
                        output_config) -> None:
         """Save mono audio to file"""
+        config = self.entity_manager.get('config')
         # Determine file format
-        file_format = self.render_config.file_format.lower()
+        file_format = config.ambisonic_render.file_format.lower()
         
         # Create filename based on output name
         filename = f"{output_config.name}"
@@ -212,7 +197,7 @@ class MonoRender:
         # Add file extension based on format
         if file_format == 'wav':
             filename += '.wav'
-            subtype = self._get_wav_subtype(self.render_config.bit_depth)
+            subtype = self._get_wav_subtype(config.ambisonic_render.bit_depth)
             self._save_wav_file(audio_data, filename, subtype, output_config)
         elif file_format == 'flac':
             filename += '.flac'
@@ -223,11 +208,12 @@ class MonoRender:
         else:
             # Default to WAV
             filename += '.wav'
-            subtype = self._get_wav_subtype(self.render_config.bit_depth)
+            subtype = self._get_wav_subtype(config.ambisonic_render.bit_depth)
             self._save_wav_file(audio_data, filename, subtype, output_config)
     
     def _get_wav_subtype(self, bit_depth: int) -> str:
         """Get appropriate WAV subtype for given bit depth"""
+        config = self.entity_manager.get('config')
         if bit_depth == 16:
             return 'PCM_16'
         elif bit_depth == 24:
@@ -243,7 +229,8 @@ class MonoRender:
                       subtype: str,
                       output_config) -> None:
         """Save as WAV file"""
-        filepath = os.path.join(self.render_config.path, filename)
+        config = self.entity_manager.get('config')
+        filepath = os.path.join(config.ambisonic_render.path, filename)
         
         # Ensure audio_data is 1D for mono
         if audio_data.ndim > 1:
@@ -252,7 +239,7 @@ class MonoRender:
         sf.write(
             filepath,
             audio_data,
-            self.render_config.sample_rate,
+            config.ambisonic_render.sample_rate,
             subtype=subtype
         )
         
@@ -262,7 +249,8 @@ class MonoRender:
                        filename: str,
                        output_config) -> None:
         """Save as FLAC file"""
-        filepath = os.path.join(self.render_config.path, filename)
+        config = self.entity_manager.get('config')
+        filepath = os.path.join(config.ambisonic_render.path, filename)
         
         # Ensure audio_data is 1D for mono
         if audio_data.ndim > 1:
@@ -278,7 +266,7 @@ class MonoRender:
         sf.write(
             filepath,
             audio_data,
-            self.render_config.sample_rate,
+            config.ambisonic_render.sample_rate,
             format='FLAC'
         )
         
@@ -288,7 +276,8 @@ class MonoRender:
                        filename: str,
                        output_config) -> None:
         """Save as AIFF file"""
-        filepath = os.path.join(self.render_config.path, filename)
+        config = self.entity_manager.get('config')
+        filepath = os.path.join(config.ambisonic_render.path, filename)
         
         # Ensure audio_data is 1D for mono
         if audio_data.ndim > 1:
@@ -297,7 +286,7 @@ class MonoRender:
         sf.write(
             filepath,
             audio_data,
-            self.render_config.sample_rate,
+            config.ambisonic_render.sample_rate,
             format='AIFF'
         )
         
@@ -306,6 +295,7 @@ class MonoRender:
     def render_all(self):
         """Convenience method to render both mono and ambisonic audio"""
         print("Starting complete audio rendering...")
+        config = self.entity_manager.get('config')
         
         # Render mono outputs
         self.render()
