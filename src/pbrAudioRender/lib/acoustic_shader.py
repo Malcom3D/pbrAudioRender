@@ -23,7 +23,6 @@ import numpy as np
 
 from ..lib.interpolator import FrequencyInterpolator
 
-
 @dataclass
 class AcousticCoefficients:
     """Represents frequency-dependent coefficients using numpy arrays."""
@@ -58,6 +57,12 @@ class AcousticProperties:
 class AcousticShader:
     sound_speed: float = 343.0  # m/s
     density: float = 1.2        # kg/m³
+    young_modulus: float = None
+    poisson_ratio: float = None
+    density: float = None
+    damping: float = None
+    low_frequency: float = 1.0
+    high_frequency: float = 24000.0
     acoustic_properties: Optional[AcousticProperties] = field(default_factory=AcousticProperties)
 
     def get_data(self, properties: Union[List[str], str]) -> AcousticCoefficients:

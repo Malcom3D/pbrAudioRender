@@ -78,7 +78,7 @@ class OutputConfig:
 class ObjectConfig:
     idx: int
     name: str
-    obj_files: List[str] = field(default_factory=list)
+    obj_path: str,
     acoustic_shader: Optional[AcousticShader] = None
 
 @dataclass
@@ -238,7 +238,12 @@ class Config:
         # Create AcousticShader
         return AcousticShader(
             sound_speed=shader_data.get('sound_speed', 343.0),
+            young_modulus=shader_data.get('young_modulus', []),
+            poisson_ratio=shader_data.get('poisson_ratio', []),
             density=shader_data.get('density', 1.225),
+            damping=shader_data.get('damping', []),
+            low_frequency=shader_data.get('low_frequency', 1.0),
+            high_frequency=shader_data.get('high_frequency', 24000.0),
             acoustic_properties=acoustic_properties
         )
 
