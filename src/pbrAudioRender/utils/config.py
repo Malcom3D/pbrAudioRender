@@ -78,7 +78,7 @@ class OutputConfig:
 class ObjectConfig:
     idx: int
     name: str
-    obj_path: str,
+    obj_path: str
     acoustic_shader: Optional[AcousticShader] = None
 
 @dataclass

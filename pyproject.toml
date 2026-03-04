@@ -28,8 +28,6 @@ authors = [
     {name = "Malcom3D", email = "malcom3d.gpl@gmail.com"},
 ]
 readme = "README.md"
-license = "GPLv3"
-license-files = ["LICENSE*"]
 keywords = ["template", "modular", "extensible"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,7 +37,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "dask", "pymbler", "scipy", "sklearn", "numba", "numpy",
+    "dask", "scipy", "numba", "numpy",
     "resampy", "soundfile", "trimesh"
 ]
 
@@ -51,5 +49,11 @@ dev = [
 Homepage = "https://pbraudio.org"
 Repository = "https://github.com/Malcom3D/pbrAudioRender"
 
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
 [tool.setuptools_scm]
-write_to = "src/pbrAudioRender/__init__.py"
+write_to = "src/pbrAudioRender/__version__.py"
