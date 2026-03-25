@@ -79,6 +79,11 @@ class ObjectConfig:
     idx: int
     name: str
     obj_path: str
+    pose_path: str
+    static: bool
+    ground: bool = False
+    connected: Union[bool, np.ndarray] = False # for static coupled systems [[obj_idx, coupling_strength]]
+    stochastic_variation: bool = False
     acoustic_shader: Optional[AcousticShader] = None
 
 @dataclass
