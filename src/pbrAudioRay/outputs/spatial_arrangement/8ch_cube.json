@@ -1,0 +1,85 @@
+{
+    "name": "8ch_cube",
+    "description": "8-channel cubic microphone array for 1st order Ambisonics",
+    "type": "a_format", 
+    "order_supported": 1,
+    "channels": 8,
+    "radius": 1.0,
+    "outputs": [
+        {
+            "id": 0,
+            "type": "omnidirectional",
+            "position": [0.57735, 0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 0,
+            "description": "Front-top-left"
+        },
+        {
+            "id": 1,
+            "type": "omnidirectional",
+            "position": [0.57735, 0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 1,
+            "description": "Front-bottom-left"
+        },
+        {
+            "id": 2,
+            "type": "omnidirectional",
+            "position": [0.57735, -0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 2,
+            "description": "Front-top-right"
+        },
+        {
+            "id": 3,
+            "type": "omnidirectional",
+            "position": [0.57735, -0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 3,
+            "description": "Front-bottom-right"
+        },
+        {
+            "id": 4,
+            "type": "omnidirectional",
+            "position": [-0.57735, 0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 4,
+            "description": "Back-top-left"
+        },
+        {
+            "id": 5,
+            "type": "omnidirectional",
+            "position": [-0.57735, 0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 5,
+            "description": "Back-bottom-left"
+        },
+        {
+ {
+            "id": 6,
+            "type": "omnidirectional",
+            "position": [-0.57735, -0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 6,
+            "description": "Back-top-right"
+        },
+        {
+            "id": 7,
+            "type": "omnidirectional",
+            "position": [-0.57735, -0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 7,
+            "description": "Back-bottom-right"
+        }
+    ],
+    "normalization": "SN3D",
+    "notes": "Cubic array configuration suitable for 1st order Ambisonic recording with good spatial coverage."
+}

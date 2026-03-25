@@ -1,0 +1,229 @@
+{
+    "name": "24ch_sphere",
+    "description": "24-channel spherical microphone array for 3rd order Ambisonics",
+    "type": "a_format",
+    "order_supported": 3,
+    "channels": 24,
+    "radius": 1.0,
+    "outputs": [
+        {
+            "id": 0,
+            "type": "omnidirectional",
+            "position": [1.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 0,
+            "description": "Front"
+        },
+        {
+            "id": 1,
+            "type": "omnidirectional",
+            "position": [0.0, 1.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 1,
+            "description": "Left"
+        },
+        {
+            "id": 2,
+            "type": "omnidirectional",
+            "position": [-1.0, 0.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 2,
+            "description": "Back"
+        },
+        {
+            "id": 3,
+            "type": "omnidirectional",
+            "position": [0.0, -1.0, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 3,
+            "description": "Right"
+        },
+        {
+            "id": 4,
+            "type": "omnidirectional",
+            "position": [0.0, 0.0, 1.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 4,
+            "description": "Top"
+        },
+        {
+            "id": 5,
+            "type": "omnidirectional",
+            "position": [0.0, 0.0, -1.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 5,
+            "description": "Bottom"
+        },
+        {
+            "id": 6,
+            "type": "omnidirectional",
+            "position": [0.7071, 0.7071, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 6,
+            "description": "Front-left"
+        },
+        {
+            "id": 7,
+            "type": "omnidirectional",
+            "position": [-0.7071, 0.7071, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 7,
+            "description": "Back-left"
+        },
+        {
+            "id": 8,
+            "type": "omnidirectional",
+            "position": [-0.7071, -0.7071, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 8,
+            "description": "Back-right"
+        },
+        {
+            "id": 9,
+            "type": "omnidirectional",
+            "position": [0.7071, -0.7071, 0.0],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 9,
+            "description": "Front-right"
+        },
+        {
+            "id": 10,
+            "type": "omnidirectional",
+            "position": [0.7071, 0.0, 0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 10,
+            "description": "Front-top"
+        },
+        {
+            "id": 11,
+            "type": "omnidirectional",
+            "position": [0.7071, 0.0, -0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 11,
+            "description": "Front-bottom"
+        },
+        {
+            "id": 12,
+            "type": "omnidirectional",
+            "position": [0.0, 0.7071, 0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 12,
+            "description": "Left-top"
+        },
+        {
+            "id": 13,
+            "type": "omnidirectional",
+            "position": [0.0, 0.7071, -0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 13,
+            "description": "Left-bottom"
+        },
+        {
+            "id": 14,
+            "type": "omnidirectional",
+            "position": [-0.7071, 0.0, 0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 14,
+            "description": "Back-top"
+        },
+        {
+            "id": 15,
+            "type": "omnidirectional",
+            "position": [-0.7071, 0.0, -0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 15,
+            "description": "Back-bottom"
+        },
+        {
+            "id": 16,
+            "type": "omnidirectional",
+            "position": [0.0, -0.7071, 0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 16,
+            "description": "Right-top"
+        },
+        {
+            "id": 17,
+            "type": "omnidirectional",
+            "position": [0.0, -0.7071, -0.7071],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 17,
+            "description": "Right-bottom"
+        },
+        {
+            "id": 18,
+            "type": "omnidirectional",
+            "position": [0.57735, 0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 18,
+            "description": "Front-left-top"
+        },
+        {
+            "id": 19,
+            "type": "omnidirectional",
+            "position": [0.57735, 0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 19,
+            "description": "Front-left-bottom"
+        },
+        {
+            "id": 20,
+            "type": "omnidirectional",
+            "position": [0.57735, -0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 20,
+            "description": "Front-right-top"
+        },
+        {
+            "id": 21,
+            "type": "omnidirectional",
+            "position": [0.57735, -0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 21,
+            "description": "Front-right-bottom"
+        },
+        {
+            "id": 22,
+            "type": "omnidirectional",
+            "position": [-0.57735, 0.57735, 0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 22,
+            "description": "Back-left-top"
+        },
+        {
+            "id": 23,
+            "type": "omnidirectional",
+            "position": [-0.57735, 0.57735, -0.57735],
+            "rotation": [0.0, 0.0, 0.0],
+            "gain": 1.0,
+            "channel": 23,
+            "description": "Back-left-bottom"
+        }
+    ],
+    "normalization": "N3D",
+    "design": "symmetric_spherical",
+    "notes": "24-channel symmetric spherical array optimized for 3rd order Ambisonic recording. Provides uniform coverage of the sphere for high-order spatial audio capture."
+}
