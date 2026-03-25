@@ -26,18 +26,18 @@ from ..lib.frequency_response import SpatialFrequencyResponse
 
 @dataclass
 class SystemConfig:
-    frame_limit: Optional[int] = None
-    export_vdb: bool = False
-    max_workers: int = 4
+    sample_rate: int = 48000
+    bit_depth: int = 32
+    fps: int = 24 # video fps
+    fps_base: int = 1
+    file_format: str = 'RAW'
+    subframes: int = 1 # video subframes
     cache_path: str = "./pbrAudioCache/"
-    vdb_export_path: str = "./exports/vdb/"
 
 @dataclass
 class AcousticDomainConfig:
     idx: int = 0
     name: str = "acoustic_domain"
-    bit_depth: int = 32
-    sample_rate: int = 48000
     geometry: np.ndarray = field(default_factory=lambda: np.array([]))  #vertices array
     voxel_size: float = 0.1
     shape: Tuple[int, int, int] = (0, 0, 0)
