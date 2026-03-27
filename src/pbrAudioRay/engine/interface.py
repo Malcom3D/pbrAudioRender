@@ -44,9 +44,10 @@ class InterfaceManager:
         """Apply all interactions at a hit point."""
         # Get object config
         obj_idx = hit_info['object_idx']
-        obj_config = self.entity_manager.get('objects', obj_idx)
-        if not obj_config:
-            return ray  # no change
+        objs_config = self.entity_manager.get('objects')
+        for c_idx in objs_config.keys():
+        if objs_config[c_idx].idx == obj_idx:
+            obj_config = objs_config[c_idx]
         
         # Get incident angle
         incident_dir = ray.direction
