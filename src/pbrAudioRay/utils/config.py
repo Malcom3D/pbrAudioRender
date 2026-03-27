@@ -18,7 +18,7 @@
 
 import json
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 
 from ..lib.acoustic_shader import AcousticShader, AcousticProperties, AcousticCoefficients
