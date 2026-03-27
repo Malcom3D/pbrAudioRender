@@ -17,15 +17,105 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-import numpy as np
 import numba as nb
+import numpy as np
+import trimesh
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
-import trimesh
 
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
+from ..lib.functions import _load_mesh
 
 class RayTracer:
     """ Ray tracing engine using trimesh with embree support """
     entity_manager: EntityManager
+    
+    def __init__(self, entity_manager: EntityManager):
+        self.entity_manager = entity_manager
+        self.config = entity_manager.get('config')
+        self.objects = []  # List of trimesh objects for each dynamic object
+        self.object_ids = []  # Corresponding object indices
+        self.static_meshes = {}  # For static objects, cache meshes
+        self.current_frame = 0
+        
+        # Preload static objects
+        for obj_config in self.config.objects:
+            if obj_config.static and not obj_config.fractured == None:
+                # Load mesh for static object
+                vertices, normals, faces = _load_mesh(obj_config, 0)
+                mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+                self.static_meshes[obj_config.idx] = mesh
+    
+    def update_frame(self, frame_idx: int):
+        """Update dynamic objects for a given frame index."""
+        self.current_frame = frame_idx
+        self.objects = []
+        self.object_ids = []
+        for obj_config in self.config.objects:
+            if not obj_config.static or (not obj_config.fractured == None and frame_idx > obj_config.fractured):
+                vertices, normals, faces = _load_mesh(obj_config, frame_idx)
+                mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+                self.objects.append(mesh)
+                self.object_ids.append(obj_config.idx)
+        # Also include static meshes in the list for intersection
+        for idx, mesh in self.static_meshes.items():
+            self.objects.append(mesh)
+            self.object_ids.append(idx)
+    
+    def intersect_ray(self, origin: np.ndarray, direction: np.ndarray, max_distance: float = np.inf) -> Dict:
+        """
+        Find the closest intersection of a ray with all objects.
+        Returns a dict with:
+            - 'hit': bool
+            - 'object_idx': index of the object hit
+            - 'point': intersection point
+            - 'normal': normal at intersection
+            - 'distance': distance from origin
+        """
+        # Ensure direction is normalized
+        direction = direction / np.linalg.norm(direction)
+        
+        # Collect all meshes
+        meshes = self.objects
+        if not meshes:
+            return {'hit': False}
+        
+        # Use trimesh's ray-mesh intersection
+        # We need to iterate over meshes to find the closest hit
+        closest_dist = np.inf
+        hit_info = None
+        for mesh, obj_idx in zip(meshes, self.object_ids):
+            # Use ray.intersects_location
+            locations, index_ray, index_tri = mesh.ray.intersects_location(
+                ray_origins=[origin],
+                ray_directions=[direction],
+                multiple_hits=False
+            )
+            if len(locations) > 0:
+                # Compute distance
+                dist = np.linalg.norm(locations[0] - origin)
+                if dist < closest_dist and dist <= max_distance:
+                    closest_dist = dist
+                    # Get normal at intersection
+                    face_normal = mesh.face_normals[index_tri[0]]
+                    hit_info = {
+                        'hit': True,
+                        'object_idx': obj_idx,
+                        'point': locations[0],
+                        'normal': face_normal,
+                        'distance': dist
+                    }
+        if hit_info:
+            return hit_info
+        else:
+            return {'hit': False}
+    
+    def intersect_ray_batch(self, origins: np.ndarray, directions: np.ndarray, max_distance: float = np.inf) -> List[Dict]:
+        """
+        Batch intersection for many rays. Return list of results.
+        """
+        results = []
+        for o, d in zip(origins, directions):
+            results.append(self.intersect_ray(o, d, max_distance))
+        return results

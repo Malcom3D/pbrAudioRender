@@ -44,6 +44,9 @@ class AcousticEngine:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
+        frequency_bands = FrequencyBands(self.entity_manager)
+        self.entity_manager.register('frequency_bands', frequency_bands)
+
         tasks = [self._add_source(source) for source in config.sources]
         tasks += [self._add_object(obj) for obj in config.objects]
         tasks += [self._add_output(output) for output in config.outputs]
