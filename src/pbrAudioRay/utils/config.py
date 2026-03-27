@@ -99,17 +99,10 @@ class WavePropagationConfig:
     boundary_absorption: float = 1.0
     termination_energy_threshold: float = 1e-6
     min_activity_frames: int = 10
-
-@dataclass
-class FDTDConfig:
     enable_interface: bool = True
     enable_resonance: bool = True
-    courant_number: float = 0.5
-    max_sound_speed: float = 500.0
-    stability_margin: float = 0.9
     lowest_frequency: float = 5
     max_frequency: float = 20000.0
-    steps_per_octave: int = 24 # frequency steps per octave
     use_dispersion_correction: bool = True
     dispersion_order: int = 2
 
@@ -133,6 +126,11 @@ class ResonanceConfig:
     max_resonance_modes: int = 10
     resonance_threshold: float = 0.1
     decay_time_constant: float = 0.99
+    min_cavity_volume: float = 0.001 # cubic meters
+    min_wall_distance: float = 0.5  # meters
+    max_wall_distance: float = 20.0  # meters
+    min_tube_length: float = 0.3  # meters
+    min_tube_aspect_ratio = 3.0  # length/width ratio for tubes
 
 @dataclass
 class AudioRecorderConfig:

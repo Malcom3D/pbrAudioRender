@@ -15,3 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+import numba as nb
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, field
+
+from ...core.entity_manager import EntityManager
+
+@dataclass
+class ReflectionInterface:
+    """Handle rays reflection at objects boundaries"""
+    entity_manager: EntityManager
+
+    def compute(self):
+        pass
