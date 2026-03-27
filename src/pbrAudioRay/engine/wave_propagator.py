@@ -61,7 +61,6 @@ class WavePropagator:
                 break
         
         # Frequency bands for impulse response
-        self.freq_bands = self.entity_manager.get('frequency_bands')
         fps = config.system.fps
         fps_base = config.system.fps_base
         subframes = config.system.subframes
