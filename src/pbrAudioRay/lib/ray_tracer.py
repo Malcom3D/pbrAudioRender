@@ -15,3 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+import numba as nb
+from typing import List, Dict, Any, Optional, Tuple
+from dataclasses import dataclass
+import trimesh
+
+class RayTracer:
+    """ Ray tracing engine using trimesh with embree support """
+    entity_manager: EntityManager

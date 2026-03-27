@@ -15,3 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numba as nb
+import numpy as np
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional, Any
+
+from ...lib.base import Configurable, GPUEnabled
+
+@dataclass
+class TubeResonance:
+    """Handle tube resonator effects (open-open, open-closed, closed-closed)"""
+    entity_manager: EntityManager
+
+    def compute(self):
+        pass

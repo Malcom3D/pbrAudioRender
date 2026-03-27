@@ -15,3 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional, Any
+import numba as nb
+
+from ..core.entity_manager import EntityManager
+
+@dataclass
+class SimulationTermination:
+    """Handle simulation termination conditions"""
+    entity_manager: EntityManager
