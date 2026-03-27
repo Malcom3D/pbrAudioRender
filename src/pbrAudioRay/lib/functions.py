@@ -29,24 +29,25 @@ def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, o
 #    hull.export(f"{obj_file.removesuffix('.obj')}_resonance.obj", file_type='obj')
     return
 
-def _load_mesh(config_obj: Any, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Load all pose sequence for an object."""
-    if not 'ObjectConfig' in str(type(config_obj)):
-        raise ValueError(f"{config_obj} is not of ObjectConfig type.")
-
-    if config_obj.static:
-        for filename in os.listdir(config_obj.obj_path):
-            if filename.endswith('.npz'):
-                filename = f"{config_obj.obj_path}/{filename}"
-    elif not config_obj.static:
-        items = os.listdir(config_obj.obj_path)
+def _load_mesh(obj_config, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Load mesh for an object at a given frame index."""
+    if obj_config.static:
+        # For static, load once
+        filename = obj_config.obj_path
+        # Assume single npz file or directory with one file
+        if os.path.isdir(obj_config.obj_path):
+            files = [f for f in os.listdir(obj_config.obj_path) if f.endswith('.npz')]
+            filename = os.path.join(obj_config.obj_path, files[0])
+        else:
+            filename = obj_config.obj_path
+    else:
+        # For dynamic, load sequence
+        items = os.listdir(obj_config.obj_path)
         items = [x for x in items if x.endswith('.npz')]
         filenames = sorted(items, key=lambda x: int(''.join(filter(str.isdigit, x))))
-        filename = os.path.join(config_obj.obj_path, filenames[frame_idx])
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"NPZ file not found for {config_obj.name}: {filename}")
-    data = np.load(filename)
-    data.allow_pickle = False
+        filename = os.path.join(obj_config.obj_path, filenames[frame_idx])
+
+    data = np.load(filename, allow_pickle=False)
     vertices = data[data.files[0]]
     normals = data[data.files[1]]
     faces = data[data.files[2]]
