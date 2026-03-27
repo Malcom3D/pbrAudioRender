@@ -15,3 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import os
+import numpy as np
+from typing import Tuple, Optional
+from dataclasses import dataclass, field
+
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _cartesian_to_spherical
+
+@dataclass
+class SphericalSource:
+    """
+    Spherical source with directional orientation
+    """
+    entity_manager: EntityManager
+    idx: int

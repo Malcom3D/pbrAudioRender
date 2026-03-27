@@ -15,3 +15,40 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import os
+import json
+import numpy as np
+import numba as nb
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, field
+import soundfile as sf
+from scipy import signal
+
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _cartesian_to_spherical
+
+@dataclass
+class AmbisonicRender:
+    """Render ambisonic audio from recorded microphone data"""
+    entity_manager: EntityManager
+
+    def __post_init__(self):
+        self.config = self.entity_manager.get('config')
+        self.ambisonic_config = self.config.ambisonic_render
+
+        # Create output directory
+        output_dir = self.ambisonic_config.path
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Get all ambisonic outputs from configuration
+        self.ambisonic_outputs = []
+        for output_config in self.config.outputs:
+            if output_config.type == 'ambisonic':
+                self.ambisonic_outputs.append(output_config)
+
+        # Pre-calculate spherical harmonics for all microphone positions
+
+    def render(self):
+        """Render ambisonic audio for all ambisonic outputs"""
+        pass

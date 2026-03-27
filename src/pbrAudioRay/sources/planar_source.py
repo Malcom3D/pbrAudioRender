@@ -16,12 +16,18 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import numpy as np
-import numba as nb
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
-import trimesh
+from typing import Tuple, List
+from dataclasses import dataclass, field
 
-class RayTracer:
-    """ Ray tracing engine using trimesh with embree support """
+from ..core.entity_manager import EntityManager
+from ..lib.functions import _cartesian_to_spherical
+
+@dataclass
+class PlanarSource:
+    """
+    Planar source with directional orientation
+    """
     entity_manager: EntityManager
+    idx: int
