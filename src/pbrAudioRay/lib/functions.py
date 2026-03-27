@@ -7,9 +7,6 @@ import numpy as np
 import numba as nb
 from typing import Any, Tuple, Optional, List, Union, Dict
 
-def _soxel_grid_shape(grid_geometry, voxel_size):
-    pass
-
 def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, obj_file: str):
     """
     Convert an npz mesh file to Wavefront OBJ format.

@@ -16,17 +16,26 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
+import json
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
+from typing import List, Tuple, Dict, Any
+
+from dask import delayed, compute
+
+from ..core.entity_manager import EntityManager
 
 @dataclass
-class Ray:
-    """Ray data structure"""
-    origin: np.ndarray
-    direction: np.ndarray
-    length: float
-    energy: float
-    reflection_count: int
-    path: List[np.ndarray]
-    object_id: int = -1
+class AudioRecorder:
+    entity_manager: EntityManager
+
+    def __post_init__(self):
+        self.config = self.entity_manager.get('config')
+        for output_config in self.config.outputs:
+            output_dir = output_config.render_output_path
+            os.makedirs(output_dir, exist_ok=True)
+
+    def compute(self):
+        """Process audio for all microphones and save to files"""
+        pass

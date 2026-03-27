@@ -15,3 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass
+
+from .base_output import BaseOutput
+
+@dataclass
+class HypercardioidOutput(BaseOutput):
+    """Hypercardioid microphone output with frequency-dependent processing"""
+    idx: int
+
+    def _get_directivity(self, azimuth: float, elevation: float) -> float:
+        """Hypercardioid directivity pattern"""
+        # Hypercardioid: 0.25 * (1 + 3 * cos(θ))
+        return 0.25 * (1 + 3 * np.cos(np.deg2rad(azimuth)))

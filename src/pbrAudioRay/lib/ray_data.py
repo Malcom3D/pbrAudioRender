@@ -15,3 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+from typing import List, Dict, Any, Optional, Tuple
+from dataclasses import dataclass
+
+@dataclass
+class RayData:
+    """Ray data structure"""
+    origin: np.ndarray
+    direction: np.ndarray
+    length: float
+    energy: float
+    reflection_count: int
+    path: List[np.ndarray]
+    object_id: int = -1

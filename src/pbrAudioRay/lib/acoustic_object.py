@@ -16,18 +16,18 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass
+import trimesh
+from typing import Tuple, Optional, List
+from dataclasses import dataclass, field
 
-from .base_output import BaseOutput
+from ..core.entity_manager import EntityManager
 
 @dataclass
-class Figure8Output(BaseOutput):
-    """Figure8 microphone output with frequency-dependent processing"""
-    idx: int
+class AcousticObject:
+    """ Return mesh object geometry refined using trimesh simplify_quadric_decimation if distance from sources and listeners is greater than a threshold """
+    entity_manager: EntityManager
 
-    def _get_directivity(self, azimuth: float, elevation: float) -> float:
-        """Figure8 directivity pattern"""
-        # Figure-8: cos(θ)
-        return np.cos(np.deg2rad(azimuth))
+    def compute(self)
+        pass
