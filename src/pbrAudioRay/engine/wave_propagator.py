@@ -19,22 +19,212 @@
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 import numpy as np
+import dask
+from dask import delayed, compute
 
 from ..core.entity_manager import EntityManager
+from ..engine.interface import InterfaceManager
+from ..engine.resonance import Resonance
+from ..engine.termination import SimulationTermination
+
 from ..lib.ray_tracer import RayTracer
+from ..lib.ray_data import RayData
+from ..lib.functions import _load_pose
 
 @dataclass
 class WavePropagator:
-    """Main wave propagator manager coordinating all physical processes"""
+    """Main wave propagator manager coordinating all physical processes."""
     entity_manager: EntityManager
     combo: Tuple[int, int]
     source_idx: int = None
     output_idx: int = None
-
+    
     def __post_init__(self):
         config = self.entity_manager.get('config')
-        self.source_idx = combo[0]
-        self.output_idx = combo[1]
-
+        self.source_idx = self.combo[0]
+        self.output_idx = self.combo[1]
+        self.ray_tracer = RayTracer(self.entity_manager)
+        self.interface_manager = InterfaceManager(self.entity_manager)
+        self.resonance = Resonance(self.entity_manager)
+        self.termination = SimulationTermination(self.entity_manager)
+        
+        # Get source and output configs
+        self.source_config = None
+        self.output_config = None
+        for src in config.sources:
+            if src.idx == self.source_idx:
+                self.source_config = src
+                break
+        for out in config.outputs:
+            if out.idx == self.output_idx:
+                self.output_config = out
+                break
+        
+        # Frequency bands for impulse response
+        self.freq_bands = self.entity_manager.get('frequency_bands')
+        fps = config.system.fps
+        fps_base = config.system.fps_base
+        subframes = config.system.subframes
+        self.sample_rate = config.system.sample_rate
+        self.sfps = ( fps / fps_base ) * subframes # subframes per seconds
+        spsf = self.sample_rate / sfps # samples per subframe
+        
+        # Store impulse response (time, frequency bands)
+        # We'll compute IR per frame and then interpolate to sample rate
+        self.ir = None  # Will be filled after compute
+    
     def compute(self):
+        """Compute impulse response for this source-output pair."""
+        # Get positions and rotations over time
+        source_positions, source_rotations = _load_pose(self.source_config)
+        output_positions, output_rotations = _load_pose(self.output_config)
+        
+        # Get animation frames: total frames = number of positions
+        total_frames = len(source_positions)
+        
+        # We'll compute IR at each frame
+        ir_time_axis = np.linspace(0, (total_frames - 1), total_frames)
+        # For simplicity, we'll store IR as list of (delay, amplitude, frequency_band) for each frame
+        # Actually we want a time-domain IR, so we'll build a sparse representation: list of (time, amplitude)
+        
+        # Use dask to parallelize over frames
+        tasks = []
+        for frame_idx in range(total_frames):
+            # Compute rays for this frame
+            source_pos = source_positions[frame_idx]
+            source_rot = source_rotations[frame_idx]
+            output_pos = output_positions[frame_idx]
+            output_rot = output_rotations[frame_idx]
+            tasks.append(delayed(self._compute_frame)(frame_idx, source_pos, source_rot, output_pos, output_rot))
+        
+        # Compute all frames in parallel
+        results = compute(*tasks)
+        
+        # Combine results into impulse response
+        # results is list of list of RayData for each frame
+        self.ir = self._combine_ir(results, ir_time_axis)
+        return self.ir
+    
+    def _compute_frame(self, frame_idx, source_pos, source_rot, output_pos, output_rot):
+        """Compute ray paths for a single frame."""
+        # Direct path: source to output
+        direct_ray = self._trace_direct_path(source_pos, output_pos)
+        # Reverse path: output to source (for diffraction)
+        reverse_ray = self._trace_reverse_path(output_pos, source_pos)
+        # Also we need to consider reflections/refractions from objects
+        reflected_rays = self._trace_reflected_paths(source_pos, output_pos)
+        
+        # Combine all rays
+        all_rays = [direct_ray] + reverse_ray + reflected_rays
+        # Apply frequency-dependent attenuation to each ray
+        for ray in all_rays:
+            if ray:
+                self._apply_attenuation(ray, source_pos, output_pos)
+        return all_rays
+    
+    def _trace_direct_path(self, src, dst):
+        """Trace direct line-of-sight path."""
+        direction = dst - src
+        dist = np.linalg.norm(direction)
+        if dist == 0:
+            return None
+        direction = direction / dist
+        # Check if path is blocked by any object
+        hit = self.ray_tracer.intersect_ray(src, direction, max_distance=dist)
+        if hit['hit']:
+            # If blocked, no direct path
+            return None
+        # Create ray data
+        ray = RayData(
+            origin=src,
+            direction=direction,
+            length=dist,
+            energy=1.0,  # initial energy
+            reflection_count=0,
+            path=[src, dst]
+        )
+        return ray
+    
+    def _trace_reverse_path(self, src, dst):
+        """Trace reverse path (listener to source) for diffraction."""
+        # Similar to direct but from listener to source
+        # For diffraction, we might need to generate multiple rays around edges
+        # For simplicity, we'll just return direct reverse path for now
+        direction = dst - src
+        dist = np.linalg.norm(direction)
+        if dist == 0:
+            return []
+        direction = direction / dist
+        hit = self.ray_tracer.intersect_ray(src, direction, max_distance=dist)
+        if hit['hit']:
+            # Path blocked, but we might still have diffracted paths
+            # For now, return empty
+            return []
+        ray = RayData(
+            origin=src,
+            direction=direction,
+            length=dist,
+            energy=1.0,
+            reflection_count=0,
+            path=[src, dst]
+        )
+        return [ray]
+    
+    def _trace_reflected_paths(self, src, dst):
+        """Trace reflected/refracted paths using recursive ray tracing."""
+        # We'll use ray tracing with recursion depth limited by max_reflections
+        config = self.entity_manager.get('config')
+        max_reflections = config.acoustic_domain.max_reflections
+        # We'll generate rays from source, bounce, and check if they hit the listener
+        rays = []
+        self._trace_recursive(src, dst, direction=None, depth=0, max_depth=max_reflections, ray_so_far=None, rays_list=rays)
+        return rays
+    
+    def _trace_recursive(self, current_pos, target, direction, depth, max_depth, ray_so_far, rays_list):
+        """Recursive ray tracing to find paths from current_pos to target."""
+        if depth >= max_depth:
+            return
+        # If we have a direction, we continue; else we start by sampling directions
+        # For simplicity, we'll use a simple approach: at each intersection, generate reflected and refracted rays.
+        # We need to know the object properties at intersection.
+        # For now, we'll skip detailed implementation and return empty.
+        # This will be expanded later.
         pass
+    
+    def _apply_attenuation(self, ray, src, dst):
+        """Apply frequency-dependent attenuation due to propagation and interactions."""
+        # We'll compute attenuation per frequency band
+        # For each interaction along the path, apply absorption/reflection coefficients
+        # For now, just a placeholder
+        pass
+    
+    def _combine_ir(self, frame_results, time_axis):
+        """Combine per-frame rays into an impulse response."""
+        # For each frame, we have a list of rays. Each ray has a delay (time = length / speed_of_sound)
+        # and an amplitude (energy). We'll accumulate contributions in time bins.
+        # We'll use a simple histogram approach.
+        config = self.entity_manager.get('config')
+        speed_of_sound = config.acoustic_domain.acoustic_shader.sound_speed
+        max_time = np.max(time_axis)
+        # We'll sample IR at sample rate
+        ir_time = np.linspace(0, max_time, int(max_time * self.sample_rate) + 1)
+        ir_amp = np.zeros_like(ir_time)
+        
+        for frame_idx, rays in enumerate(frame_results):
+            frame_time = time_axis[frame_idx]
+            for ray in rays:
+                if ray is None:
+                    continue
+                delay = ray.length / speed_of_sound
+                arrival_time = frame_time + delay
+                # Find nearest sample
+                sample_idx = int(arrival_time * self.sample_rate)
+                if 0 <= sample_idx < len(ir_amp):
+                    ir_amp[sample_idx] += ray.energy  # assume energy is amplitude
+        return (ir_time, ir_amp)
+    
+    def get_impulse_response(self):
+        """Return the computed impulse response (time, amplitude) for this source-output pair."""
+        if self.ir is None:
+            raise RuntimeError("Compute first")
+        return self.ir
