@@ -7,7 +7,7 @@ import numpy as np
 import numba as nb
 from typing import Any, Tuple, Optional, List, Union, Dict
 
-def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, obj_file: str):
+def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, obj_file: str, resonance: bool = False):
     """
     Convert an npz mesh file to Wavefront OBJ format.
     
@@ -21,12 +21,12 @@ def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, o
     mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
 
     # Create simplified convex hull for resonance model
-#    simplified = mesh.simplify_quadric_decimation(face_count=20)
-#    hull = trimesh.convex.convex_hull(simplified)
+    if resonance:
+        simplified = mesh.simplify_quadric_decimation(face_count=20)
+        simplified.export(f"{obj_file.removesuffix('.obj')}_resonance.obj", file_type='obj')
 
     # Export as obj
     mesh.export(obj_file, file_type='obj')
-#    hull.export(f"{obj_file.removesuffix('.obj')}_resonance.obj", file_type='obj')
     return
 
 def _load_mesh(obj_config, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
