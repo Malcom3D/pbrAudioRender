@@ -26,7 +26,8 @@ from ...core.entity_manager import EntityManager
 @dataclass
 class AbsorptionInterface:
     entity_manager: EntityManager
-
-    def compute(self):
-        """Apply frequency-dependent absorption to rays hitting objects boundaries"""
-        pass
+    
+    def compute(self, ray, hit_info, freq_band):
+        """Apply frequency-dependent absorption."""
+        # This is called by InterfaceManager; we'll keep it simple for now
+        return ray
