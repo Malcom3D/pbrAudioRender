@@ -50,5 +50,7 @@ class Resonance:
         self.min_tube_length = config.resonance.min_tube_length
         self.min_aspect_ratio = config.resonance.min_aspect_ratio
 
-    def compute(self):
-        pass
+    def compute(self, source_pos, output_pos, environment):
+        """Detect and add resonance contributions to impulse response."""
+        # For now, just return empty list
+        return []
