@@ -37,7 +37,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "dask", "scipy", "numba", "numpy",
+    "dask", "scipy", "numba", "numpy <=2.3.5",
     "resampy", "soundfile", "trimesh"
 ]
 
