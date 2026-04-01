@@ -39,11 +39,6 @@ class AcousticDomainConfig:
     idx: int = 0
     name: str = "acoustic_domain"
     geometry: np.ndarray = field(default_factory=lambda: np.array([]))  #vertices array
-    voxel_size: float = 0.1
-    shape: Tuple[int, int, int] = (0, 0, 0)
-    max_reflections: int = 5
-    max_resonances: int = 3
-    max_reverberation_time: float = 2.0
     acoustic_shader: Optional[AcousticShader] = None
 
 @dataclass
@@ -88,50 +83,65 @@ class ObjectConfig:
 
 @dataclass
 class WavePropagationConfig:
-    enable_damping: bool = True
-    enable_boundary: bool = True
-    enable_termination: bool = True
-    max_interactions: int = 5
-    interaction_threshold: float = 0.01
-    damping_coefficient: float = 0.02
-    energy_threshold: float = 1e6
-    boundary_type: str = "open"
-    boundary_absorption: float = 1.0
-    termination_energy_threshold: float = 1e-6
-    min_activity_frames: int = 10
+#    enable_damping: bool = True
+#    damping_coefficient: float = 0.02
+#    enable_boundary: bool = True
+#    boundary_type: str = "open"
+#    boundary_absorption: float = 1.0
+#    interaction_threshold: float = 0.01
+    max_interactions: int = 8192
+    steps_per_octave: int = 24 # frequency steps per octave
     enable_interface: bool = True
     enable_resonance: bool = True
+    enable_termination: bool = True
+    use_dispersion_correction: bool = True # account for variations in speed due to factors like temperature and wind in the medium
+    dispersion_order: int = 2
+    use_extended_reaction: bool = False # from RTS
+    max_modal_reaction: int = 3
+    use_complex_eigenray: bool = Flase # infrasound
+    max_complex_eigenray: int = 3
     lowest_frequency: float = 5
     higher_frequency: float = 24000.0 # Nyquist clock/2
-    steps_per_octave: int = 24 # frequency steps per octave
-    use_dispersion_correction: bool = True
-    dispersion_order: int = 2
 
 @dataclass
 class InterfaceConfig:
     enable_absorption: bool = True
-    enable_refraction: bool = True
     enable_reflection: bool = True
+    max_reflection: int = 5
     enable_scattering: bool = True
+    max_scattering: int = 5
+    enable_refraction: bool = True
+    max_refraction: int = 5
     enable_diffraction: bool = True
+    max_diffraction: int = 5
     min_impedance_ratio: float = 0.1
     max_impedance_ratio: float = 10.0
-    interaction_threshold: float = 0.01
 
 @dataclass
 class ResonanceConfig:
-    enable_helmholtz: bool = True
-    enable_parallel_wall: bool = True
-    enable_tube: bool = True
-    min_cavity_volume: float = 0.001
-    max_resonance_modes: int = 10
-    resonance_threshold: float = 0.1
+    max_resonance_structure: int = 10
     decay_time_constant: float = 0.99
+    resonance_threshold: float = 0.1
+    enable_helmholtz: bool = True
     min_cavity_volume: float = 0.001 # cubic meters
+    max_resonance_room_modes: int = 10
+    enable_parallel_wall: bool = True
     min_wall_distance: float = 0.5  # meters
     max_wall_distance: float = 20.0  # meters
+    enable_tube: bool = True
     min_tube_length: float = 0.3  # meters
     min_tube_aspect_ratio = 3.0  # length/width ratio for tubes
+
+class TerminationConfig:
+    termination_type: str = "reverberation_time"  # "sample_end", "reverberation_time", "energy_threshold", "final_frame"
+    # sample_end
+    samples_after: int = 100  # Samples after end of last (minimum) active sources
+    min_active_sources: int = 1  # Minimum number of active sources to terminate
+    # reverberation_time
+    max_reverberation_time: float = 2.0
+    # energy_threshold
+    max_energy_threshold: float = 1e6 # Maximum energy to terminate
+    min_energy_threshold: float = 1e-6 # Minimum energy to terminate
 
 @dataclass
 class AudioRecorderConfig:
@@ -156,6 +166,7 @@ class Config:
         self.fdtd = FDTDConfig(**self.data.get('fdtd', {}))
         self.interface = InterfaceConfig(**self.data.get('interface', {}))
         self.resonance = ResonanceConfig(**self.data.get('resonance', {}))
+        self.termination = TerminationConfig(**self.data.get('termination', {}))
         self.audio_recorder = AudioRecorderConfig(**self.data.get('audio_recorder', {}))
         self.ambisonic_render = AmbisonicRenderConfig(**self.data.get('ambisonic_render', {}))
 
