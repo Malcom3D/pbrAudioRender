@@ -32,8 +32,8 @@ class FrequencyBands:
         config = self.entity_manager.get('config')
         higher_frequency = config.acoustic_domain.sample_rate / 2
         lowest_frequency = config.wave_propagation.lowest_frequency
-        steps_per_octave = config.wave_propagation.steps_per_octave
-        frequencies = _generate_band_frequencies(lowest_frequency, higher_frequency, steps_per_octave)
+        bands_per_octave = config.wave_propagation.bands_per_octave
+        frequencies = _generate_band_frequencies(lowest_frequency, higher_frequency, bands_per_octave)
         for index in range(len(frequencies)-1):
             low = frequencies[index]
             high = frequencies[index+1]

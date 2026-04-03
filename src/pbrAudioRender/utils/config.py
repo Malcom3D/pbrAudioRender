@@ -104,7 +104,7 @@ class FDTDConfig:
     stability_margin: float = 0.9
     lowest_frequency: float = 5
     max_frequency: float = 20000.0
-    steps_per_octave: int = 24 # frequency steps per octave
+    bands_per_octave: int = 24 # frequency steps per octave
     use_dispersion_correction: bool = True
     dispersion_order: int = 2
 
