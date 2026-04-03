@@ -137,7 +137,7 @@
     "courant_number": 0.99,
     "stability_margin": 0.9,
     "lowest_frequency": 5,
-    "steps_per_octave": 1,
+    "bands_per_octave": 1,
     "max_frequency": 20000.0,
     "max_sound_speed": 500.0,
     "use_dispersion_correction": true,

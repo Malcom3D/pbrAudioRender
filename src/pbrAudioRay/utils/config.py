@@ -90,7 +90,7 @@ class WavePropagationConfig:
 #    boundary_absorption: float = 1.0
 #    interaction_threshold: float = 0.01
     max_interactions: int = 8192
-    steps_per_octave: int = 24 # frequency steps per octave
+    bands_per_octave: int = 24 # frequency steps per octave
     enable_interface: bool = True
     enable_resonance: bool = True
     enable_termination: bool = True
