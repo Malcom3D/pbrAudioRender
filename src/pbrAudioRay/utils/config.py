@@ -33,6 +33,8 @@ class SystemConfig:
     subframes: int = 1 # video subframes
     file_format: str = 'RAW'
     cache_path: str = "./pbrAudioCache/"
+    lowest_frequency: float = 5
+    higher_frequency: float = 24000.0 # Nyquist clock/2
 
 @dataclass
 class AcousticDomainConfig:
@@ -100,8 +102,6 @@ class WavePropagationConfig:
     max_modal_reaction: int = 3
     use_complex_eigenray: bool = Flase # infrasound
     max_complex_eigenray: int = 3
-    lowest_frequency: float = 5
-    higher_frequency: float = 24000.0 # Nyquist clock/2
 
 @dataclass
 class InterfaceConfig:
