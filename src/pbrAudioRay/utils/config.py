@@ -100,7 +100,7 @@ class WavePropagationConfig:
     dispersion_order: int = 2
     use_extended_reaction: bool = False # from RTS
     max_modal_reaction: int = 3
-    use_complex_eigenray: bool = Flase # infrasound
+    use_complex_eigenray: bool = False # infrasound
     max_complex_eigenray: int = 3
 
 @dataclass
