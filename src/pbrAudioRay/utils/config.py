@@ -105,6 +105,7 @@ class WavePropagationConfig:
 
 @dataclass
 class FDTDConfig:
+    # placeholder config class for FDTD Shaders to Render
     courant_number: float = 0.5
     max_sound_speed: float = 500.0
     stability_margin: float = 0.9
@@ -138,6 +139,7 @@ class ResonanceConfig:
     min_tube_length: float = 0.3  # meters
     min_tube_aspect_ratio = 3.0  # length/width ratio for tubes
 
+@dataclass
 class TerminationConfig:
     termination_type: str = "reverberation_time"  # "sample_end", "reverberation_time", "energy_threshold", "final_frame"
     # sample_end
