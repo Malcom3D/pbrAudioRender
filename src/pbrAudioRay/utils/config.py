@@ -104,6 +104,12 @@ class WavePropagationConfig:
     max_complex_eigenray: int = 3
 
 @dataclass
+class FDTDConfig:
+    courant_number: float = 0.5
+    max_sound_speed: float = 500.0
+    stability_margin: float = 0.9
+
+@dataclass
 class InterfaceConfig:
     enable_absorption: bool = True
     enable_reflection: bool = True
