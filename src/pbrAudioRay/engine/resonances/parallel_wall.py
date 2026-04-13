@@ -22,7 +22,7 @@ import numba as nb
 from dataclasses import dataclass, field
 
 from ...core.entity_manager import EntityManager
-from ...lib.interpolate import FrequencyInterpolator
+from ...lib.interpolator import FrequencyInterpolator
 
 @dataclass
 class ParallelWallResonance:
