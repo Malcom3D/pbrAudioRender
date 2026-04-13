@@ -83,7 +83,7 @@ class ObjectConfig:
     static: bool
     stochastic_variation: bool = False
     ground: bool = False
-    resonance: bool
+    resonance: bool = False
     resonance_modes: int = None
     connected: Union[bool, np.ndarray] = False # for static coupled systems [[obj_idx, coupling_strength]]
     is_shard: bool = False
