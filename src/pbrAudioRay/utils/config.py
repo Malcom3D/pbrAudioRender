@@ -49,10 +49,11 @@ class SourceConfig:
     name: str
     type: str  # "spherical", "planar"
     static: bool
-    geometry: Optional[Dict[str, Any]] = None
-    audio_file: str = ""
-    position_file: str = ""
-    rotation_file: str = ""
+    size: float = None
+    width: float = None
+    height: float = None
+    audio_file: str = None
+    pose_path: str = None
     spatial_freq_response: Optional[SpatialFrequencyResponse] = None
     spatial_freq_response_file: Optional[str] = None
     acoustic_shader: Optional[AcousticShader] = None
@@ -61,13 +62,13 @@ class SourceConfig:
 class OutputConfig:
     idx: int
     name: str
-    type: str  # "ambisonic", "omnidirectional", "cardioid", "figure8", "hypercardioid"
+    type: str  # "AMBI", "MONO"
     static: bool
-    geometry: Optional[Dict] = None
-    spatial_arrangement_file: str = ""
-    render_output_path: str = ""
-    position_file: str = ""
-    rotation_file: str = ""
+    size: float = None
+    order: int = None
+    spatial_arrangement_file: str = None
+    pose_path: str = None
+    mono_mic_type: str = None # OMNIDIRECTIONAL, CARDIOID, HYPERCARDIOID, FIGURE_8
     spatial_freq_response: Optional[SpatialFrequencyResponse] = None
     spatial_freq_response_file: Optional[str] = None
     calibration: Optional[SpatialFrequencyResponse] = None
@@ -80,9 +81,14 @@ class ObjectConfig:
     obj_path: str
     pose_path: str
     static: bool
-    ground: bool = False
-    connected: Union[bool, np.ndarray] = False # for static coupled systems [[obj_idx, coupling_strength]]
     stochastic_variation: bool = False
+    ground: bool = False
+    resonance: bool
+    resonance_modes: int = None
+    connected: Union[bool, np.ndarray] = False # for static coupled systems [[obj_idx, coupling_strength]]
+    is_shard: bool = False
+    fractured: Union[bool, int] = False # frame of fracture
+    shard: Union[bool, np.ndarray] = False # shard of fractured object [[obj_idx, shard]]
     acoustic_shader: Optional[AcousticShader] = None
 
 @dataclass
