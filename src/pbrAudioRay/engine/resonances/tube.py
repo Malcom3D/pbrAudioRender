@@ -21,8 +21,6 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
 
-from ...lib.base import Configurable, GPUEnabled
-
 @dataclass
 class TubeResonance:
     """Handle tube resonator effects (open-open, open-closed, closed-closed)"""
