@@ -48,6 +48,7 @@ class SourceConfig:
     idx: int
     name: str
     type: str  # "spherical", "planar"
+    static: bool
     geometry: Optional[Dict[str, Any]] = None
     audio_file: str = ""
     position_file: str = ""
@@ -61,6 +62,7 @@ class OutputConfig:
     idx: int
     name: str
     type: str  # "ambisonic", "omnidirectional", "cardioid", "figure8", "hypercardioid"
+    static: bool
     geometry: Optional[Dict] = None
     spatial_arrangement_file: str = ""
     render_output_path: str = ""
@@ -85,12 +87,6 @@ class ObjectConfig:
 
 @dataclass
 class WavePropagationConfig:
-#    enable_damping: bool = True
-#    damping_coefficient: float = 0.02
-#    enable_boundary: bool = True
-#    boundary_type: str = "open"
-#    boundary_absorption: float = 1.0
-#    interaction_threshold: float = 0.01
     max_interactions: int = 8192
     bands_per_octave: int = 24 # frequency steps per octave
     enable_interface: bool = True
@@ -106,6 +102,12 @@ class WavePropagationConfig:
 @dataclass
 class FDTDConfig:
     # placeholder config class for FDTD Shaders to Render
+#    enable_damping: bool = True
+#    damping_coefficient: float = 0.02
+#    enable_boundary: bool = True
+#    boundary_type: str = "open"
+#    boundary_absorption: float = 1.0
+#    interaction_threshold: float = 0.01
     courant_number: float = 0.5
     max_sound_speed: float = 500.0
     stability_margin: float = 0.9
