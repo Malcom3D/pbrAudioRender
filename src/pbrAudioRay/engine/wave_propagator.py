@@ -171,12 +171,12 @@ class WavePropagator:
     
     def _trace_reflected_paths(self, src, dst):
         """Trace reflected/refracted paths using recursive ray tracing."""
-        # We'll use ray tracing with recursion depth limited by max_reflections
+        # We'll use ray tracing with recursion depth limited by max_reflection
         config = self.entity_manager.get('config')
-        max_reflections = config.acoustic_domain.max_reflections
+        max_reflection = config.acoustic_domain.max_reflection
         # We'll generate rays from source, bounce, and check if they hit the listener
         rays = []
-        self._trace_recursive(src, dst, direction=None, depth=0, max_depth=max_reflections, ray_so_far=None, rays_list=rays)
+        self._trace_recursive(src, dst, direction=None, depth=0, max_depth=max_reflection, ray_so_far=None, rays_list=rays)
         return rays
     
     def _trace_recursive(self, current_pos, target, direction, depth, max_depth, ray_so_far, rays_list):
