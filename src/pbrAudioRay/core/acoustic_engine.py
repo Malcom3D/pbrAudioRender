@@ -98,6 +98,13 @@ class AcousticEngine:
         self.entity_manager.register('wave_propagators', wave_propagator)
 
     def compute(self):
+        config = self.entity_manager.get('config')
+        start_frame = config.system.start_frame
+        end_frame = config.system.end_frame
+        for frame_idx in range(start_frame, end_frame +1):
+            self.compute_frame(frame_idx)
+        
+    def compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
-        tasks = [wave_propagators[index].compute() for index in wave_propagators.keys()]
+        tasks = [wave_propagators[index].compute(frame_idx) for index in wave_propagators.keys()]
         compute(*tasks)

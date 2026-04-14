@@ -31,6 +31,8 @@ class SystemConfig:
     fps: int = 24 # video fps
     fps_base: int = 1
     subframes: int = 1 # video subframes
+    start_frame: int = None
+    end_frame: int = None
     file_format: str = 'RAW'
     cache_path: str = "./pbrAudioCache/"
     bands_per_octave: int = 24 # frequency steps per octave
