@@ -72,7 +72,7 @@ class OutputConfig:
     order: int = None
     spatial_arrangement_file: str = None
     pose_path: str = None
-    mono_mic_type: str = None # OMNIDIRECTIONAL, CARDIOID, HYPERCARDIOID, FIGURE_8
+    microphone_type: str = None # OMNIDIRECTIONAL, CARDIOID, HYPERCARDIOID, FIGURE_8
     spatial_freq_response: Optional[SpatialFrequencyResponse] = None
     spatial_freq_response_file: Optional[str] = None
     calibration: Optional[SpatialFrequencyResponse] = None
