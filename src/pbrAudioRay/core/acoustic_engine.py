@@ -52,6 +52,7 @@ class AcousticEngine:
         tasks += [self._add_output(output) for output in config.outputs]
         compute(*tasks)
 
+        combos = []
         for i in range(len(config.sources)):
             for j in range(len(config.outputs)):
                 combos.append([config.sources[i].idx, config.outputs[j].idx])
