@@ -32,7 +32,7 @@ class HelmholtzResonance:
         config = self.entity_manager.get('config')
         self.enable_helmholtz = config.resonance.enable_helmholtz
         self.min_cavity_volume = config.resonance.min_cavity_volume
-        self.max_resonance_modes = config.resonance.max_resonance_modes
+        self.max_structure_resonance_modes = config.resonance.max_structure_resonance_modes
         self.resonance_threshold = config.resonance.resonance_threshold
 
         # Cavity detection parameters
