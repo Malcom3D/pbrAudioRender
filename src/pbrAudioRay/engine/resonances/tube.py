@@ -33,11 +33,5 @@ class TubeResonance:
         self.enable_tube = config.resonance.enable_tube
         self.resonance_threshold = config.resonance.resonance_threshold
 
-        # Tube detection parameters
-        self.min_tube_length = config.resonance.min_tube_length
-        self.max_tube_length = config.resonance.max_tube_length
-        self.min_tube_aspect_ratio = config.resonance.min_tube_aspect_ratio
-        self.max_tube_cross_section = config.resonance.max_tube_cross_section
-
     def compute(self):
         pass

@@ -34,10 +34,5 @@ class HelmholtzResonance:
         self.min_cavity_volume = config.resonance.min_cavity_volume
         self.resonance_threshold = config.resonance.resonance_threshold
 
-        # Cavity detection parameters
-        self.min_cavity_size = config.resonance.min_cavity_size
-        self.max_cavity_size = config.resonance.max_cavity_size
-        self.min_neck_ratio = config.resonance.min_neck_ratio
-
     def compute(self):
         pass
