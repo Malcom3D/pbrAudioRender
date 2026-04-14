@@ -36,7 +36,7 @@ class InterfaceManager:
         self.scattering = ScatteringInterface(self.entity_manager)
         self.diffraction = DiffractionInterface(self.entity_manager)
         
-        self.interaction_threshold = config.interface.interaction_threshold
+#        self.interaction_threshold = config.interface.interaction_threshold # it's neeeded for FDTD?
         self.min_impedance_ratio = config.interface.min_impedance_ratio
         self.max_impedance_ratio = config.interface.max_impedance_ratio
     
