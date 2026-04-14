@@ -37,6 +37,7 @@ class AmbisonicOutput:
     """Ambisonic microphones arrangement output"""
     entity_manager: EntityManager
     idx: int
+    config_idx: int  # idx of the output in config.outputs list
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
