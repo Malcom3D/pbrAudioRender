@@ -25,6 +25,7 @@ from .base_output import BaseOutput
 @dataclass
 class HypercardioidOutput(BaseOutput):
     """Hypercardioid microphone output with frequency-dependent processing"""
+    idx: int = None # ambisonic spatial arrangement microphone index
 
     def _get_directivity(self, azimuth: float, elevation: float) -> float:
         """Hypercardioid directivity pattern"""
