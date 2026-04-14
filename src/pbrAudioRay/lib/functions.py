@@ -70,6 +70,7 @@ def _load_pose(config_obj: Any) -> Tuple[np.ndarray, np.ndarray]:
             pose = np.load(npz_file)
             positions = pose[pose.files[0]]
             rotations = pose[pose.files[1]]
+            break
         else:
             type_error = True
 
