@@ -33,6 +33,7 @@ class SystemConfig:
     subframes: int = 1 # video subframes
     file_format: str = 'RAW'
     cache_path: str = "./pbrAudioCache/"
+    bands_per_octave: int = 24 # frequency steps per octave
     lowest_frequency: float = 5
     higher_frequency: float = 24000.0 # Nyquist clock/2
 
@@ -94,7 +95,6 @@ class ObjectConfig:
 @dataclass
 class WavePropagationConfig:
     max_interactions: int = 8192
-    bands_per_octave: int = 24 # frequency steps per octave
     enable_interface: bool = True
     enable_resonance: bool = True
     enable_termination: bool = True
