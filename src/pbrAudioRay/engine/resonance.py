@@ -44,11 +44,22 @@ class Resonance:
         self.decay_time_constant = config.resonance.decay_time_constant
 
         # Detection parameters
+        # Cavity detection parameters
         self.min_cavity_volume = config.resonance.min_cavity_volume
+        self.min_cavity_size = config.resonance.min_cavity_size
+        self.max_cavity_size = config.resonance.max_cavity_size
+        self.min_neck_ratio = config.resonance.min_neck_ratio
+
+        # Parallel Wall detection parameters
+        self.min_room_volume = config.resonance.min_room_volume
         self.min_wall_distance = config.resonance.min_wall_distance
         self.max_wall_distance = config.resonance.max_wall_distance
+
+        # Tube detection parameters
         self.min_tube_length = config.resonance.min_tube_length
-        self.min_aspect_ratio = config.resonance.min_aspect_ratio
+        self.max_tube_length = config.resonance.max_tube_length
+        self.min_tube_aspect_ratio = config.resonance.min_tube_aspect_ratio
+        self.max_tube_cross_section = config.resonance.max_tube_cross_section
 
     def compute(self, source_pos, output_pos, environment):
         """Detect and add resonance contributions to impulse response."""
