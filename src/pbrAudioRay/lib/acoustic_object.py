@@ -19,16 +19,80 @@
 import os
 import numpy as np
 import trimesh
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
+from rigidbody import Pym2f
+
 from ..core.entity_manager import EntityManager
+from ..lib.functions import _load_mesh
 
 @dataclass
 class AcousticObject:
-    """ Return mesh object geometry refined using trimesh simplify_quadric_decimation if distance from sources and listeners is greater than a threshold """
+    """ Handle mesh object geometry and modal model analysis """
     entity_manager: EntityManager
-    obj_idx: int
+    config_obj: Any
+    obj_idx: int = None
+    mesh: timesh.Trimesh = None
 
-    def compute(self):
-        pass
+    def __post_init__(self):
+        self.obj_idx = self.config_obj.idx
+        vertices, normals, faces = _load_mesh(self.config_obj, 0)
+        self.mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
+
+    def get_mesh(self, source_pos: np.ndarray, output_pos: np.ndarray) -> trimesh.Trimesh:
+        """ Return mesh object geometry refined using trimesh simplify_quadric_decimation if distance from sources and listeners is greater than a threshold """
+        config = self.entity_manager.get('config')
+        adr_threshold = config.system.adr_threshold
+
+        # If no ADR threshold, return full mesh
+        if adr_threshold is None:
+            return self.mesh
+
+        # Calculate distances from object to source and output
+        # Use object's bounding sphere center as reference point
+        obj_center = self.mesh.bounding_sphere.center
+
+        # Calculate minimum distance to any source or output
+        source_dist = np.linalg.norm(obj_center - source_pos)
+        output_dist = np.linalg.norm(obj_center - output_pos)
+        min_distance = min(source_dist, output_dist)
+
+        # Determine LOD level based on distance
+        percent, aggression = self._calculate_lod_level(min_distance, adr_threshold)
+
+        simplified = self.mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
+
+        # Return appropriate LOD mesh
+        if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
+            return simplified
+        else:
+            return self.mesh
+
+    def _calculate_lod_level(self, distance: float, adr_threshold: float) -> int:
+        """
+        Calculate LOD level based on distance.
+        
+        Args:
+            distance: Minimum distance to source/output
+            adr_threshold: Base threshold for LOD switching
+        
+        Returns:
+            LOD level (0 = highest detail, >1 lowest detail))
+        """
+        # Calculate aggression factor based on how much threshold is exceeded
+        if distance <= adr_threshold:
+            return 0  # Full detail
+        
+        # Calculate how many threshold multiples we're beyond
+        threshold_multiples = distance / adr_threshold
+        
+        # Map to quadric_decimation
+        if threshold_multiples < 2:
+            percent = threshold_multiples - 1
+            aggression = 1
+        elif threshold_multiples > 2:
+            percent = 1
+            aggression = int(threshold_multiples - 1)
+
+        return percent, aggression
