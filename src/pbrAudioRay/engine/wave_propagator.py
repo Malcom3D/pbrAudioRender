@@ -65,7 +65,7 @@ class WavePropagator:
         fps_base = config.system.fps_base
         subframes = config.system.subframes
         self.sample_rate = config.system.sample_rate
-        self.sfps = ( fps / fps_base ) * subframes # subframes per seconds
+        sfps = ( fps / fps_base ) * subframes # subframes per seconds
         spsf = self.sample_rate / sfps # samples per subframe
         
         # Store impulse response (time, frequency bands)
