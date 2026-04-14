@@ -56,22 +56,27 @@ def _load_mesh(obj_config, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.n
 
 def _load_pose(config_obj: Any) -> Tuple[np.ndarray, np.ndarray]:
     """Load all pose sequence for an object."""
-    if not 'ObjectConfig' in str(type(config_obj)):
-        raise ValueError(f"{config_obj} is not of ObjectConfig type.")
+    for obj_type in ['SourceConfig', 'OutputConfig', 'ObjectConfig']:
+        if obj_type in str(type(config_obj)):
+            type_error = False
+            pose_path = config_obj.pose_path
+            obj_name = config_obj.name
 
-    pose_path = config_obj.pose_path
-    obj_name = config_obj.name
+            npz_file = os.path.join(pose_path, f"{obj_name}.npz")
 
-    npz_file = os.path.join(pose_path, f"{obj_name}.npz")
+            if not npz_file:
+                raise ValueError(f"No pose files found for {obj_name} in {pose_path}")
 
-    if not npz_file:
-        raise ValueError(f"No pose files found for {obj_name} in {pose_path}")
+            pose = np.load(npz_file)
+            positions = pose[pose.files[0]]
+            rotations = pose[pose.files[1]]
+        else:
+            type_error = True
 
-    pose = np.load(npz_file)
-    positions = pose[pose.files[0]]
-    rotations = pose[pose.files[1]]
-
-    return positions, rotations
+    if type_error:
+        raise ValueError(f"{config_obj} is not of know type: SourceConfig, OutputConfig, ObjectConfig.")
+    else:
+        return positions, rotations
 
 def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float, bands_per_octave: int):
     """
