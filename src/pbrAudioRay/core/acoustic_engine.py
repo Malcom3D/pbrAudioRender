@@ -62,8 +62,8 @@ class AcousticEngine:
     @delayed
     def _add_source(self, config):
         source_map = {
-            'spherical': SphericalSource,
-            'planar': PlanarSource
+            'SPHERE': SphericalSource,
+            'PLANE': PlanarSource
         }
         if 'SourceConfig' in str(type(config)) and config.type in source_map:
             source = source_map.get(config.type)(self.entity_manager, config.idx)
@@ -72,20 +72,24 @@ class AcousticEngine:
     @delayed
     def _add_object(self, config):
         if 'ObjectConfig' in str(type(config)):
-            obj = AcousticObject(self.entity_manager, config.idx)
+            obj = AcousticObject(self.entity_manager, config)
             self.entity_manager.register('objects', obj)
 
     @delayed
     def _add_output(self, config):
         output_map = {
-            'ambisonic': AmbisonicOutput,
-            'omnidirectional': OmnidirectionalOutput,
-            'cardioid': CardioidOutput,
-            'hypercardioid': HypercardioidOutput,
-            'figure8': Figure8Output
+            'AMBI': AmbisonicOutput,
+            'OMNIDIRECTIONAL': OmnidirectionalOutput,
+            'CARDIOID': CardioidOutput,
+            'HYPERCARDIOID': HypercardioidOutput,
+            'FIGURE_8': Figure8Output
         }
-        if 'OutputConfig' in str(type(config)) and config.type in output_map:
-            output = output_map.get(config.type)(self.entity_manager, config.idx)
+        if 'OutputConfig' in str(type(config)):
+            if config.type == 'AMBI':
+                config_type = config.type
+            elif config.type == 'MONO' and config.microphone_type in output_map:
+                config_type = config.microphone_type
+            output = output_map.get(config_type)(self.entity_manager, config.idx)
             self.entity_manager.register('outputs', output)
 
     @delayed

@@ -27,7 +27,7 @@ from ..engine.interface import InterfaceManager
 from ..engine.resonance import Resonance
 from ..engine.termination import SimulationTermination
 
-from ..core.ray_tracer import RayTracer
+from ..engine.ray_tracer import RayTracer
 from ..lib.ray_data import RayData
 from ..lib.functions import _load_pose
 
@@ -61,12 +61,14 @@ class WavePropagator:
                 break
         
         # Frequency bands for impulse response
-        fps = config.system.fps
-        fps_base = config.system.fps_base
-        subframes = config.system.subframes
-        self.sample_rate = config.system.sample_rate
-        sfps = ( fps / fps_base ) * subframes # subframes per seconds
-        spsf = self.sample_rate / sfps # samples per subframe
+        freq_bands = self.entity_manager.get('frequency_bands')
+
+#        fps = config.system.fps
+#        fps_base = config.system.fps_base
+#        subframes = config.system.subframes
+#        self.sample_rate = config.system.sample_rate
+#        sfps = ( fps / fps_base ) * subframes # subframes per seconds
+#        spsf = self.sample_rate / sfps # samples per subframe
         
         # Store impulse response (time, frequency bands)
         # We'll compute IR per frame and then interpolate to sample rate
