@@ -22,7 +22,7 @@ import trimesh
 from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
-from rigidbody import Pym2f
+from rigidBody import Pym2f
 
 from ..core.entity_manager import EntityManager
 from ..lib.functions import _load_mesh
