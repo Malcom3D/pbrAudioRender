@@ -36,8 +36,8 @@ class TubeResonance:
         # Tube detection parameters
         self.min_tube_length = config.resonance.min_tube_length
         self.max_tube_length = config.resonance.max_tube_length
-        self.min_aspect_ratio = config.resonance.min_aspect_ratio
-        self.max_cross_section = config.resonance.max_cross_section
+        self.min_tube_aspect_ratio = config.resonance.min_tube_aspect_ratio
+        self.max_tube_cross_section = config.resonance.max_tube_cross_section
 
     def compute(self):
         pass

@@ -151,7 +151,7 @@ class ResonanceConfig:
     min_tube_length: float = 0.3  # meters
     max_tube_length: float = 10.0  # meters
     min_tube_aspect_ratio: float = 3.0  # length/width ratio for tubes
-    max_cross_section: float = 1.0  # square meters
+    max_tube_cross_section: float = 1.0  # square meters
 
 @dataclass
 class TerminationConfig:
