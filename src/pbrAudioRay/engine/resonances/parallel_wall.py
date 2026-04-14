@@ -32,13 +32,13 @@ class ParallelWallResonance:
     def __post_init__(self):
         config = self.entity_manager.get('config')
         self.enable_parallel_wall = config.resonance.enable_parallel_wall
-        self.max_resonance_modes = config.resonance.max_resonance_modes
+        self.min_room_volume = config.resonance.min_room_volume
+        self.max_resonance_room_modes = config.resonance.max_resonance_room_modes
         self.resonance_threshold = config.resonance.resonance_threshold
 
-        # Room mode detection parameters
-        self.min_wall_distance = 0.5  # meters
-        self.max_wall_distance = 20.0  # meters
-        self.min_room_volume = 1.0  # cubic meters
+        # Resonator detection parameters
+        self.min_wall_distance = config.resonance.min_wall_distance
+        self.max_wall_distance = config.resonance.max_wall_distance
 
     def compute(self):
         pass

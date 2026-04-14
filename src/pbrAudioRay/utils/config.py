@@ -134,18 +134,24 @@ class InterfaceConfig:
 
 @dataclass
 class ResonanceConfig:
-    max_structure_resonance_modes: int = 10
+    max_structure_resonance_modes: int = 10 # extended reaction
     decay_time_constant: float = 0.99
     resonance_threshold: float = 0.1
     enable_helmholtz: bool = True
     min_cavity_volume: float = 0.001 # cubic meters
-    max_resonance_room_modes: int = 10
+    min_cavity_size = 8  # Cavity detection parameters: Minimum voxels for cavity
+    max_cavity_size = 1000  # Cavity detection parameters: Maximum voxels for cavity
+    min_neck_ratio = 0.1  # Cavity detection parameters: Minimum neck-to-cavity size ratio
     enable_parallel_wall: bool = True
     min_wall_distance: float = 0.5  # meters
     max_wall_distance: float = 20.0  # meters
+    min_room_volume: float = 1.0 # cubic meters
+    max_resonance_room_modes: int = 10
     enable_tube: bool = True
     min_tube_length: float = 0.3  # meters
-    min_tube_aspect_ratio = 3.0  # length/width ratio for tubes
+    max_tube_length: float = 10.0  # meters
+    min_tube_aspect_ratio: float = 3.0  # length/width ratio for tubes
+    max_cross_section: float = 1.0  # square meters
 
 @dataclass
 class TerminationConfig:
