@@ -189,7 +189,7 @@ class WavePropagator:
         speed_of_sound = config.acoustic_domain.acoustic_shader.sound_speed
         # We'll sample IR at sample rate
         # find length of IR
-        max_samples = int(max(rays, key=lambda x: x['length']) * self.sample_rate / speed_of_sound)
+        max_samples = int(max(rays, key=lambda x: x.length) * self.sample_rate / speed_of_sound)
         ir_amp = np.zeros(max(samples))
         
         for ray in rays:
