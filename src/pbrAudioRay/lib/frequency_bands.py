@@ -31,8 +31,8 @@ class FrequencyBands:
         """Lazy property that computes frequencies when first accessed"""
         config = self.entity_manager.get('config')
         higher_frequency = config.system.sample_rate / 2
-        lowest_frequency = config.wave_propagation.lowest_frequency
-        bands_per_octave = config.wave_propagation.bands_per_octave
+        lowest_frequency = config.system.lowest_frequency
+        bands_per_octave = config.system.bands_per_octave
         frequencies = _generate_band_frequencies(lowest_frequency, higher_frequency, bands_per_octave)
         for index in range(len(frequencies)-1):
             low = frequencies[index]
