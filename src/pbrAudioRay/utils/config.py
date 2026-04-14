@@ -168,8 +168,8 @@ class AudioRecorderConfig:
 class AmbisonicRenderConfig:
     file_format: str = "wav" # bwf, wav
     order: int = 1
-    sample_rate: int = 48000
-    bit_depth: int = 32
+    sample_rate: int = 48000 # it's needed?
+    bit_depth: int = 32 # it's needed?
     path: str = "./exports/ambisonic/"
 
 class Config:
