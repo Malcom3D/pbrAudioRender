@@ -134,7 +134,7 @@ class InterfaceConfig:
 
 @dataclass
 class ResonanceConfig:
-    max_resonance_structure: int = 10
+    max_structure_resonance_modes: int = 10
     decay_time_constant: float = 0.99
     resonance_threshold: float = 0.1
     enable_helmholtz: bool = True
