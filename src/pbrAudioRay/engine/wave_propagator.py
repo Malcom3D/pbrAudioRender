@@ -190,6 +190,7 @@ class WavePropagator:
         # We'll sample IR at sample rate
         # find length of IR
         max_length = max(rays, key=lambda x: x.length)
+        print('REWRITE the max_length with lambda', max_length)
         samples = int(max_length * self.sample_rate / speed_of_sound)
         ir_amp = np.zeros(samples)
         
