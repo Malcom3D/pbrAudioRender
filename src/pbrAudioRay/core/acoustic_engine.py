@@ -101,7 +101,7 @@ class AcousticEngine:
         config = self.entity_manager.get('config')
         start_frame = config.system.start_frame
         end_frame = config.system.end_frame
-        for frame_idx in range(start_frame, end_frame +1):
+        for frame_idx in range(end_frame - start_frame):
             self.compute_frame(frame_idx)
         
     def compute_frame(self, frame_idx: int):
