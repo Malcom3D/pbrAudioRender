@@ -28,6 +28,7 @@ from ..core.entity_manager import EntityManager
 class AcousticObject:
     """ Return mesh object geometry refined using trimesh simplify_quadric_decimation if distance from sources and listeners is greater than a threshold """
     entity_manager: EntityManager
+    obj_idx: int
 
     def compute(self):
         pass
