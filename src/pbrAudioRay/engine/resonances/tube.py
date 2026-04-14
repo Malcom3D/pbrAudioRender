@@ -28,5 +28,16 @@ class TubeResonance:
     """Handle tube resonator effects (open-open, open-closed, closed-closed)"""
     entity_manager: EntityManager
 
+    def __post_init__(self):
+        config = self.entity_manager.get('config')
+        self.enable_tube = config.resonance.enable_tube
+        self.resonance_threshold = config.resonance.resonance_threshold
+
+        # Tube detection parameters
+        self.min_tube_length = config.resonance.min_tube_length
+        self.max_tube_length = config.resonance.max_tube_length
+        self.min_aspect_ratio = config.resonance.min_aspect_ratio
+        self.max_cross_section = config.resonance.max_cross_section
+
     def compute(self):
         pass

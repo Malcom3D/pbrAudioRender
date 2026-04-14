@@ -32,13 +32,12 @@ class HelmholtzResonance:
         config = self.entity_manager.get('config')
         self.enable_helmholtz = config.resonance.enable_helmholtz
         self.min_cavity_volume = config.resonance.min_cavity_volume
-        self.max_structure_resonance_modes = config.resonance.max_structure_resonance_modes
         self.resonance_threshold = config.resonance.resonance_threshold
 
         # Cavity detection parameters
-        self.min_cavity_size = 8  # Minimum voxels for cavity
-        self.max_cavity_size = 1000  # Maximum voxels for cavity
-        self.min_neck_ratio = 0.1  # Minimum neck-to-cavity size ratio
+        self.min_cavity_size = config.resonance.min_cavity_size
+        self.max_cavity_size = config.resonance.max_cavity_size
+        self.min_neck_ratio = config.resonance.min_neck_ratio
 
     def compute(self):
         pass
