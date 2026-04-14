@@ -180,7 +180,7 @@ class WavePropagator:
         # For now, just a placeholder
         pass
 
-    def _compute_ir(self, frame_results, time_axis):
+    def _compute_ir(self, rays):
         """Compute rays into an impulse response."""
         # We have a list of rays. Each ray has a delay (time = length / speed_of_sound)
         # and an amplitude (energy). We'll accumulate contributions in time bins.
