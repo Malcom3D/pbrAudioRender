@@ -63,49 +63,30 @@ class WavePropagator:
         # Frequency bands for impulse response
         frequency_bands = self.entity_manager.get('frequency_bands')
 
-#        fps = config.system.fps
-#        fps_base = config.system.fps_base
-#        subframes = config.system.subframes
-#        self.sample_rate = config.system.sample_rate
-#        sfps = ( fps / fps_base ) * subframes # subframes per seconds
-#        spsf = self.sample_rate / sfps # samples per subframe
+        # Get sample rate
+        self.sample_rate = config.system.sample_rate
         
         # Store impulse response (time, frequency bands)
         # We'll compute IR per frame and then interpolate to sample rate
         self.ir = None  # Will be filled after compute
     
-    def compute(self):
+    def compute(self, frame_idx):
         """Compute impulse response for this source-output pair."""
         # Get positions and rotations over time
         source_positions, source_rotations = _load_pose(self.source_config)
         output_positions, output_rotations = _load_pose(self.output_config)
         
-        # Get animation frames: total frames = number of positions
-        total_frames = len(source_positions)
+        source_pos = source_positions[frame_idx]
+        source_rot = source_rotations[frame_idx]
+        output_pos = output_positions[frame_idx]
+        output_rot = output_rotations[frame_idx]
+
+        # Update ray_tracer scene for frame_idx
+        self.ray_tracer.update_frame(frame_idx, source_pos, output_pos)
+
+        all_rays = self._compute_frame(frame_idx, source_pos, source_rot, output_pos, output_rot)
+        self.ir = self._compute_ir(all_rays)
         
-        # We'll compute IR at each frame
-        ir_time_axis = np.linspace(0, (total_frames - 1), total_frames)
-        # For simplicity, we'll store IR as list of (delay, amplitude, frequency_band) for each frame
-        # Actually we want a time-domain IR, so we'll build a sparse representation: list of (time, amplitude)
-        
-        # Use dask to parallelize over frames
-        tasks = []
-        for frame_idx in range(total_frames):
-            # Compute rays for this frame
-            source_pos = source_positions[frame_idx]
-            source_rot = source_rotations[frame_idx]
-            output_pos = output_positions[frame_idx]
-            output_rot = output_rotations[frame_idx]
-            tasks.append(delayed(self._compute_frame)(frame_idx, source_pos, source_rot, output_pos, output_rot))
-        
-        # Compute all frames in parallel
-        results = compute(*tasks)
-        
-        # Combine results into impulse response
-        # results is list of list of RayData for each frame
-        self.ir = self._combine_ir(results, ir_time_axis)
-        return self.ir
-    
     def _compute_frame(self, frame_idx, source_pos, source_rot, output_pos, output_rot):
         """Compute ray paths for a single frame."""
         # Direct path: source to output
@@ -198,31 +179,28 @@ class WavePropagator:
         # For each interaction along the path, apply absorption/reflection coefficients
         # For now, just a placeholder
         pass
-    
-    def _combine_ir(self, frame_results, time_axis):
-        """Combine per-frame rays into an impulse response."""
-        # For each frame, we have a list of rays. Each ray has a delay (time = length / speed_of_sound)
+
+    def _compute_ir(self, frame_results, time_axis):
+        """Compute rays into an impulse response."""
+        # We have a list of rays. Each ray has a delay (time = length / speed_of_sound)
         # and an amplitude (energy). We'll accumulate contributions in time bins.
         # We'll use a simple histogram approach.
         config = self.entity_manager.get('config')
         speed_of_sound = config.acoustic_domain.acoustic_shader.sound_speed
-        max_time = np.max(time_axis)
         # We'll sample IR at sample rate
-        ir_time = np.linspace(0, max_time, int(max_time * self.sample_rate) + 1)
-        ir_amp = np.zeros_like(ir_time)
+        # find length of IR
+        max_samples = int(max(rays, key=lambda x: x['length']) * self.sample_rate / speed_of_sound)
+        ir_amp = np.zeros(max(samples))
         
-        for frame_idx, rays in enumerate(frame_results):
-            frame_time = time_axis[frame_idx]
-            for ray in rays:
-                if ray is None:
-                    continue
-                delay = ray.length / speed_of_sound
-                arrival_time = frame_time + delay
-                # Find nearest sample
-                sample_idx = int(arrival_time * self.sample_rate)
-                if 0 <= sample_idx < len(ir_amp):
-                    ir_amp[sample_idx] += ray.energy  # assume energy is amplitude
-        return (ir_time, ir_amp)
+        for ray in rays:
+            if ray is None:
+                continue
+            delay = ray.length / speed_of_sound
+            # Find nearest sample
+            sample_idx = int(delay * self.sample_rate)
+            if 0 <= sample_idx < len(ir_amp):
+                ir_amp[sample_idx] += ray.energy  # assume energy is amplitude
+        return ir_amp
     
     def get_impulse_response(self):
         """Return the computed impulse response (time, amplitude) for this source-output pair."""

@@ -33,15 +33,15 @@ class AcousticObject:
     entity_manager: EntityManager
     config_obj: Any
     obj_idx: int = None
-    mesh: timesh.Trimesh = None
 
     def __post_init__(self):
         self.obj_idx = self.config_obj.idx
-        vertices, normals, faces = _load_mesh(self.config_obj, 0)
-        self.mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
 
-    def get_mesh(self, source_pos: np.ndarray, output_pos: np.ndarray) -> trimesh.Trimesh:
+    def get_mesh(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray) -> trimesh.Trimesh:
         """ Return mesh object geometry refined using trimesh simplify_quadric_decimation if distance from sources and listeners is greater than a threshold """
+        vertices, normals, faces = _load_mesh(self.config_obj, frame_idx)
+        mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
+
         config = self.entity_manager.get('config')
         adr_threshold = config.system.adr_threshold
 

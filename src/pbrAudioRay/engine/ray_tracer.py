@@ -47,21 +47,19 @@ class RayTracer:
                 mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
                 self.static_meshes[obj_config.idx] = mesh
     
-    def update_frame(self, frame_idx: int):
-        """Update dynamic objects for a given frame index."""
+    def update_frame(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray):
+        """Update acoustic objects for a given frame index."""
         self.current_frame = frame_idx
         self.objects = []
         self.object_ids = []
+        objects = self.entity_manager.get('objects')
         for obj_config in self.config.objects:
-            if not obj_config.static or (not obj_config.fractured == None and frame_idx > obj_config.fractured):
-                vertices, normals, faces = _load_mesh(obj_config, frame_idx)
-                mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-                self.objects.append(mesh)
-                self.object_ids.append(obj_config.idx)
-        # Also include static meshes in the list for intersection
-        for idx, mesh in self.static_meshes.items():
-            self.objects.append(mesh)
-            self.object_ids.append(idx)
+            if not obj_config.fractured == None and frame_idx > obj_config.fractured:
+                for obj_key in objects.keys():
+                    if objects[obj_key].obj_idx == obj_config.idx:
+                        mesh = objects[obj_key].get_mesh(frame_idx, source_pos, output_pos)
+                        self.objects.append(mesh)
+                        self.object_ids.append(obj_config.idx)
     
     def intersect_ray(self, origin: np.ndarray, direction: np.ndarray, max_distance: float = np.inf) -> Dict:
         """
