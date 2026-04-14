@@ -25,7 +25,6 @@ from .base_output import BaseOutput
 @dataclass
 class Figure8Output(BaseOutput):
     """Figure8 microphone output with frequency-dependent processing"""
-    idx: int
 
     def _get_directivity(self, azimuth: float, elevation: float) -> float:
         """Figure8 directivity pattern"""

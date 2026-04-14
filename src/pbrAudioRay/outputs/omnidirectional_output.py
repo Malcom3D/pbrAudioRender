@@ -25,7 +25,6 @@ from .base_output import BaseOutput
 @dataclass
 class OmnidirectionalOutput(BaseOutput):
     """Omnidirectional microphone output with frequency-dependent processing"""
-    idx: int
 
     def _get_directivity(self, azimuth: float, elevation: float) -> float:
         """Omnidirectional directivity pattern"""
