@@ -30,7 +30,15 @@ def _mesh_to_obj(vertices: np.ndarray, normals: np.ndarray, faces: np.ndarray, o
     mesh.export(obj_file, file_type='obj')
     return
 
-def _load_mesh(obj_config, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _acoustic_domain_mesh(config: Any) -> trimesh.Trimesh:
+    """ Return the AcousticDomain as mesh """
+    ac_geometry = np.array(config.acoustic_domain.geometry)
+    ac_max = np.array([max(ac_geometry[i][0] for i in range(len(ac_geometry))), max(ac_geometry[i][1] for i in range(len(ac_geometry))), max(ac_geometry[i][2] for i in range(len(ac_geometry)))])
+    ac_min = np.array([min(ac_geometry[i][0] for i in range(len(ac_geometry))), min(ac_geometry[i][1] for i in range(len(ac_geometry))), min(ac_geometry[i][2] for i in range(len(ac_geometry)))])
+    ac = trimesh.creation.box(bounds=(ac_min,ac_max))
+    return ac
+
+def _load_mesh(obj_config: Any, frame_idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load mesh for an object at a given frame index."""
     if obj_config.static:
         # For static, load once
