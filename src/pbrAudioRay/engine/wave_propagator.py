@@ -101,7 +101,7 @@ class WavePropagator:
         meshes_ids = [-1]
         objects = self.entity_manager.get('objects')
         for obj_config in config.objects:
-            if not obj_config.fractured == None and frame_idx > obj_config.fractured:
+            if not obj_config.fractured or frame_idx < obj_config.fractured:
                 for obj_key in objects.keys():
                     if objects[obj_key].obj_idx == obj_config.idx:
                         mesh = objects[obj_key].get_mesh(frame_idx, source_pos, output_pos)
