@@ -51,7 +51,7 @@ class InterfaceManager:
         self.min_impedance_ratio = config.interface.min_impedance_ratio
         self.max_impedance_ratio = config.interface.max_impedance_ratio
     
-    def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, meshes: List[trimesh.Trimesh], meshes_ids: List[int]):
+    def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         config = self.entity_manager.get('config')
 
         # Get rays config
