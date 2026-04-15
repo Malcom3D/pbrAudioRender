@@ -85,7 +85,6 @@ class WavePropagator:
         self.ray_tracer.update_frame(frame_idx, source_pos, output_pos)
 
         all_rays = self._compute_frame(frame_idx, source_pos, source_rot, output_pos, output_rot)
-        print('all_rays: ', all_rays)
         self.ir = self._compute_ir(all_rays)
         
     def _compute_frame(self, frame_idx, source_pos, source_rot, output_pos, output_rot):
@@ -191,8 +190,7 @@ class WavePropagator:
         # We'll sample IR at sample rate
         # find length of IR
         max_length = max(rays, key=lambda x: x.length)
-        print('REWRITE the max_length with lambda', max_length)
-        samples = int(max_length * self.sample_rate / speed_of_sound)
+        samples = int(max_length.length * self.sample_rate / speed_of_sound)
         ir_amp = np.zeros(samples)
         
         for ray in rays:
