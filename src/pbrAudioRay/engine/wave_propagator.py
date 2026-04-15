@@ -211,6 +211,7 @@ class WavePropagator:
             # Find nearest sample
             sample_idx = int(delay * self.sample_rate)
             if 0 <= sample_idx < len(ir_amp):
+                print('_compute_ir: ', self.combo, sample_idx, ray.energy)
                 ir_amp[sample_idx] += ray.energy  # assume energy is amplitude
         return ir_amp
     
