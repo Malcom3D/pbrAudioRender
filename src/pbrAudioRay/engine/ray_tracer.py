@@ -34,19 +34,10 @@ class RayTracer:
     def __init__(self, entity_manager: EntityManager):
         self.entity_manager = entity_manager
         self.config = entity_manager.get('config')
-        self.objects = []  # List of trimesh objects for each dynamic object
+        self.objects = []  # List of trimesh objects for each acoustic object
         self.object_ids = []  # Corresponding object indices
-        self.static_meshes = {}  # For static objects, cache meshes
         self.current_frame = 0
         
-        # Preload static objects
-        for obj_config in self.config.objects:
-            if obj_config.static and not obj_config.fractured == None:
-                # Load mesh for static object
-                vertices, normals, faces = _load_mesh(obj_config, 0)
-                mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-                self.static_meshes[obj_config.idx] = mesh
-    
     def update_frame(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Update acoustic objects for a given frame index."""
         self.current_frame = frame_idx
@@ -85,6 +76,7 @@ class RayTracer:
         hit_info = None
         for mesh, obj_idx in zip(meshes, self.object_ids):
             # Use ray.intersects_location
+            print('oringin: ', origin, 'direction: ', direction)
             locations, index_ray, index_tri = mesh.ray.intersects_location(
                 ray_origins=[origin],
                 ray_directions=[direction],
