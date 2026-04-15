@@ -67,13 +67,13 @@ class InterfaceManager:
         # Trace direct ray path (source to output)
         for bands_idx in range(len(frequency_bands)):
             for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids]
+                direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
         for bands_idx in range(len(frequency_bands)):
             for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids]
+                reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
         reverse_rays = compute(*reverse_task)
 
         print('direct_rays: ', direct_rays)
