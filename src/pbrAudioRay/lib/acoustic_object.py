@@ -47,11 +47,11 @@ class AcousticObject:
 
         # If no ADR threshold, return full mesh
         if adr_threshold is None:
-            return self.mesh
+            return mesh
 
         # Calculate distances from object to source and output
         # Use object's bounding sphere center as reference point
-        obj_center = self.mesh.bounding_sphere.center
+        obj_center = mesh.bounding_sphere.center
 
         # Calculate minimum distance to any source or output
         source_dist = np.linalg.norm(obj_center - source_pos)
@@ -61,13 +61,13 @@ class AcousticObject:
         # Determine LOD level based on distance
         percent, aggression = self._calculate_lod_level(min_distance, adr_threshold)
 
-        simplified = self.mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
+        simplified = mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
 
         # Return appropriate LOD mesh
         if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
             return simplified
         else:
-            return self.mesh
+            return mesh
 
     def _calculate_lod_level(self, distance: float, adr_threshold: float) -> int:
         """
