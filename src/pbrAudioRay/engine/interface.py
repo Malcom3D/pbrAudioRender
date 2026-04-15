@@ -70,14 +70,14 @@ class InterfaceManager:
         # Trace direct ray path (source to output)
         for bands_idx in range(total_bands):
             for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
                 self.ray_idx += 1
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
         for bands_idx in range(total_bands):
             for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
                 self.ray_idx += 1
         reverse_rays = compute(*reverse_task)
 
@@ -86,7 +86,7 @@ class InterfaceManager:
         print('results: ', len(direct_rays), len(reverse_rays))
 
     @delayed
-    def _trace_path(self, src: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
+    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
         # Create ray data
