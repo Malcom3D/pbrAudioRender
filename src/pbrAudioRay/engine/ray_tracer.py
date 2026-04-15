@@ -34,27 +34,12 @@ class RayTracer:
     def __init__(self, entity_manager: EntityManager):
         self.entity_manager = entity_manager
         self.config = entity_manager.get('config')
-        self.objects = []  # List of trimesh objects for each acoustic object
-        self.object_ids = []  # Corresponding object indices
-        self.current_frame = 0
         
-    def update_frame(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray):
-        """Update acoustic objects for a given frame index."""
-        self.current_frame = frame_idx
-        self.objects = []
-        self.object_ids = []
-        objects = self.entity_manager.get('objects')
-        for obj_config in self.config.objects:
-            if not obj_config.fractured == None and frame_idx > obj_config.fractured:
-                for obj_key in objects.keys():
-                    if objects[obj_key].obj_idx == obj_config.idx:
-                        mesh = objects[obj_key].get_mesh(frame_idx, source_pos, output_pos)
-                        self.objects.append(mesh)
-                        self.object_ids.append(obj_config.idx)
-    
-    def intersect_ray(self, origin: np.ndarray, direction: np.ndarray, max_distance: float = np.inf) -> Dict:
+    def intersect_ray(self, origin: np.ndarray, direction: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], max_distance: float = np.inf) -> Dict:
         """
         Find the closest intersection of a ray with all objects.
+            - scene_meshes: list of trimesh mesh in the scene
+            - scene_meshes_ids: list of idx of the mesh in the scene
         Returns a dict with:
             - 'hit': bool
             - 'object_idx': index of the object hit
@@ -65,16 +50,11 @@ class RayTracer:
         # Ensure direction is normalized
         direction = direction / np.linalg.norm(direction)
         
-        # Collect all meshes
-        meshes = self.objects
-        if not meshes:
-            return {'hit': False}
-        
         # Use trimesh's ray-mesh intersection
-        # We need to iterate over meshes to find the closest hit
+        # We need to iterate over scene_meshes to find the closest hit
         closest_dist = np.inf
         hit_info = None
-        for mesh, obj_idx in zip(meshes, self.object_ids):
+        for mesh, obj_idx in zip(scene_meshes, scene_meshes_ids):
             # Use ray.intersects_location
             locations, index_ray, index_tri = mesh.ray.intersects_location(
                 ray_origins=[origin],
@@ -98,13 +78,4 @@ class RayTracer:
         if hit_info:
             return hit_info
         else:
-            return {'hit': False}
-    
-    def intersect_ray_batch(self, origins: np.ndarray, directions: np.ndarray, max_distance: float = np.inf) -> List[Dict]:
-        """
-        Batch intersection for many rays. Return list of results.
-        """
-        results = []
-        for o, d in zip(origins, directions):
-            results.append(self.intersect_ray(o, d, max_distance))
-        return results
+            return {'hit': False, 'object_idx': obj_idx}

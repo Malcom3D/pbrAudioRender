@@ -16,7 +16,10 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import dask
+from dask import delayed, compute
 import numpy as np
+import trimesh
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
@@ -30,6 +33,11 @@ class InterfaceManager:
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
+
+        # Get sample rate
+        self.sample_rate = config.system.sample_rate
+
+        self.ray_tracer = RayTracer(self.entity_manager)
         self.absorption = AbsorptionInterface(self.entity_manager)
         self.reflection = ReflectionInterface(self.entity_manager)
         self.refraction = RefractionInterface(self.entity_manager)
@@ -40,6 +48,123 @@ class InterfaceManager:
         self.min_impedance_ratio = config.interface.min_impedance_ratio
         self.max_impedance_ratio = config.interface.max_impedance_ratio
     
+    def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, meshes: List[trimesh.Trimesh], meshes_ids: List[int])
+        config = self.entity_manager.get('config')
+
+        # Get rays config
+        number_of_rays = config.system.number_of_rays
+        direction_seed = config.system.direction_seed
+
+        # Get Frequency bands for impulse response
+        frequency_bands = self.entity_manager.get('frequency_bands')
+
+        # Compute direct and reverse isotropic directions
+        direct_isotropic_directions = self._generate_isotropic_directions(source_pos, output_pos, number_of_rays, direction_seed)
+        reverse_isotropic_directions = self._generate_isotropic_directions(output_pos, source_pos, number_of_rays, direction_seed)
+
+        direct_rays, reverse_rays = ([] for _ in range(2))
+
+        # Trace direct ray path (source to output)
+        for bands_idx in range(len(frequency_bands)):
+            for direction in direct_isotropic_directions:
+                direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids]
+        direct_rays = compute(*direct_task)
+
+        # Trace reverse ray path (output to source)
+        for bands_idx in range(len(frequency_bands)):
+            for direction in reverse_isotropic_directions:
+                reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids]
+        reverse_rays = compute(*reverse_task)
+
+        print('direct_rays: ', direct_rays)
+        print('reverse_rays: ', reverse_rays)
+        print('results: ', len(direct_rays), len(reverse_rays))
+
+    @delayed
+    def _trace_path(self, src: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
+        """Trace direct line-of-sight path."""
+        hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
+        # Create ray data
+        if hit['hit'] == False:
+            length = dist
+            point = None,
+            normal = None
+        else:
+            length = hit['distance']
+            point = hit['point'],
+            normal = hit['normal'],
+
+        return RayData(
+            origin=src,
+            direction=direction,
+            bands_idx=bands_idx
+            length=length,
+            energy=1.0,  # initial energy
+            reflection_count=0,
+            path=[src, dst],
+            hit: hit['hit'],
+            object_idx: hit['object_idx'],
+            point: point,
+            normal: normal,
+        )
+
+    def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
+        """
+        Generate random directions with isotropic probability distribution in 4π sr.
+
+        Parameters
+        ----------
+        src : np.array([float, float, float])
+            (x, y, z) coordinates of source point
+        dst : np.array([float, float, float])
+            (x, y, z) coordinates of destination point
+        n_directions : int
+            Number of random isotropic directions to generate
+        seed : int, optional
+            Random seed for reproducibility
+
+        Returns
+        -------
+        isotropic_dirs : List[np.ndarray]
+            List of n_directions unit vectors with isotropic distribution and the normalized unit vector from source to destination
+        """
+
+        if seed is not None:
+            np.random.seed(seed)
+
+        # Direct direction
+        direct_vec = dst - src
+        vec_norm = np.linalg.norm(direct_vec)
+        if vec_norm < 1e-12:
+            raise ValueError("Source and destination are coincident")
+        direct_dir = direct_vec / vec_norm
+
+        # Generate isotropic directions
+        isotropic_dirs = []
+
+        for _ in range(n_directions):
+            # For isotropic distribution over 4π:
+            # - Azimuth (phi): uniform in [0, 2π)
+            # - Cosine of elevation (cos(theta)): uniform in [-1, 1]
+            phi = np.random.uniform(0, 2 * np.pi)
+            cos_theta = np.random.uniform(-1, 1)
+            theta = np.arccos(cos_theta)
+
+            # Convert to Cartesian coordinates
+            x = np.sin(theta) * np.cos(phi)
+            y = np.sin(theta) * np.sin(phi)
+            z = cos_theta
+
+            direction = np.array([x, y, z])
+            isotropic_dirs.append(direction)
+
+        isotropic_dirs += [direct_dir]
+        return isotropic_dirs
+
+
+
+
+
     def compute_interaction(self, ray, hit_info, source_pos, listener_pos):
         """Apply all interactions at a hit point."""
         # Get object config

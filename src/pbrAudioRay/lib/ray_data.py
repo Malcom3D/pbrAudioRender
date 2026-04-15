@@ -25,8 +25,13 @@ class RayData:
     """Ray data structure"""
     origin: np.ndarray
     direction: np.ndarray
+    bands_idx: int
     length: float
     energy: float
     reflection_count: int
     path: List[np.ndarray]
-    object_id: int = -1
+    object_idx: int = None #index of the object hit
+    hit: bool = False = None
+    point: np.ndarray = None #intersection point
+    normal: np.ndarray = None #normal at intersection
+    distance: float = None #distance from origin
