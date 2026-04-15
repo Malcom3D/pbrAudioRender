@@ -29,7 +29,7 @@ from ..engine.termination import SimulationTermination
 
 from ..engine.ray_tracer import RayTracer
 from ..lib.ray_data import RayData
-from ..lib.functions import _load_pose
+from ..lib.functions import _load_pose, _acoustic_domain_mesh
 
 @dataclass
 class WavePropagator:
@@ -96,8 +96,11 @@ class WavePropagator:
 
     def _update_frame(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Update acoustic objects for a given frame index."""
-        meshes = []
-        meshes_ids = []
+        config = self.entity_manager.get('config')
+        # Add the acoustic domain as obj_idx = -1
+        ac = _acoustic_domain_mesh(config)
+        meshes = [ac]
+        meshes_ids = [-1]
         objects = self.entity_manager.get('objects')
         for obj_config in config.objects:
             if not obj_config.fractured == None and frame_idx > obj_config.fractured:
