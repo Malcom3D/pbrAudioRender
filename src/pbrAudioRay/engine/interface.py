@@ -88,12 +88,12 @@ class InterfaceManager:
         if not hit['object_idx'] == -1: # ray hit the AcousticDomain
             if hit['hit'] == False:
                 length = dist
-                point = None,
+                point = None
                 normal = None
             else:
                 length = hit['distance']
-                point = hit['point'],
-                normal = hit['normal'],
+                point = hit['point']
+                normal = hit['normal']
 
             return RayData(
                 origin=src,
@@ -103,10 +103,10 @@ class InterfaceManager:
                 energy=1.0,  # initial energy
                 reflection_count=0,
                 path=[src, dst],
-                hit: hit['hit'],
-                object_idx: hit['object_idx'],
-                point: point,
-                normal: normal,
+                hit=hit['hit'],
+                object_idx=hit['object_idx'],
+                point=point,
+                normal=normal
             )
 
     def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
@@ -144,21 +144,23 @@ class InterfaceManager:
         isotropic_dirs = []
 
         for _ in range(n_directions):
-            # For isotropic distribution over 4π:
-            # - Azimuth (phi): uniform in [0, 2π)
-            # - Cosine of elevation (cos(theta)): uniform in [-1, 1]
-            phi = np.random.uniform(0, 2 * np.pi)
-            cos_theta = np.random.uniform(-1, 1)
-            theta = np.arccos(cos_theta)
-
-            # Convert to Cartesian coordinates
-            x = np.sin(theta) * np.cos(phi)
-            y = np.sin(theta) * np.sin(phi)
-            z = cos_theta
-
+            # Marsaglia method (1972) for uniform distribution on sphere
+            # Generate two uniform random numbers
+            while True:
+                x1 = np.random.uniform(-1, 1)
+                x2 = np.random.uniform(-1, 1)
+                s = x1**2 + x2**2
+                if s < 1:
+                    break
+        
+            # Map to sphere surface coordinates
+            z = 1 - 2 * s
+            factor = 2 * np.sqrt(1 - s)
+            x = x1 * factor
+            y = x2 * factor
+        
             direction = np.array([x, y, z])
             isotropic_dirs.append(direction)
-
         isotropic_dirs += [direct_dir]
         return isotropic_dirs
 
