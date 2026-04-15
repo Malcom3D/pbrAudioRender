@@ -37,6 +37,11 @@ from ..outputs.cardioid_output import CardioidOutput
 from ..outputs.hypercardioid_output import HypercardioidOutput
 from ..outputs.figure8_output import Figure8Output
 
+# Configure Dask to use more threads
+from dask import config as dask_config
+#dask_config.set(scheduler='threads', num_workers=1024)
+dask_config.set(num_workers=1024)
+
 @dataclass
 class AcousticEngine:
     entity_manager: EntityManager
