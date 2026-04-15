@@ -81,14 +81,11 @@ class InterfaceManager:
                 self.ray_idx += 1
         reverse_rays = compute(*reverse_task)
 
-        print('direct_rays: ', direct_rays)
-        print('reverse_rays: ', reverse_rays)
-        print('results: ', len(direct_rays), len(reverse_rays))
-
     @delayed
     def _trace_path(self, src: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
+        print(hit)
         # Create ray data
         if not hit['object_idx'] == -1: # ray hit the AcousticDomain
             if hit['hit'] == False:
