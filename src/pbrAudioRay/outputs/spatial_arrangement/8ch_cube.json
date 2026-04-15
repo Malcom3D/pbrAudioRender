@@ -61,7 +61,6 @@
             "description": "Back-bottom-left"
         },
         {
- {
             "id": 6,
             "type": "omnidirectional",
             "position": [-0.57735, -0.57735, 0.57735],
