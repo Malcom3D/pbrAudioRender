@@ -95,10 +95,25 @@ class WavePropagator:
     def _update_frame(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Update acoustic objects for a given frame index."""
         config = self.entity_manager.get('config')
+
         # Add the acoustic domain as obj_idx = -1
         ac = _acoustic_domain_mesh(config)
         meshes = [ac]
         meshes_ids = [-1]
+
+        # Add the physical source size as mesh (icosphere) as obj_idx = -3 if it's a spherical source
+        if self.source_config.type == 'SPHERE':
+            src_radius = self.source_config.size
+            if src_radius > 0:
+                meshes += trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
+                meshes_ids += [-2]
+
+        # Add the physical output size as mesh (icosphere) as obj_idx = -3
+        out_radius = self.output_config.size
+        if out_radius > 0:
+            meshes += trimesh.creation.icosphere(subdivisions=2, radius=out_radius, transform=[[1, 0, 0, output_pos[0]],[0, 1, 0, output_pos[1]],[0, 0, 1, output_pos[2]],[0, 0, 0, 1]])
+            meshes_ids += [-3]
+
         objects = self.entity_manager.get('objects')
         for obj_config in config.objects:
             if not obj_config.fractured or frame_idx < obj_config.fractured:

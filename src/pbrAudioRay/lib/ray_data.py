@@ -20,6 +20,8 @@ import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
+from .acoustic_shader import AcousticShader
+
 @dataclass
 class RayData:
     """Ray data structure"""
@@ -27,6 +29,7 @@ class RayData:
     direction: np.ndarray
     ray_idx: int
     bands_idx: int
+    medium_shader: AcousticShader
     length: float #distance from origin
     energy: float
     reflection_count: int

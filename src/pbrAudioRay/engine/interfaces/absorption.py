@@ -22,12 +22,33 @@ from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
 from ...core.entity_manager import EntityManager
+from ...lib.ray_data import RayData
 
 @dataclass
 class AbsorptionInterface:
     entity_manager: EntityManager
     
-    def compute(self, ray, hit_info, freq_band):
+    def compute(self, ray: List[RayData]):
         """Apply frequency-dependent absorption."""
-        # This is called by InterfaceManager; we'll keep it simple for now
+        # get fraquency bands
+        frequency_bands = frequency_bands.get_bands()
+
+        # Get ray data
+        obj_idx = ray.object_idx
+        bands_idx = ray.bands_idx
+        low_freq, high_freq = frequency_bands[bands_idx]
+        shader = ray.medium_shader
+
+        # Get object config
+        objs_config = self.entity_manager.get('objects')
+        for c_idx in objs_config.keys():
+            if objs_config[c_idx].idx == obj_idx:
+                obj_config = objs_config[c_idx]
+
+        # Absorption: reduce energy
+        if shader.acoustic_properties and shader.acoustic_properties.absorption:
+            # Get absorption coefficient at given frequency 
+            coeffs = shader.acoustic_properties.absorption.get_avg_coeffs(low_freq, high_freq)
+            ray.energy *= (1 - coeffs)
+
         return ray

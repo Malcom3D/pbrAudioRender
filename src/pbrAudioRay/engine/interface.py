@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
+from ..lib.acoustic_shader import AcousticShader
 from ..engine.ray_tracer import RayTracer
 from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
 
@@ -54,6 +55,10 @@ class InterfaceManager:
     def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         config = self.entity_manager.get('config')
 
+        # Get acoustic domain shader
+        # Get acoustic shader for AcousticDomain object
+        shader = config.acoustic_domain.acoustic_shader
+
         # Get rays config
         number_of_rays = config.system.number_of_rays
         direction_seed = config.system.direction_seed
@@ -70,27 +75,87 @@ class InterfaceManager:
         # Trace direct ray path (source to output)
         for bands_idx in range(total_bands):
             for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, shader)]
                 self.ray_idx += 1
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
         for bands_idx in range(total_bands):
             for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, shader)]
                 self.ray_idx += 1
         reverse_rays = compute(*reverse_task)
 
-        print('direct_rays: ', direct_rays)
-        print('reverse_rays: ', reverse_rays)
-        print('results: ', len(direct_rays), len(reverse_rays))
+        # Apply medium absorption
+        direct_task, reverse_task = ([] for _ in range(2))
+
+        direct_task += [self.absorption.compute(ray) for ray in direct_rays]
+        direct_rays = compute(*direct_task)
+
+        reverse_rays += [self.absorption.compute(ray) for ray in reverse_rays]
+        reverse_rays = compute(*reverse_task)
+
+        # Filter direct_rays that hit the AcousticDomain (-1, lost), the physical size of the source (-2, occluded) or the the physical size of the output (-3, goal) 
+        output_rays, dir_rays_hits = ([] for _ in range(2))
+        for direct_ray in direct_rays:
+            if not direct_ray.object_idx in [-1, -2]:
+                if direct_ray.object_idx == -3:
+                    output_rays += [direct_ray]
+                else:
+                    dir_rays_hits += [direct_ray]
+
+        # Filter reverse_rays that hit the AcousticDomain (-1, lost), the physical size of the source (-2, occluded) or the the physical size of the output (-3, goal)
+        source_rays, rev_rays_hits = ([] for _ in range(2))
+        for reverse_ray in reverse_rays:
+            if not reverse_ray.object_idx in [-1, -2]:
+                if reverse_ray.object_idx == -3:
+                    source_rays += [reverse_ray]
+                else:
+                    rev_rays_hits += [reverse_ray]
+
+        print('results: ', len(dir_rays_hits), len(rev_rays_hits))
+
+#        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
+#        direct_task, reverse_task = ([] for _ in range(2))
+#
+#        direct_task += [self.reflection.compute(ray) for ray in dir_rays_hits]
+#        direct_reflect_rays = compute(*direct_task)
+#
+#        reverse_rays += [self.reflection.compute(ray) for ray in rev_rays_hits]
+#        reverse_reflect_rays = compute(*reverse_task)
+#
+#        # Compute scattered rays [ray.energy *= coeffs, direction from normal * random_coeffs]
+#        direct_task, reverse_task = ([] for _ in range(2))
+#
+#        direct_task += [self.scattering.compute(ray) for ray in dir_rays_hits]
+#        direct_scatter_rays = compute(*direct_task)
+#
+#        reverse_rays += [self.scattering.compute(ray) for ray in rev_rays_hits]
+#        reverse_scatter_rays = compute(*reverse_task)
+#
+#        # Compute refracted rays [trasmit_ray.energy -= (dir_rays_hits.energy + reflect_rays.energy + scatter_rays.energy) 
+#        direct_task, reverse_task = ([] for _ in range(2))
+#
+#        direct_task += [self.refraction.compute(ray) for ray in dir_trasmit_rays]
+#        direct_refract_rays = compute(*direct_task)
+#
+#        reverse_rays += [self.refraction.compute(ray) for ray in rev_trasmit_rays]
+#        reverse_refract_rays = compute(*reverse_task)
+#
+#        # Compute diffracted rays [UTD model]
+#        direct_task, reverse_task = ([] for _ in range(2))
+#
+#        direct_task += [self.refraction.compute(ray) for ray in dir_rays_hits]
+#        direct_diffract_rays = compute(*direct_task)
+#
+#        reverse_rays += [self.refraction.compute(ray) for ray in rev_rays_hits]
+#        reverse_diffract_rays = compute(*reverse_task)
 
     @delayed
-    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
+    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], medium_shader: AcousticShader = None):
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
         # Create ray data
-        if not hit['object_idx'] == -1: # ray hit the AcousticDomain
             if hit['hit'] == False:
                 length = dist
                 point = None
@@ -105,6 +170,7 @@ class InterfaceManager:
                 direction=direction,
                 ray_idx=self.ray_idx,
                 bands_idx=bands_idx,
+                medium_shader,
                 length=length,
                 energy=1.0,  # initial energy
                 reflection_count=0,
