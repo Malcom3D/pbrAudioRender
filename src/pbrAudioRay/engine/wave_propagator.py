@@ -27,8 +27,6 @@ from ..engine.interface import InterfaceManager
 from ..engine.resonance import Resonance
 from ..engine.termination import SimulationTermination
 
-from ..engine.ray_tracer import RayTracer
-from ..lib.ray_data import RayData
 from ..lib.functions import _load_pose, _acoustic_domain_mesh
 
 @dataclass

@@ -24,6 +24,8 @@ from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
+from ..lib.ray_data import RayData
+from ..engine.ray_tracer import RayTracer
 from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
 
 @dataclass
