@@ -201,7 +201,7 @@ class WavePropagator:
         for ray in rays:
             if not ray == None:
                 max_length = max(ray.length, max_length)
-        samples = int(max_length.length * self.sample_rate / speed_of_sound)
+        samples = int(max_length * self.sample_rate / speed_of_sound)
         ir_amp = np.zeros(samples)
         
         for ray in rays:
