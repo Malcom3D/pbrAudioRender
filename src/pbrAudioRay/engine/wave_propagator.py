@@ -75,11 +75,19 @@ class WavePropagator:
         # Get positions and rotations over time
         source_positions, source_rotations = _load_pose(self.source_config)
         output_positions, output_rotations = _load_pose(self.output_config)
-        
-        source_pos = source_positions[frame_idx]
-        source_rot = source_rotations[frame_idx]
-        output_pos = output_positions[frame_idx]
-        output_rot = output_rotations[frame_idx]
+
+        if self.source_config.static:
+            source_pos = source_positions
+            source_rot = source_rotations
+        else:
+            source_pos = source_positions[frame_idx]
+            source_rot = source_rotations[frame_idx]
+        if self.output_config.static:
+            output_pos = output_positions
+            output_rot = output_rotations
+        else:
+            output_pos = output_positions[frame_idx]
+            output_rot = output_rotations[frame_idx]
 
         # Update ray_tracer scene for frame_idx
         self.ray_tracer.update_frame(frame_idx, source_pos, output_pos)
