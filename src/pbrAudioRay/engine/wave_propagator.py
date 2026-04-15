@@ -87,7 +87,7 @@ class WavePropagator:
         scene_meshes_ids, scene_meshes = self._update_frame(frame_idx, source_pos, output_pos)
 
         # Pass data to InterfaceManager
-        rays_results = self.interface_manager.compute(frame_idx, source_pos, source_rot, output_pos, output_rot, scene_meshes, meshes_ids)
+        rays_results = self.interface_manager.compute(frame_idx, source_pos, source_rot, output_pos, output_rot, scene_meshes, scene_meshes_ids)
 
 #        rays_results = self._compute_frame(frame_idx, source_pos, source_rot, output_pos, output_rot, scene_meshes, scene_meshes_ids)
 #        self.ir = self._compute_ir(rays_results)
