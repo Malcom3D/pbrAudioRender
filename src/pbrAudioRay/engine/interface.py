@@ -66,16 +66,16 @@ class InterfaceManager:
         reverse_isotropic_directions = self._generate_isotropic_directions(output_pos, source_pos, number_of_rays, direction_seed)
 
         direct_rays, reverse_rays = ([] for _ in range(2))
-
+        total_bands = len(frequency_bands.get_bands()
         # Trace direct ray path (source to output)
-        for bands_idx in range(len(frequency_bands)):
+        for bands_idx in range(total_bands):
             for direction in direct_isotropic_directions:
                 direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
                 self.ray_idx += 1
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
-        for bands_idx in range(len(frequency_bands)):
+        for bands_idx in range(total_bands):
             for direction in reverse_isotropic_directions:
                 reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
                 self.ray_idx += 1
