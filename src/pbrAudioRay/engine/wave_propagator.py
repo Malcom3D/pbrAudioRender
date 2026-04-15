@@ -92,7 +92,6 @@ class WavePropagator:
         # Update ray_tracer scene for frame_idx
         self.ray_tracer.update_frame(frame_idx, source_pos, output_pos)
 
-        print('_compute_frame: ', frame_idx, source_pos, source_rot, output_pos, output_rot)
         all_rays = self._compute_frame(frame_idx, source_pos, source_rot, output_pos, output_rot)
         self.ir = self._compute_ir(all_rays)
         

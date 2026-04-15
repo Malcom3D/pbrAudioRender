@@ -76,7 +76,6 @@ class RayTracer:
         hit_info = None
         for mesh, obj_idx in zip(meshes, self.object_ids):
             # Use ray.intersects_location
-            print('oringin: ', origin, 'direction: ', direction)
             locations, index_ray, index_tri = mesh.ray.intersects_location(
                 ray_origins=[origin],
                 ray_directions=[direction],
