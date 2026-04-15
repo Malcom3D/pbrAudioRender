@@ -85,7 +85,7 @@ class WavePropagator:
         self.ray_tracer.update_frame(frame_idx, source_pos, output_pos)
 
         all_rays = self._compute_frame(frame_idx, source_pos, source_rot, output_pos, output_rot)
-        print('all_rays: ', rays)
+        print('all_rays: ', all_rays)
         self.ir = self._compute_ir(all_rays)
         
     def _compute_frame(self, frame_idx, source_pos, source_rot, output_pos, output_rot):
