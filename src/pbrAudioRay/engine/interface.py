@@ -63,17 +63,20 @@ class InterfaceManager:
         reverse_isotropic_directions = self._generate_isotropic_directions(output_pos, source_pos, number_of_rays, direction_seed)
 
         direct_rays, reverse_rays = ([] for _ in range(2))
+        ray_idx = 0
 
         # Trace direct ray path (source to output)
         for bands_idx in range(len(frequency_bands)):
             for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                direct_task += [self._trace_path(source_pos, direction, bands_idx, ray_idx, scene_meshes, scene_meshes_ids)]
+                ray_idx += 1
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
         for bands_idx in range(len(frequency_bands)):
             for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids)]
+                reverse_task += [self._trace_path(output_pos, direction, bands_idx, ray_idx, scene_meshes, scene_meshes_ids)]
+                ray_idx += 1
         reverse_rays = compute(*reverse_task)
 
         print('direct_rays: ', direct_rays)
@@ -81,7 +84,7 @@ class InterfaceManager:
         print('results: ', len(direct_rays), len(reverse_rays))
 
     @delayed
-    def _trace_path(self, src: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
+    def _trace_path(self, src: np.ndarray, direction: np.ndarray, bands_idx: int, ray_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
         # Create ray data
@@ -98,6 +101,7 @@ class InterfaceManager:
             return RayData(
                 origin=src,
                 direction=direction,
+                ray_idx=ray_idx
                 bands_idx=bands_idx,
                 length=length,
                 energy=1.0,  # initial energy
