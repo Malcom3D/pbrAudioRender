@@ -201,7 +201,7 @@ class WavePropagator:
         for ray in rays:
             if not ray == None:
                 max_length = max(ray.length, max_length)
-        samples = int(max_length * self.sample_rate / speed_of_sound)
+        samples = 1 + int(max_length * self.sample_rate / speed_of_sound)
         ir_amp = np.zeros(samples)
         
         for ray in rays:
@@ -209,9 +209,7 @@ class WavePropagator:
                 delay = ray.length / speed_of_sound
                 # Find nearest sample
                 sample_idx = int(delay * self.sample_rate)
-                print('_compute_ir: ', self.combo, sample_idx, len(ir_amp), delay, ray.length)
                 if 0 <= sample_idx < len(ir_amp):
-                    print('_compute_ir: ', self.combo, sample_idx, ray.energy)
                     ir_amp[sample_idx] += ray.energy  # assume energy is amplitude
         return ir_amp
     
