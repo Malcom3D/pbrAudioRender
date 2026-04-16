@@ -18,6 +18,8 @@
 
 import numpy as np
 import numba as nb
+import dask
+from dask import delayed, compute
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
@@ -28,7 +30,8 @@ from ...lib.ray_data import RayData
 @dataclass
 class AbsorptionInterface:
     entity_manager: EntityManager
-    
+
+    @delayed
     def compute(self, ray: RayData):
         """Apply frequency-dependent absorption."""
         # get fraquency bands
