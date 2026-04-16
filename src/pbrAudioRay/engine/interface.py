@@ -87,10 +87,10 @@ class InterfaceManager:
         # Apply medium absorption
         direct_task, reverse_task = ([] for _ in range(2))
 
-        direct_task += [self.absorption.compute(ray) for ray in direct_rays]
+        direct_task = [self.absorption.compute(ray) for ray in direct_rays]
         direct_rays = compute(*direct_task)
 
-        reverse_rays += [self.absorption.compute(ray) for ray in reverse_rays]
+        reverse_rays = [self.absorption.compute(ray) for ray in reverse_rays]
         reverse_rays = compute(*reverse_task)
 
         # Filter direct_rays that hit the AcousticDomain (-1, lost), the physical size of the source (-2, occluded) or the the physical size of the output (-3, goal) 
@@ -116,37 +116,37 @@ class InterfaceManager:
 #        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
 #        direct_task, reverse_task = ([] for _ in range(2))
 #
-#        direct_task += [self.reflection.compute(ray) for ray in dir_rays_hits]
+#        direct_task = [self.reflection.compute(ray) for ray in dir_rays_hits]
 #        direct_reflect_rays = compute(*direct_task)
 #
-#        reverse_rays += [self.reflection.compute(ray) for ray in rev_rays_hits]
+#        reverse_rays = [self.reflection.compute(ray) for ray in rev_rays_hits]
 #        reverse_reflect_rays = compute(*reverse_task)
 #
 #        # Compute scattered rays [ray.energy *= coeffs, direction from normal * random_coeffs]
 #        direct_task, reverse_task = ([] for _ in range(2))
 #
-#        direct_task += [self.scattering.compute(ray) for ray in dir_rays_hits]
+#        direct_task = [self.scattering.compute(ray) for ray in dir_rays_hits]
 #        direct_scatter_rays = compute(*direct_task)
 #
-#        reverse_rays += [self.scattering.compute(ray) for ray in rev_rays_hits]
+#        reverse_rays = [self.scattering.compute(ray) for ray in rev_rays_hits]
 #        reverse_scatter_rays = compute(*reverse_task)
 #
 #        # Compute refracted rays [trasmit_ray.energy -= (dir_rays_hits.energy + reflect_rays.energy + scatter_rays.energy) 
 #        direct_task, reverse_task = ([] for _ in range(2))
 #
-#        direct_task += [self.refraction.compute(ray) for ray in dir_trasmit_rays]
+#        direct_task = [self.refraction.compute(ray) for ray in dir_trasmit_rays]
 #        direct_refract_rays = compute(*direct_task)
 #
-#        reverse_rays += [self.refraction.compute(ray) for ray in rev_trasmit_rays]
+#        reverse_rays = [self.refraction.compute(ray) for ray in rev_trasmit_rays]
 #        reverse_refract_rays = compute(*reverse_task)
 #
 #        # Compute diffracted rays [UTD model]
 #        direct_task, reverse_task = ([] for _ in range(2))
 #
-#        direct_task += [self.refraction.compute(ray) for ray in dir_rays_hits]
+#        direct_task = [self.refraction.compute(ray) for ray in dir_rays_hits]
 #        direct_diffract_rays = compute(*direct_task)
 #
-#        reverse_rays += [self.refraction.compute(ray) for ray in rev_rays_hits]
+#        reverse_rays = [self.refraction.compute(ray) for ray in rev_rays_hits]
 #        reverse_diffract_rays = compute(*reverse_task)
 
     @delayed
