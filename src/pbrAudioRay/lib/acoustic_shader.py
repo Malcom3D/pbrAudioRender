@@ -73,6 +73,8 @@ class AcousticShader:
     damping: float = None
     friction: float = None
     roughness: float = None
+    impedence: float = None
+    temperature: float = None
     low_frequency: float = 1.0
     high_frequency: float = 24000.0
     acoustic_properties: Optional[AcousticProperties] = field(default_factory=AcousticProperties)
