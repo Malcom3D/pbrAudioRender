@@ -49,12 +49,13 @@ class AbsorptionInterface:
             coeff, phase = self.get_ac_avg_coeffs(low_freq, high_freq, ray.length, shader)
             ray.energy *= (1 - coeff)
             if not phase == None:
-                ray.phase = np.angle(np.exp(1j * (ray.phase + phase))
+                ray.phase = np.angle(np.exp(1j * (ray.phase + phase)))
+
         elif hasattr(shader, 'acoustic_properties') and hasattr(shader.acoustic_properties, 'absorption'):
             coeff, phase = shader.acoustic_properties.absorption.get_avg_coeffs(low_freq, high_freq)
             ray.energy *= (1 - coeff)
             if not phase == None:
-                ray.phase = np.angle(np.exp(1j * (ray.phase + phase))
+                ray.phase = np.angle(np.exp(1j * (ray.phase + phase)))
 
         return ray
 
