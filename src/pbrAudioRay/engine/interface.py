@@ -172,7 +172,7 @@ class InterfaceManager:
             medium=medium,
             length=length,
             energy=1.0,  # initial energy
-            phase=0.0 # initial phase
+            phase=0.0, # initial phase
             reflection_count=0,
             path=[src, dst],
             hit=hit['hit'],
