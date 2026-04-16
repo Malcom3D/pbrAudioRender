@@ -117,14 +117,14 @@ class AbsorptionInterface:
     
         # Classical attenuation coefficient (frequency squared dependence)
         gamma = specific_heat_ratio
-        alpha_classical = (omega**2 * viscosity) / (2 * density * sound_speed**3) * \ (4/3 + (gamma - 1) / Pr)
+        alpha_classical = (omega**2 * viscosity) / (2 * density * sound_speed**3) * (4/3 + (gamma - 1) / Pr)
 
         # Calculate relaxation frequencies (ISO 9613-1 standard)
         # Oxygen relaxation frequency
         frO = (p_ref / 101325) * (24 + 4.04e4 * humidity * (0.02 + humidity) / (0.391 + humidity))
     
         # Nitrogen relaxation frequency (ISO 9613-1 standard)
-        frN = (p_ref / 101325) * (T_kelvin / T_ref)**(-0.5) * \ (9 + 280 * humidity * np.exp(-4.17 * ((T_kelvin / T_ref)**(-1/3) - 1)))
+        frN = (p_ref / 101325) * (T_kelvin / T_ref)**(-0.5) * (9 + 280 * humidity * np.exp(-4.17 * ((T_kelvin / T_ref)**(-1/3) - 1)))
     
         # Atmospheric absorption coefficient in dB/m (ISO 9613-1 standard)
         alpha_atm_db = np.zeros_like(frequencies)
