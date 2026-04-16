@@ -46,6 +46,7 @@ class SystemConfig:
 class AcousticDomainConfig:
     idx: int = 0
     name: str = "acoustic_domain"
+    type: str = 'world'
     geometry: np.ndarray = field(default_factory=lambda: np.array([]))  #vertices array
     acoustic_shader: Optional[AcousticShader] = None
 

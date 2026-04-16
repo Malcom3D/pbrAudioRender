@@ -55,9 +55,8 @@ class InterfaceManager:
     def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         config = self.entity_manager.get('config')
 
-        # Get acoustic domain shader
-        # Get acoustic shader for AcousticDomain object
-        shader = config.acoustic_domain.acoustic_shader
+        # Get the medium object: AcousticDomain for the first run <- ToDo use AABB to find the true medium
+        medium = config.acoustic_domain
 
         # Get rays config
         number_of_rays = config.system.number_of_rays
@@ -170,9 +169,10 @@ class InterfaceManager:
             direction=direction,
             ray_idx=self.ray_idx,
             bands_idx=bands_idx,
-            medium_shader,
+            medium=medium,
             length=length,
             energy=1.0,  # initial energy
+            phase=0.0 # initial phase
             reflection_count=0,
             path=[src, dst],
             hit=hit['hit'],
