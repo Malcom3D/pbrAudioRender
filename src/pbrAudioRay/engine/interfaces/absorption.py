@@ -125,7 +125,7 @@ class AbsorptionInterface:
         frN = (p_ref / 101325) * (T_kelvin / T_ref)**(-0.5) * (9 + 280 * humidity * np.exp(-4.17 * ((T_kelvin / T_ref)**(-1/3) - 1)))
     
         # Atmospheric absorption coefficient in dB/m (ISO 9613-1 standard)
-        alpha_atm_db = np.zeros_like(frequencies)
+        alpha_absorption = np.zeros_like(frequencies)
         for i, f in enumerate(frequencies):
             term1 = 1.84e-11 * (T_kelvin / T_ref)**0.5
             term2 = (T_kelvin / T_ref)**(-2.5)
@@ -134,7 +134,7 @@ class AbsorptionInterface:
         
             alpha_absorption[i] = f**2 * (term1 + term2 * (term3 + term4))
     
-        alpha_total = np.mean(alpha_geometric + alpha_absorption)
+        alpha_total = np.mean(alpha_classical + alpha_absorption)
         coeff = 1 - np.e**(-alpha_total*distance)
     
         # 4. PHASE SHIFT
