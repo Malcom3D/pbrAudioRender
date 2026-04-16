@@ -32,11 +32,12 @@ class AbsorptionInterface:
     def compute(self, ray: List[RayData]):
         """Apply frequency-dependent absorption."""
         # get fraquency bands
-        frequency_bands = frequency_bands.get_bands()
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        freq_bands = frequency_bands.get_bands()
 
         # Get ray data
         obj_idx = ray.object_idx
-        low_freq, high_freq = frequency_bands[ray.bands_idx]
+        low_freq, high_freq = freq_bands[ray.bands_idx]
         shader = ray.medium.acoustic_shader
 
         # Get object config
