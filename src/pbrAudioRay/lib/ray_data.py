@@ -30,6 +30,7 @@ class RayData:
     medium: Any
     length: float #distance from origin
     energy: float
+    phase: float
     reflection_count: int
     path: List[np.ndarray]
     hit: bool
