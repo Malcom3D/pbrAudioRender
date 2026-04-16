@@ -41,6 +41,7 @@ class AbsorptionInterface:
 
         # Absorption: reduce energy
         if ray.medium.type == 'world':
+            print(low_freq, high_freq, ray.length, shader)
             coeff, phase = self.get_ac_avg_coeffs(low_freq, high_freq, ray.length, shader)
             ray.energy *= (1 - coeff)
             if not phase == None:
@@ -79,6 +80,7 @@ class AbsorptionInterface:
         """
     
         # Generate logarithmically spaced frequencies points for average
+        print(low_freq, high_freq, num=100, endpoint=True)
         frequency = np.geomspace(low_freq, high_freq, num=100, endpoint=True)
 
         # Get shader data
