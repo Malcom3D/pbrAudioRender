@@ -156,30 +156,30 @@ class InterfaceManager:
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
         # Create ray data
-            if hit['hit'] == False:
-                length = dist
-                point = None
-                normal = None
-            else:
-                length = hit['distance']
-                point = hit['point']
-                normal = hit['normal']
+        if hit['hit'] == False:
+            length = dist
+            point = None
+            normal = None
+        else:
+            length = hit['distance']
+            point = hit['point']
+            normal = hit['normal']
 
-            return RayData(
-                origin=src,
-                direction=direction,
-                ray_idx=self.ray_idx,
-                bands_idx=bands_idx,
-                medium_shader,
-                length=length,
-                energy=1.0,  # initial energy
-                reflection_count=0,
-                path=[src, dst],
-                hit=hit['hit'],
-                object_idx=hit['object_idx'],
-                point=point,
-                normal=normal
-            )
+        return RayData(
+            origin=src,
+            direction=direction,
+            ray_idx=self.ray_idx,
+            bands_idx=bands_idx,
+            medium_shader,
+            length=length,
+            energy=1.0,  # initial energy
+            reflection_count=0,
+            path=[src, dst],
+            hit=hit['hit'],
+            object_idx=hit['object_idx'],
+            point=point,
+            normal=normal
+        )
 
     def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
         """
