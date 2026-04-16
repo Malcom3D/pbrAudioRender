@@ -16,11 +16,12 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import dask
+import trimesh
+import numpy as np
+from dask import delayed, compute
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
-import numpy as np
-import dask
-from dask import delayed, compute
 
 from ..core.entity_manager import EntityManager
 from ..engine.interface import InterfaceManager
