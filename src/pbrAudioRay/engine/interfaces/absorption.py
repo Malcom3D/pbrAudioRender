@@ -35,8 +35,7 @@ class AbsorptionInterface:
 
         # Get ray data
         obj_idx = ray.object_idx
-        bands_idx = ray.bands_idx
-        low_freq, high_freq = frequency_bands[bands_idx]
+        low_freq, high_freq = frequency_bands[ray.bands_idx]
         shader = ray.medium.acoustic_shader
 
         # Get object config
@@ -46,7 +45,7 @@ class AbsorptionInterface:
                 obj_config = objs_config[c_idx]
 
         # Absorption: reduce energy
-        if medium.type == 'world':
+        if ray.medium.type == 'world':
             coeff, phase = self.get_ac_avg_coeffs(low_freq, high_freq, ray.length, shader)
             ray.energy *= (1 - coeff)
             if not phase == None:
