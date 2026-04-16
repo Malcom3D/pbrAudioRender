@@ -54,7 +54,7 @@ class InterfaceManager:
     def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
         config = self.entity_manager.get('config')
 
-        # Get the medium object: AcousticDomain for the first run <- ToDo use AABB to find the true medium
+        # Get the medium object: AcousticDomain for the first run - ToDo use AABB to find the true medium
         medium = config.acoustic_domain
 
         # Get rays config
