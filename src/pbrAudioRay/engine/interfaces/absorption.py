@@ -55,7 +55,7 @@ class AbsorptionInterface:
 
         return ray
 
-    def get_ac_avg_coeffs(low_freq: float, high_freq: float, distance: float, shader: AcousticShader, humidity: float = 50.0) -> Dict[str, np.ndarray]:
+    def get_ac_avg_coeffs(self, low_freq: float, high_freq: float, distance: float, shader: AcousticShader, humidity: float = 50.0) -> Dict[str, np.ndarray]:
         """
         Compute frequency-dependent attenuation coefficients and spatial phase shift for a spherical sound source.
     
