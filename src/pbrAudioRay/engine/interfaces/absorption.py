@@ -104,7 +104,7 @@ class AbsorptionInterface:
         thermal_conductivity = k_ref * (temperature / T_ref)**0.81
     
         # Angular frequency
-        omega = 2 * np.pi * frequency
+        omega = 2 * np.pi * frequencies
     
         # Wave number in ideal (lossless) medium
         k_real = omega / sound_speed
