@@ -89,6 +89,7 @@ class AbsorptionInterface:
         density = shader.density
 
         # Physical constants
+        specific_heat_ratio = 1.4
         T_ref = 273.15  # Reference temperature (20°C) in Kelvin
         p_ref = 101325  # Reference atmospheric pressure [Pa]
         T_kelvin = temperature + T_ref  # Convert to Kelvin
