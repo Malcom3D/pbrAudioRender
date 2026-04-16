@@ -111,7 +111,7 @@ class InterfaceManager:
                 else:
                     rev_rays_hits += [reverse_ray]
 
-        print('results: ', len(dir_rays_hits), len(rev_rays_hits))
+        print('output_rays: ', len(output_rays), 'dir_rays_hits: ', len(dir_rays_hits), 'source_rays: ', len(source_rays), 'rev_rays_hits: ', len(rev_rays_hits))
 
 #        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
 #        direct_task, reverse_task = ([] for _ in range(2))
