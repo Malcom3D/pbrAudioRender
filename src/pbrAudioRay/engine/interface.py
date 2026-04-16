@@ -25,7 +25,6 @@ from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
-from ..lib.acoustic_shader import AcousticShader
 from ..engine.ray_tracer import RayTracer
 from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
 
@@ -74,14 +73,14 @@ class InterfaceManager:
         # Trace direct ray path (source to output)
         for bands_idx in range(total_bands):
             for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, shader)]
+                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, medium)]
                 self.ray_idx += 1
         direct_rays = compute(*direct_task)
 
         # Trace reverse ray path (output to source)
         for bands_idx in range(total_bands):
             for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, shader)]
+                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, medium)]
                 self.ray_idx += 1
         reverse_rays = compute(*reverse_task)
 
@@ -151,7 +150,7 @@ class InterfaceManager:
 #        reverse_diffract_rays = compute(*reverse_task)
 
     @delayed
-    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], medium_shader: AcousticShader = None):
+    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], medium: Any = None):
         """Trace direct line-of-sight path."""
         hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
         # Create ray data
