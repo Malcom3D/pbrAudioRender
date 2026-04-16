@@ -106,13 +106,13 @@ class WavePropagator:
         if self.source_config.type == 'SPHERE':
             src_radius = self.source_config.size
             if src_radius > 0:
-                meshes += trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
+                meshes += [trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])]
                 meshes_ids += [-2]
 
         # Add the physical output size as mesh (icosphere) as obj_idx = -3
         out_radius = self.output_config.size
         if out_radius > 0:
-            meshes += trimesh.creation.icosphere(subdivisions=2, radius=out_radius, transform=[[1, 0, 0, output_pos[0]],[0, 1, 0, output_pos[1]],[0, 0, 1, output_pos[2]],[0, 0, 0, 1]])
+            meshes += [trimesh.creation.icosphere(subdivisions=2, radius=out_radius, transform=[[1, 0, 0, output_pos[0]],[0, 1, 0, output_pos[1]],[0, 0, 1, output_pos[2]],[0, 0, 0, 1]])]
             meshes_ids += [-3]
 
         objects = self.entity_manager.get('objects')
