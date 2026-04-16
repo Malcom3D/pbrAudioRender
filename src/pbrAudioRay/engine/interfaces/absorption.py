@@ -81,7 +81,7 @@ class AbsorptionInterface:
     
         # Generate logarithmically spaced frequencies points for average
         print(low_freq, high_freq)
-        frequency = np.geomspace(low_freq, high_freq, num=100, endpoint=True)
+        frequencies = np.geomspace(low_freq, high_freq, num=100, endpoint=True)
 
         # Get shader data
         sound_speed = shader.sound_speed
