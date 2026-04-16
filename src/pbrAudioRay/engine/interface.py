@@ -113,41 +113,41 @@ class InterfaceManager:
 
         print('output_rays: ', len(output_rays), 'dir_rays_hits: ', len(dir_rays_hits), 'source_rays: ', len(source_rays), 'rev_rays_hits: ', len(rev_rays_hits))
 
-#        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
-#        direct_task, reverse_task = ([] for _ in range(2))
-#
-#        direct_task = [self.reflection.compute(ray) for ray in dir_rays_hits]
-#        direct_reflect_rays = compute(*direct_task)
-#
-#        reverse_rays = [self.reflection.compute(ray) for ray in rev_rays_hits]
-#        reverse_reflect_rays = compute(*reverse_task)
-#
-#        # Compute scattered rays [ray.energy *= coeffs, direction from normal * random_coeffs]
-#        direct_task, reverse_task = ([] for _ in range(2))
-#
-#        direct_task = [self.scattering.compute(ray) for ray in dir_rays_hits]
-#        direct_scatter_rays = compute(*direct_task)
-#
-#        reverse_rays = [self.scattering.compute(ray) for ray in rev_rays_hits]
-#        reverse_scatter_rays = compute(*reverse_task)
-#
-#        # Compute refracted rays [trasmit_ray.energy -= (dir_rays_hits.energy + reflect_rays.energy + scatter_rays.energy) 
-#        direct_task, reverse_task = ([] for _ in range(2))
-#
-#        direct_task = [self.refraction.compute(ray) for ray in dir_trasmit_rays]
-#        direct_refract_rays = compute(*direct_task)
-#
-#        reverse_rays = [self.refraction.compute(ray) for ray in rev_trasmit_rays]
-#        reverse_refract_rays = compute(*reverse_task)
-#
-#        # Compute diffracted rays [UTD model]
-#        direct_task, reverse_task = ([] for _ in range(2))
-#
-#        direct_task = [self.refraction.compute(ray) for ray in dir_rays_hits]
-#        direct_diffract_rays = compute(*direct_task)
-#
-#        reverse_rays = [self.refraction.compute(ray) for ray in rev_rays_hits]
-#        reverse_diffract_rays = compute(*reverse_task)
+        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
+        direct_task, reverse_task = ([] for _ in range(2))
+
+        direct_task = [self.reflection.compute(ray) for ray in dir_rays_hits]
+        direct_reflect_rays = compute(*direct_task)
+
+        reverse_rays = [self.reflection.compute(ray) for ray in rev_rays_hits]
+        reverse_reflect_rays = compute(*reverse_task)
+
+        # Compute scattered rays [ray.energy *= coeffs, direction from normal * random_coeffs]
+        direct_task, reverse_task = ([] for _ in range(2))
+
+        direct_task = [self.scattering.compute(ray) for ray in dir_rays_hits]
+        direct_scatter_rays = compute(*direct_task)
+
+        reverse_rays = [self.scattering.compute(ray) for ray in rev_rays_hits]
+        reverse_scatter_rays = compute(*reverse_task)
+
+        # Compute refracted rays [trasmit_ray.energy = 1 - (dir_rays_hits.energy + reflect_rays.energy + scatter_rays.energy) 
+        direct_task, reverse_task = ([] for _ in range(2))
+
+        direct_task = [self.refraction.compute(ray) for ray in dir_trasmit_rays]
+        direct_refract_rays = compute(*direct_task)
+
+        reverse_rays = [self.refraction.compute(ray) for ray in rev_trasmit_rays]
+        reverse_refract_rays = compute(*reverse_task)
+
+        # Compute diffracted rays [UTD model]
+        direct_task, reverse_task = ([] for _ in range(2))
+
+        direct_task = [self.diffraction.compute(ray) for ray in dir_rays_hits]
+        direct_diffract_rays = compute(*direct_task)
+
+        reverse_rays = [self.diffraction.compute(ray) for ray in rev_rays_hits]
+        reverse_diffract_rays = compute(*reverse_task)
 
     @delayed
     def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], medium: Any = None):
