@@ -22,6 +22,7 @@ from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
 from ...core.entity_manager import EntityManager
+from ...lib.acoustic_shader import AcousticShader
 from ...lib.ray_data import RayData
 
 @dataclass
