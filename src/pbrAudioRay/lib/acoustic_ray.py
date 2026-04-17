@@ -41,6 +41,10 @@ class AcousticRay:
         max_depth : int
             Maximum ray recursion depth
         """
+        n_rays = self.n_rays
+        n_freq_bands = self.n_freq_bands
+        max_depth = self.max_depth
+
         # Ray origin and direction (SIMD-friendly layout)
         self.origins = np.zeros((n_rays, 3), dtype=np.float32)
         self.directions = np.zeros((n_rays, 3), dtype=np.float32)
