@@ -64,11 +64,11 @@ class AcousticObject:
         if percent and aggression:
             simplified = mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
 
-        # Return appropriate LOD mesh
-        if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
-            return simplified
-        else:
-            return mesh
+            # Return appropriate LOD mesh
+            if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
+                return simplified
+            else:
+                return mesh
 
     def _calculate_lod_level(self, distance: float, adr_threshold: float) -> int:
         """
