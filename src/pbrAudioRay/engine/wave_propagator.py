@@ -38,7 +38,7 @@ class WavePropagator:
         self.config = entity_manager.get('config')
         
         # Get frequency bands
-        self.freq_bands = entity_manager.get('frequency_bands').get_bands()
+        self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
         
     @delayed
     def compute_frame(self, frame_idx):
