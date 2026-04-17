@@ -101,7 +101,7 @@ class EmbreeScene:
                 if objects[key].obj_idx == obj_config.idx:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config, src_pos, out_pos)]
         meshes_results = compute(*task_mesh)
-        print(meshes_results)
+        print('meshes_results :', self.combo, meshes_results)
 
         # Add all acoustic objects with their actual obj_ids
         for obj_mesh, obj_idx, name in meshes_results:
@@ -134,6 +134,9 @@ class EmbreeScene:
             obj_id: Object identifier
             name: Mesh name for debugging
         """
+        if mesh == None:
+            return
+
         # Extract mesh data
         vertices = mesh.vertices.astype(np.float32)
         faces = mesh.faces.astype(np.int32)
