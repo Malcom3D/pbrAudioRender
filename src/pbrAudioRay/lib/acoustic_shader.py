@@ -17,8 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass, field
-from typing import Union, Optional, Any
-from typing import List
+from typing import Union, Optional, Any, List, Tuple
 import numpy as np
 
 from ..lib.interpolator import FrequencyInterpolator
