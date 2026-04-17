@@ -101,6 +101,7 @@ class EmbreeScene:
                 if objects[key].obj_idx == obj_config.idx:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config, src_pos, out_pos)]
         meshes_results = compute(*task_mesh)
+        print(meshes_results)
 
         # Add all acoustic objects with their actual obj_ids
         for obj_mesh, obj_idx, name in meshes_results:
@@ -201,9 +202,9 @@ class EmbreeScene:
          if source_config.type == 'SPHERE':
              src_radius = source_config.size
              if src_radius > 0:
-                 print('_get_source_mesh: ok' , source_config.name, 'combo: ', self.combo, src_radius)
+                 print('_get_source_mesh: ok' , source_config.name, 'combo: ', self.combo, source_config.type, src_radius)
                  return source_pos, trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
-         print('_get_source_mesh: no' , source_config.name, 'combo: ', self.combo, src_radius)
+         print('_get_source_mesh: no' , source_config.name, 'combo: ', self.combo, source_config.type)
          return source_pos, None
 
     def _get_output_mesh(self, output_idx: int): 
