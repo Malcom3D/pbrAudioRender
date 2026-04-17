@@ -176,7 +176,7 @@ class EmbreeScene:
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):
         """ Get mesh object geometry with LOD from AcousticObject """
-        mesh = object.get_mesh(self.frames_idx, src_pos, out_pos)
+        mesh = object.get_mesh(self.frame_idx, src_pos, out_pos)
         return mesh, obj_config.idx, obj_config.name
 
     def _get_source_mesh(self, source_idx: int): 
