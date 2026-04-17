@@ -331,7 +331,6 @@ class WavePropagator:
             n2 = material.refractive_index
             
             cos_theta = -np.dot(ray.direction, normal)
-)
             sin_theta2 = (n1/n2)**2 * (1 - cos_theta*cos_theta)
             
             if sin_theta2 <= 1:  # Not total internal reflection
