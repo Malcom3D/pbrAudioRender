@@ -100,14 +100,14 @@ class EmbreeScene:
             for key in objects.keys():
                 if objects[key].obj_idx == obj_config.idx:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config, src_pos, out_pos)]
-                    meshes_results = compute(**task_mesh)
+                    meshes_results = compute(*task_mesh)
 
         # Add all acoustic objects with their actual obj_ids
         for obj_mesh, obj_idx, name in meshes_results:
             task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name)]
 
         # Finalize scene building
-        results = compute(**task_scene) 
+        results = compute(*task_scene) 
         
         # Build SIMD-friendly arrays for batch processing
         self._build_simd_arrays()
