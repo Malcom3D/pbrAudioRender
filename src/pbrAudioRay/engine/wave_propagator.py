@@ -44,7 +44,8 @@ class WavePropagator:
     def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-        scene, scene_info = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+#        scene, scene_info = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+        print(EmbreeScene(self.entity_manager, self.combo, frame_idx))
         
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
