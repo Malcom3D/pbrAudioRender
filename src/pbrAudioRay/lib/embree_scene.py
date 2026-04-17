@@ -150,13 +150,13 @@ class EmbreeScene:
         self.mesh_info['normals'].append(mesh.face_normals.astype(np.float32))
         self.mesh_info['obj_ids'].append(np.full(faces.shape[0], obj_id, dtype=np.int32))
         
-        # Get material properties from config
-        material = self._get_material_properties(obj_id)
-        self.mesh_info['materials'].append(material)
+#        # Get material properties from config
+#        material = self._get_material_properties(obj_id)
+#        self.mesh_info['materials'].append(material)
         
-        # Store bounding box
-        bbox = mesh.bounds
-        self.mesh_info['bboxes'].append(bbox)
+#        # Store bounding box
+#        bbox = mesh.bounds
+#        self.mesh_info['bboxes'].append(bbox)
         
         # Store triangle count
         triangle_count = faces.shape[0]
@@ -168,10 +168,10 @@ class EmbreeScene:
         self.mesh_info['vertex_offsets'].append(last_vertex_offset + vertices.shape[0])
         self.mesh_info['face_offsets'].append(last_face_offset + triangle_count)
         
-        # Store reference to embree mesh
-        if not hasattr(self, 'embree_meshes'):
-            self.embree_meshes = []
-        self.embree_meshes.append(embree_mesh)
+#        # Store reference to embree mesh
+#        if not hasattr(self, 'embree_meshes'):
+#            self.embree_meshes = []
+#        self.embree_meshes.append(embree_mesh)
 
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):
