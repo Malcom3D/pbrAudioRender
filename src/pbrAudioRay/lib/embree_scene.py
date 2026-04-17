@@ -97,9 +97,9 @@ class EmbreeScene:
         task_mesh = []
         objects = self.entity_manager.get('objects')
         for obj_config in config_objs:
-            for object in objects:
-                if object.obj_idx == obj_config.idx:
-                    task_mesh += [self._get_obj_mesh(object, obj_config, src_pos, out_pos)]
+            for key in objects.keys():
+                if objects[key].obj_idx == obj_config.idx:
+                    task_mesh += [self._get_obj_mesh(objects[key], obj_config, src_pos, out_pos)]
                     meshes_results = compute(**task_mesh)
 
         # Add all acoustic objects with their actual obj_ids
