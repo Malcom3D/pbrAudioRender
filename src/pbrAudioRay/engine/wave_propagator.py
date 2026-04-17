@@ -266,7 +266,7 @@ class WavePropagator:
         # Importance sampling: more rays towards output
         directions = []
         n_ray = int(n_rays / source_pos.shape[0])
-        for source_idx in range(source_pos.shape[0])):
+        for source_idx in range(source_pos.shape[0]):
             for i in range(n_ray):
                 # Blend between isotropic and directed sampling
                 if np.random.random() < 0.3:  # 30% directed rays
