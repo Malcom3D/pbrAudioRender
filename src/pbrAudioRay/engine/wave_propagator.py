@@ -47,6 +47,8 @@ class WavePropagator:
         embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
         scene = embree_scene.scene
         scene_info = embree_scene.scene_info
+        source_pos = embree_scene.src_pos
+        output_pos = embree_scene.out_pos
         
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
