@@ -44,8 +44,9 @@ class WavePropagator:
     def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-#        scene, scene_info = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        print(EmbreeScene(self.entity_manager, self.combo, frame_idx))
+        embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+        scene = embree_scene.scene
+        scene_info = embree_scene.scene_info
         
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
@@ -54,7 +55,7 @@ class WavePropagator:
         rays = AcousticRay(n_rays, n_bands, max_interactions)
 
         # Diffuse source
-        for source in config.sources:
+        for source in self.config.sources:
             if source.idx == self.source_idx:
                 if source.size > 0:
                     source_size = source.size
