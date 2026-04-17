@@ -173,55 +173,55 @@ class EmbreeScene:
             self.embree_meshes = []
         self.embree_meshes.append(embree_mesh)
 
-   @delayed
-   del _get_obj_mesh(object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):
-       """ Get mesh object geometry with LOD from AcousticObject """
-       mesh = object.get_mesh(self.frames_idx, src_pos, out_pos)
-       return mesh, obj_config.idx, obj_config.name
+    @delayed
+    def _get_obj_mesh(object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):
+        """ Get mesh object geometry with LOD from AcousticObject """
+        mesh = object.get_mesh(self.frames_idx, src_pos, out_pos)
+        return mesh, obj_config.idx, obj_config.name
 
-   def _get_source_mesh(self, source_idx: int): 
-        config = self.entity_manager.get('config')
-        # Build the source mesh
-        for src in config.sources:
-            if src.idx == source_idx:
-                source_config = src
-                break
+    def _get_source_mesh(self, source_idx: int): 
+         config = self.entity_manager.get('config')
+         # Build the source mesh
+         for src in config.sources:
+             if src.idx == source_idx:
+                 source_config = src
+                 break
 
-        # Get positions and rotations over time
-        source_positions, source_rotations = _load_pose(source_config)
+         # Get positions and rotations over time
+         source_positions, source_rotations = _load_pose(source_config)
 
-        if source_config.static:
-            source_pos = source_positions
-            source_rot = source_rotations
-        else:
-            source_pos = source_positions[self.frame_idx]
-            source_rot = source_rotations[self.frame_idx]
+         if source_config.static:
+             source_pos = source_positions
+             source_rot = source_rotations
+         else:
+             source_pos = source_positions[self.frame_idx]
+             source_rot = source_rotations[self.frame_idx]
 
-        # Build the source mesh (icosphere) if it's a spherical source
-        if source_config.type == 'SPHERE':
-            src_radius = source_config.size
-            if src_radius > 0:
-                return source_pos, trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
+         # Build the source mesh (icosphere) if it's a spherical source
+         if source_config.type == 'SPHERE':
+             src_radius = source_config.size
+             if src_radius > 0:
+                 return source_pos, trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
 
-   def _get_output_mesh(self, output_idx: int): 
-        config = self.entity_manager.get('config')
-        # Build the output mesh
-        for out in config.outputs:
-            if out.idx == output_idx:
-                output_config = out
-                break
+    def _get_output_mesh(self, output_idx: int): 
+         config = self.entity_manager.get('config')
+         # Build the output mesh
+         for out in config.outputs:
+             if out.idx == output_idx:
+                 output_config = out
+                 break
 
-        # Get positions and rotations over time
-        output_positions, output_rotations = _load_pose(output_config)
+         # Get positions and rotations over time
+         output_positions, output_rotations = _load_pose(output_config)
 
-        if output_config.static:
-            output_pos = output_positions
-            output_rot = output_rotations
-        else:
-            output_pos = output_positions[self.frame_idx]
-            output_rot = output_rotations[self.frame_idx]
+         if output_config.static:
+             output_pos = output_positions
+             output_rot = output_rotations
+         else:
+             output_pos = output_positions[self.frame_idx]
+             output_rot = output_rotations[self.frame_idx]
 
-        # Build the physical output size as mesh (icosphere) as obj_idx = -3
-        out_radius = output_config.size
-        if out_radius > 0:
-            return output_pos, trimesh.creation.icosphere(subdivisions=2, radius=out_radius, transform=[[1, 0, 0, output_pos[0]],[0, 1, 0, output_pos[1]],[0, 0, 1, output_pos[2]],[0, 0, 0, 1]])
+         # Build the physical output size as mesh (icosphere) as obj_idx = -3
+         out_radius = output_config.size
+         if out_radius > 0:
+             return output_pos, trimesh.creation.icosphere(subdivisions=2, radius=out_radius, transform=[[1, 0, 0, output_pos[0]],[0, 1, 0, output_pos[1]],[0, 0, 1, output_pos[2]],[0, 0, 0, 1]])
