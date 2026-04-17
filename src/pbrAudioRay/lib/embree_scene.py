@@ -43,15 +43,15 @@ class EmbreeScene:
         config = self.entity_manager.get('config')
 
         source_idx, output_idx = self.combo
-        src_pos, self.source_mesh = self._get_source_mesh(source_idx)
-        out_pos, self.output_mesh = self._get_output_mesh(output_idx)
+        self.src_pos, self.source_mesh = self._get_source_mesh(source_idx)
+        self.out_pos, self.output_mesh = self._get_output_mesh(output_idx)
 
         # get the AcousticDomain mesh
         self.ac_mesh = _acoustic_domain_mesh(config)
 
         config_objs = config.objects
 
-        self.scene = self._build_scene(src_pos, out_pos, config_objs)
+        self.scene = self._build_scene(self.src_pos, self.out_pos, config_objs)
 
     def _build_scene(self, src_pos: np.ndarray, out_pos: np.ndarray, config_objs: Any):
         """
