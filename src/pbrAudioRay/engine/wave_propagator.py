@@ -41,7 +41,7 @@ class WavePropagator:
         self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
         
     @delayed
-    def compute_frame(self, frame_idx):
+    def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
         scene, scene_info = EmbreeScene(self.entity_manager, self.combo, frame_idx)
