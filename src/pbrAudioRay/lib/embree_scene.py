@@ -69,7 +69,7 @@ class EmbreeScene:
         scene = rtcs.EmbreeScene(embreeDevice)
 
         # Store mesh information for SIMD processing
-        self.mesh_info = {
+        self.scene_info = {
             'vertices': [],      # List of vertex arrays
             'faces': [],         # List of face arrays
             'normals': [],       # List of normal arrays
@@ -113,7 +113,7 @@ class EmbreeScene:
 
 #        return {
 #            'scene': scene,
-#            'mesh_info': self.mesh_info,
+#            'scene_info': self.scene_info,
 #            'source_idx': self.combo[0],
 #            'output_idx': self.combo[1],
 #            'source_pos': src_pos,
@@ -146,28 +146,28 @@ class EmbreeScene:
         embree_mesh = TriangleMesh(scene, vertices, faces)
         
         # Store mesh information for SIMD processing
-        self.mesh_info['vertices'].append(vertices)
-        self.mesh_info['faces'].append(faces)
-        self.mesh_info['normals'].append(mesh.face_normals.astype(np.float32))
-        self.mesh_info['obj_ids'].append(np.full(faces.shape[0], obj_id, dtype=np.int32))
+        self.scene_info['vertices'].append(vertices)
+        self.scene_info['faces'].append(faces)
+        self.scene_info['normals'].append(mesh.face_normals.astype(np.float32))
+        self.scene_info['obj_ids'].append(np.full(faces.shape[0], obj_id, dtype=np.int32))
         
 #        # Get material properties from config
 #        material = self._get_material_properties(obj_id)
-#        self.mesh_info['materials'].append(material)
+#        self.scene_info['materials'].append(material)
         
 #        # Store bounding box
 #        bbox = mesh.bounds
-#        self.mesh_info['bboxes'].append(bbox)
+#        self.scene_info['bboxes'].append(bbox)
         
         # Store triangle count
         triangle_count = faces.shape[0]
-        self.mesh_info['triangle_counts'].append(triangle_count)
+        self.scene_info['triangle_counts'].append(triangle_count)
         
         # Update offsets
-        last_vertex_offset = self.mesh_info['vertex_offsets'][-1]
-        last_face_offset = self.mesh_info['face_offsets'][-1]
-        self.mesh_info['vertex_offsets'].append(last_vertex_offset + vertices.shape[0])
-        self.mesh_info['face_offsets'].append(last_face_offset + triangle_count)
+        last_vertex_offset = self.scene_info['vertex_offsets'][-1]
+        last_face_offset = self.scene_info['face_offsets'][-1]
+        self.scene_info['vertex_offsets'].append(last_vertex_offset + vertices.shape[0])
+        self.scene_info['face_offsets'].append(last_face_offset + triangle_count)
         
 #        # Store reference to embree mesh
 #        if not hasattr(self, 'embree_meshes'):
