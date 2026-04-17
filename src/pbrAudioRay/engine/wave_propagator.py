@@ -78,9 +78,7 @@ class WavePropagator:
         total_rays = n_sources * n_ray_per_source
         
         # Generate all directions in one batch
-        directions = self._generate_all_directions_batch(
-            total_rays, n_sources, n_ray_per_source, source_pos, output_pos
-        )
+        directions = self._generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos)
         
         return directions
     
@@ -118,7 +116,7 @@ class WavePropagator:
                 z = output_dirs[source_idx, 2]
                 
                 # Generate jitter using fast normal RNG
-                jx, jy, jz = self._fast_normal_3(seed)
+                jx, jy, jz = WavePropagator._fast_normal_3(seed)
                 x += jx * 0.1
                 y += jy * 0.1
                 z += jz * 0.1
@@ -130,7 +128,7 @@ class WavePropagator:
                 directions[i, 2] = z / norm
             else:
                 # Isotropic ray
-                x, y, z = self._fast_isotropic_batch(seed)
+                x, y, z = WavePropagator._fast_isotropic_batch(seed)
                 directions[i, 0] = x
                 directions[i, 1] = y
                 directions[i, 2] = z
