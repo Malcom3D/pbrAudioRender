@@ -110,8 +110,8 @@ class EmbreeScene:
         # Finalize scene building
         results = compute(*task_scene) 
         
-        # Build SIMD-friendly arrays for batch processing
-        self._build_simd_arrays()
+#        # Build SIMD-friendly arrays for batch processing
+#        self._build_simd_arrays()
         
         return scene, self.mesh_info
 #        return {
