@@ -61,7 +61,8 @@ class AcousticObject:
         # Determine LOD level based on distance
         percent, aggression = self._calculate_lod_level(min_distance, adr_threshold)
 
-        simplified = mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
+        if percent and aggression:
+            simplified = mesh.simplify_quadric_decimation(percent=percent, aggression=aggression)
 
         # Return appropriate LOD mesh
         if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
@@ -82,7 +83,7 @@ class AcousticObject:
         """
         # Calculate aggression factor based on how much threshold is exceeded
         if distance <= adr_threshold:
-            return 0  # Full detail
+            return None, None # Full detail
         
         # Calculate how many threshold multiples we're beyond
         threshold_multiples = distance / adr_threshold
