@@ -35,7 +35,7 @@ class WavePropagator:
     
     def __post_init__(self):
         self.source_idx, self.output_idx = self.combo
-        self.config = entity_manager.get('config')
+        self.config = self.entity_manager.get('config')
         
         # Get frequency bands
         self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
