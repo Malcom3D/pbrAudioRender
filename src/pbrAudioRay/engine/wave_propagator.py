@@ -59,7 +59,7 @@ class WavePropagator:
         # Diffuse source
         for source in self.config.sources:
             if source.idx == self.source_idx:
-                if source.size > 0:
+                if source.type == 'SPERE' and source.size > 0:
                     source_size = source.size
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
