@@ -19,45 +19,54 @@
 import numpy as np
 import numba as nb
 from numba import prange
-import threading
 from dask import delayed
+from typing import List, Tuple
+from dataclasses import dataclass
 
-from ..lib.ray_data import SIMDRay
+from ..core.entity_manager import EntityManager
+from ..lib.embree_scene import EmbreeScene
+from ..lib.acoustic_ray import AcousticRay
 
+@dataclass
 class WavePropagator:
     """Optimized wave propagator using SIMD and parallel processing"""
+    entity_manager: EntityManager
+    combo: Tuple[int, int]
     
-    def __init__(self, entity_manager, combo):
-        self.entity_manager = entity_manager
-        self.source_idx, self.output_idx = combo
+    def __post_init__(self):
+        self.source_idx, self.output_idx = self.combo
         self.config = entity_manager.get('config')
         
-        # Precompute frequency bands
+        # Get frequency bands
         self.freq_bands = entity_manager.get('frequency_bands').get_bands()
-        self.num_bands = len(self.freq_bands)
         
-        # Initialize ray pools for reuse (object pooling)
-        self.ray_pool = []
-        self.max_rays = self.config.system.number_of_rays * 100  # Buffer
-        
-        # Thread-local storage for parallel processing
-        self.local_data = threading.local()
-
-    def _prepare_scene(self, frame_idx: int):
-        pass
-
     @delayed
     def compute_frame(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-        scene_data = self._prepare_scene(frame_idx)
+        scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
         
-        # Generate initial rays
+        # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
-        rays = self._generate_initial_rays(frame_idx, n_rays)
-        
-        # Main propagation loop
+        n_bands = len(self.freq_bands)
         max_interactions = self.config.wave_propagation.max_interactions
+        rays = AcousticRay(n_rays, n_bands, max_interactions)
+
+        # Diffuse source
+        for source in config.sources:
+            if source.idx == self.source_idx:
+                if source.size > 0:
+                    source_size = source.size
+                    n_points = int(np.random.uniform(1, 10, size=1))
+                    source_pos = self._source_points(n_points, source_pos, source_size)
+
+        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
+
+        intercepts = self.scene[scene].run(source_pos, directions)
+
+
+    def do_not_run(self):
+        # Main propagation loop
         impulse_response = np.zeros((self.num_bands, 1024))  # Time bins
         
         for interaction in range(max_interactions):
@@ -93,30 +102,61 @@ class WavePropagator:
             rays = new_rays
         
         return impulse_response
+
+    @staticmethod
+    @nb.njit(fastmath=True)
+    def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
+        """
+        Generate random points uniformly distributed inside a sphere using Marsaglia's method.
+        More efficient than rejection sampling.
+        """
+        points = np.zeros((n_points, 3))
+        cx, cy, cz = source_center[0], source_center[1], source_center[2]
     
-    def _generate_initial_rays(self, frame_idx, n_rays):
+        for i in range(n_points):
+            # Marsaglia's method for uniform distribution in sphere
+            while True:
+                # Generate random point on unit disk
+                u = 2.0 * np.random.random() - 1.0
+                v = 2.0 * np.random.random() - 1.0
+                s = u*u + v*v
+
+                if s < 1.0:
+                    # Generate random radius with cubic root for uniform volume distribution
+                    r = source_size * np.cbrt(np.random.random())
+                
+                    # Calculate coordinates
+                    sqrt_term = np.sqrt(1.0 - s)
+                    x = 2.0 * u * sqrt_term
+                    y = 2.0 * v * sqrt_term
+                    z = 1.0 - 2.0 * s
+
+                    # Scale and translate
+                    points[i, 0] = cx + r * x
+                    points[i, 1] = cy + r * y
+                    points[i, 2] = cz + r * z
+                    break
+        return points
+
+    def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Generate initial rays with importance sampling"""
-        source_pos = self._get_source_position(frame_idx)
-        output_pos = self._get_output_position(frame_idx)
-        
         # Importance sampling: more rays towards output
-        rays = []
-        for i in range(n_rays):
-            # Blend between isotropic and directed sampling
-            if np.random.random() < 0.3:  # 30% directed rays
-                direction = output_pos - source_pos
-                direction = direction / np.linalg.norm(direction)
-                # Add some jitter
-                direction += np.random.normal(0, 0.1, 3)
-                direction = direction / np.linalg.norm(direction)
-            else:
-                # Isotropic direction
-                direction = self._random_isotropic_direction()
-            
-            ray = SIMDRay(source_pos.copy(), direction, self.num_bands)
-            rays.append(ray)
-        
-        return rays
+        directions = []
+        n_ray = int(n_rays / source_pos.shape[0])
+        for source_idx in range(source_pos.shape[0])):
+            for i in range(n_ray):
+                # Blend between isotropic and directed sampling
+                if np.random.random() < 0.3:  # 30% directed rays
+                    direction = output_pos - source_pos[source_idx]
+                    direction = direction / np.linalg.norm(direction)
+                    # Add some jitter
+                    direction += np.random.normal(0, 0.1, 3)
+                    direction = direction / np.linalg.norm(direction)
+                else:
+                    # Isotropic direction
+                    direction = self._random_isotropic_direction()
+                directions.append(direction)
+            return directions
     
     @staticmethod
     @nb.njit(fastmath=True)
@@ -135,6 +175,10 @@ class WavePropagator:
         z = 1 - 2 * s
         
         return np.array([x, y, z])
+
+
+
+
     
     def _process_interaction(self, ray, point, normal, obj_id):
         """Process boundary interaction with SIMD operations"""

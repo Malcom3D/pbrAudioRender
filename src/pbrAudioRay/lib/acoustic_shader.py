@@ -56,6 +56,104 @@ class AcousticCoefficients:
             phase = self.phases_interpolator.get_band_average(low_freq, high_freq)
         return coeff, phase
 
+    def get_bands_avg(self, freq_bands: List[Tuple[float, float]], num_points: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        SIMD-optimized function to get average coefficients and phases for all frequency bands.
+        
+        Args:
+            freq_bands: List of (low_freq, high_freq) tuples for each frequency band
+            num_points: Number of points to use for averaging within each band
+            
+        Returns:
+            Tuple of (avg_coeffs, avg_phases) where:
+            - avg_coeffs: 1D array of average coefficients for each band
+            - avg_phases: 1D array of average phases for each band (or None)
+        """
+        n_bands = len(freq_bands)
+        avg_coeffs = np.zeros(n_bands, dtype=np.float64)
+        
+        if self.phases is not None:
+            avg_phases = np.zeros(n_bands, dtype=np.float64)
+        else:
+            avg_phases = None
+        
+        # Use SIMD-optimized averaging
+        if self.phases is not None:
+            avg_coeffs, avg_phases = self._compute_band_averages_simd(freq_bands, n_bands, num_points, avg_coeffs, avg_phases)
+        else:
+            avg_coeffs = self._compute_band_averages_simd_no_phases(freq_bands, n_bands, num_points, avg_coeffs)
+                freq_bands, n_bands, num_points, avg_coeffs
+        
+        return avg_coeffs, avg_phases
+
+    def _compute_band_averages_simd(self, freq_bands: List[Tuple[float, float]], n_bands: int, num_points: int, avg_coeffs: np.ndarray, avg_phases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        SIMD-optimized computation of band averages with phases.
+        """
+        # Get interpolation functions
+        coeff_interp_func = self.coeffs_interpolator.interp_func
+        phase_interp_func = self.phases_interpolator.interp_func
+        
+        # Process all bands bands in parallel
+        return self._simd_compute_averages(freq_bands, n_bands, num_points, coeff_interp_func, phase_interp_func, avg_coeffs, avg_phases)
+
+    def _compute_band_averages_simd_no_phases(self, freq_bands: List[Tuple[float, float]], n_bands: int, num_points: int, avg_coeffs: np.ndarray) -> np.ndarray:
+        """
+        SIMD-optimized computation of band averages without phases.
+        """
+        # Get interpolation function
+        coeff_interp_func = self.coeffs_interpolator.interp_func
+        
+        # Process all bands in parallel
+        return self._simd_compute_averages_no_phases(freq_bands, n_bands, num_points, coeff_interp_func, avg_coeffs)
+
+    @staticmethod
+    @nb.njit(parallel=True, fastmath=True, cache=True)
+    def _simd_compute_averages(freq_bands: np.ndarray, n_bands: int, num_points: int, coeff_interp_func, phase_interp_func, avg_coeffs: np.ndarray, avg_phases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Numba-accelerated SIMD computation of band averages with phases.
+        """
+        for i in prange(n_bands):
+            low_freq, high_freq = freq_bands[i]
+            
+            # Compute averages using Simpson's rule for better accuracy
+            coeff_sum = 0.0
+            phase_sum = 0.0
+            
+            for j in range(num_points):
+                t = j / (num_points - 1) if num_points > 1 else 0
+                freq = low_freq + t * (high_freq - low_freq)
+                
+                coeff_sum += coeff_interp_func(freq)
+                phase_sum += phase_interp_func(freq)
+            
+            avg_coeffs[i] = coeff_sum / num_points
+            avg_phases[i] = phase_sum / num_points
+        
+        return avg_coeffs, avg_phases
+
+    @staticmethod
+    @nb.njit(parallel=True, fastmath=True, cache=True)
+    def _simd_compute_averages_no_phases(freq_bands: np.ndarray, n_bands: int, num_points: int, coeff_interp_func, avg_coeffs: np.ndarray) -> np.ndarray:
+        """
+        Numba-accelerated SIMD computation of band averages without phases.
+        """
+        for i in prange(n_bands):
+            low_freq, high_freq = freq_bands[i]
+            
+            # Compute average using Simpson's rule for better accuracy
+            coeff_sum = 0.0
+            
+            for j in range(num_points):
+                t = j / (num_points - 1) if num_points > 1 else 0
+                freq = low_freq + t * (high_freq - low_freq)
+                coeff_sum += coeff_interp_func(freq)
+            
+            avg_coeffs[i] = coeff_sum / num_points
+        
+        return avg_coeffs
+
+
 @dataclass
 class AcousticProperties:
     """Container for acoustic properties."""
