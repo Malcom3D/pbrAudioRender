@@ -112,14 +112,15 @@ class EmbreeScene:
         # Build SIMD-friendly arrays for batch processing
         self._build_simd_arrays()
         
-        return {
-            'scene': scene,
-            'mesh_info': self.mesh_info,
-            'source_idx': self.combo[0],
-            'output_idx': self.combo[1],
-            'source_pos': src_pos,
-            'output_pos': out_pos
-        }
+        return scene, self.mesh_info
+#        return {
+#            'scene': scene,
+#            'mesh_info': self.mesh_info,
+#            'source_idx': self.combo[0],
+#            'output_idx': self.combo[1],
+#            'source_pos': src_pos,
+#            'output_pos': out_pos
+#        }
 
     @delayed
     def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_id: int, name: str):

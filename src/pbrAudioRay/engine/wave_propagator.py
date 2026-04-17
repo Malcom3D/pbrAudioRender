@@ -44,7 +44,7 @@ class WavePropagator:
     def compute_frame(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-        scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+        scene, scene_info = EmbreeScene(self.entity_manager, self.combo, frame_idx)
         
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
@@ -62,8 +62,131 @@ class WavePropagator:
 
         directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
 
-        intercepts = self.scene[scene].run(source_pos, directions)
+        intercect = scene.run(source_pos, directions)
 
+        print(intersect)
+
+
+    def _generate_initial_directions_batch(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
+        """Batch-optimized version for maximum performance"""
+        n_sources = source_pos.shape[0]
+        n_ray_per_source = int(n_rays / n_sources)
+        total_rays = n_sources * n_ray_per_source
+        
+        # Generate all directions in one batch
+        directions = self._generate_all_directions_batch(
+            total_rays, n_sources, n_ray_per_source, source_pos, output_pos
+        )
+        
+        return directions
+    
+    @staticmethod
+    @nb.njit(parallel=True, fastmath=True, cache=True)
+    def _generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos):
+        """Generate all directions in batch with SIMD optimizations"""
+        directions = np.empty((total_rays, 3), dtype=np.float64)
+        
+        # Pre-compute output directions for all sources
+        output_dirs = np.empty((n_sources, 3), dtype=np.float64)
+        for i in range(n_sources):
+            dx = output_pos[0] - source_pos[i, 0]
+            dy = output_pos[1] - source_pos[i, 1]
+            dz = output_pos[2] - source_pos[i, 2]
+            norm = np.sqrt(dx*dx + dy*dy + dz*dz)
+            output_dirs[i, 0] = dx / norm
+            output_dirs[i, 1] = dy / norm
+            output_dirs[i, 2] = dz / norm
+        
+        # Process rays in parallel
+        for i in prange(total_rays):
+            source_idx = i // n_ray_per_source
+            
+            # Thread-safe random using thread ID and iteration
+            thread_id = nb.get_thread_id()
+            seed = thread_id * 1000000 + i
+            
+            # Determine if this is a directed ray (30% probability)
+            # Use deterministic check based on seed
+            if ((seed * 1103515245 + 12345) & 0x7FFFFFFF) % 1000 < 300:
+                # Directed ray with jitter
+                x = output_dirs[source_idx, 0]
+                y = output_dirs[source_idx, 1]
+                z = output_dirs[source_idx, 2]
+                
+                # Generate jitter using fast normal RNG
+                jx, jy, jz = RayGeneratorBatch._fast_normal_3(seed)
+                x += jx * 0.1
+                y += jy * 0.1
+                z += jz * 0.1
+                
+                # Normalize
+                norm = np.sqrt(x*x + y*y + z*z)
+                directions[i, 0] = x / norm
+                directions[i, 1] = y / norm
+                directions[i, 2] = z / norm
+            else:
+                # Isotropic ray
+                x, y, z = RayGeneratorBatch._fast_isotropic_batch(seed)
+                directions[i, 0] = x
+                directions[i, 1] = y
+                directions[i, 2] = z
+        
+        return directions
+    
+    @staticmethod
+    @nb.njit(fastmath=True, inline='always')
+    def _fast_isotropic_batch(seed):
+        """Ultra-fast isotropic direction using rejection sampling"""
+        # Xorshift for speed
+        state = np.uint64(seed)
+        
+        while True:
+            state ^= state << 13
+            state ^= state >> 7
+            state ^= state << 17
+            
+            # Get two random numbers in [-1, 1]
+            # Using bit manipulation for speed
+            u1 = ((state & 0xFFFFFFFF) / 4294967295.0) * 2.0 - 1.0
+            state ^= state << 13
+            state ^= state >> 7
+            state ^= state << 17
+            u2 = ((state & 0xFFFFFFFF) / 4294967295.0) * 2.0 - 1.0
+            
+            s = u1*u1 + u2*u2
+            if s < 1.0 and s > 0.0:  # Avoid division by zero
+                sqrt_term = np.sqrt(1.0 - s)
+                x = 2.0 * u1 * sqrt_term
+                y = 2.0 * u2 * sqrt_term
+                z = 1.0 - 2.0 * s
+                return x, y, z
+    
+    @staticmethod
+    @nb.njit(fastmath=True, inline='always')
+    def _fast_normal_3(seed):
+        """Generate 3 normal random numbers - optimized version"""
+        # Xorshift RNG
+        state = np.uint64(seed)
+        
+        # Generate 6 uniform random numbers for 3 normals
+        uniforms = np.empty(6, dtype=np.float64)
+        for j in range(6):
+            state ^= state << 13
+            state ^= state >> 7
+            state ^= state << 17
+            uniforms[j] = (state & 0xFFFFFFFF) / 4294967295.0
+        
+        # Box-Muller transform
+        r0 = np.sqrt(-2.0 * np.log(uniforms[0]))
+        theta0 = 2.0 * np.pi * uniforms[1]
+        z0 = r0 * np.cos(theta0)
+        z1 = r0 * np.sin(theta0)
+        
+        r1 = np.sqrt(-2.0 * np.log(uniforms[2]))
+        theta1 = 2.0 * np.pi * uniforms[3]
+        z2 = r1 * np.cos(theta1)
+        
+        return z0, z1, z2
 
     def do_not_run(self):
         # Main propagation loop
@@ -138,7 +261,7 @@ class WavePropagator:
                     break
         return points
 
-    def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
+    def xxxx_generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Generate initial rays with importance sampling"""
         # Importance sampling: more rays towards output
         directions = []
@@ -160,7 +283,7 @@ class WavePropagator:
     
     @staticmethod
     @nb.njit(fastmath=True)
-    def _random_isotropic_direction():
+    def xxxx_random_isotropic_direction():
         """Fast isotropic direction generation"""
         # Marsaglia method
         while True:
