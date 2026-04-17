@@ -17,6 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
+import numba as nb
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
@@ -71,7 +72,7 @@ class AcousticRay:
         self.path_materials = np.zeros((n_rays, max_depth, n_freq_bands, 5), dtype=np.float32)  # [absorption, reflection, refraction, scattering, diffraction]
 
     @staticmethod
-    @njit(nogil=True, fastmath=True, cache=True)
+    @nb.njit(nogil=True, fastmath=True, cache=True)
     def normalize_vectors(vectors: np.ndarray) -> np.ndarray:
         """Normalize array of vectors using SIMD-friendly operations"""
         norms = np.sqrt(np.sum(vectors**2, axis=1))
@@ -79,7 +80,7 @@ class AcousticRay:
         return vectors / norms[:, np.newaxis]
 
     @staticmethod
-    @njit(nogil=True, fastmath=True, cache=True)
+    @nb.njit(nogil=True, fastmath=True, cache=True)
     def reflect_rays(directions: np.ndarray, normals: np.ndarray) -> np.ndarray:
         """Reflect ray directions using vectorized operations"""
         # directions and normals are (n, 3) arrays
