@@ -41,7 +41,6 @@ class EmbreeScene:
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
-        objects = self.entity_manager.get('objects')
 
         source_idx, output_idx = self.combo
         src_pos, self.source_mesh = self._get_source_mesh(source_idx)
@@ -96,6 +95,7 @@ class EmbreeScene:
         
         # Get all acoustic objects mesh
         task_mesh = []
+        objects = self.entity_manager.get('objects')
         for obj_config in config_objs:
             for object in objects:
                 if object.obj_idx == obj_config.idx:
