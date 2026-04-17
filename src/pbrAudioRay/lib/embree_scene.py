@@ -187,7 +187,6 @@ class EmbreeScene:
                  source_config = src
                  break
 
-         print('_get_source_mesh:' , source_config.name)
          # Get positions and rotations over time
          source_positions, source_rotations = _load_pose(source_config)
 
@@ -202,7 +201,9 @@ class EmbreeScene:
          if source_config.type == 'SPHERE':
              src_radius = source_config.size
              if src_radius > 0:
+                 print('_get_source_mesh: ok' , source_config.name, 'combo: ', self.combo)
                  return source_pos, trimesh.creation.icosphere(subdivisions=2, radius=src_radius, transform=[[1, 0, 0, source_pos[0]],[0, 1, 0, source_pos[1]],[0, 0, 1, source_pos[2]],[0, 0, 0, 1]])
+         print('_get_source_mesh: no' , source_config.name, 'combo: ', self.combo)
          return source_pos, None
 
     def _get_output_mesh(self, output_idx: int): 
