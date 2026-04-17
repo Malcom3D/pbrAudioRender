@@ -82,7 +82,7 @@ class AcousticCoefficients:
             avg_coeffs, avg_phases = self._compute_band_averages_simd(freq_bands, n_bands, num_points, avg_coeffs, avg_phases)
         else:
             avg_coeffs = self._compute_band_averages_simd_no_phases(freq_bands, n_bands, num_points, avg_coeffs)
-                freq_bands, n_bands, num_points, avg_coeffs
+            freq_bands, n_bands, num_points, avg_coeffs
         
         return avg_coeffs, avg_phases
 
