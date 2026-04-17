@@ -30,7 +30,7 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
-from ..lib.functions import _acoustic_domain_mesh
+from ..lib.functions import _acoustic_domain_mesh, _load_pose
 
 @dataclass
 class EmbreeScene:
