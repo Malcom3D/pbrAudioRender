@@ -70,11 +70,10 @@ class WavePropagator:
         source_ndim = int(n_rays / source_pos.shape[0])
         n_dirs = source_ndim * source_pos.shape[0]
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
-        directions = np.array([directions], dtype=np.float32)
+        directions = np.array(directions, dtype=np.float32)
 
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
-        print(source_pos, directions)
         hits = scene.run(source_pos, directions, output=1)
         print('hit: ', self.source_idx, self.ouput_idx, hits)
 
