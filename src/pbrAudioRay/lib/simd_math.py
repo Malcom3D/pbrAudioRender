@@ -161,8 +161,8 @@ def normalize_batch(vectors: np.ndarray) -> np.ndarray:
 @staticmethod   
 @nb.jit(nopython=True)
 def _snells_law(incident_angle: float, sound_speed1: float, sound_speed2: float) -> float:
-    """Calculate refraction angle using Snell's Law"""
-    # Snell's Law: sin(θ1)/c1 = sin(θ2)/c2
+    """Calculate refraction angle using Snell s Law"""
+    # Snell s Law: sin(θ1)/c1 = sin(θ2)/c2
     sin_theta2 = (sound_speed2 / sound_speed1) * np.sin(incident__angle)
 
     # Handle total internal reflection
