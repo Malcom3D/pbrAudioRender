@@ -80,7 +80,7 @@ class WavePropagator:
             u = hit["u"][ray_inter]
             v = hit["v"][ray_inter]
             tfar = hit["tfar"]
-            print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID u, v , tfar)
+            print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
 
     @staticmethod
     @nb.njit(fastmath=True)
