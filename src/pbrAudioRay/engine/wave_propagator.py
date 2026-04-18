@@ -75,7 +75,7 @@ class WavePropagator:
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
         hits = scene.run(source_pos, directions, output=1)
-        print('hit: ', self.source_idx, self.ouput_idx, hits)
+        print('hit: ', self.source_idx, self.output_idx, hits)
 
 #        hits["geomID"]
 #        ray_inter = hits["geomID"]
