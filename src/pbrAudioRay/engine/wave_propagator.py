@@ -71,7 +71,9 @@ class WavePropagator:
 
         source_pos = np.array([source_pos.tolist()], dtype=np.float32)
 
-        scene.run(source_pos, directions)
+        hit = scene.run(source_pos, directions)
+
+        print('hit: ', dir(hit), hit)
 
     @staticmethod
     @nb.njit(fastmath=True)
