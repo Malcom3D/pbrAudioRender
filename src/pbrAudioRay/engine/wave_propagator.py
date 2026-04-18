@@ -75,7 +75,8 @@ class WavePropagator:
 
         for hit_idx in range(hits.size):
             hit = hits[0]
-            ray_inter = hit["geomID"] >= 0
+            hit["geomID"]
+            ray_inter = hit["geomID"]
             primID = hit["primID"][ray_inter]
             u = hit["u"][ray_inter]
             v = hit["v"][ray_inter]
