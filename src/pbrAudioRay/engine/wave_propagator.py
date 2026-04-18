@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from ..core.entity_manager import EntityManager
 from ..lib.embree_scene import EmbreeScene
 from ..lib.acoustic_ray import AcousticRay
-from ..lib.simd_math import generate_all_directions_batch, fast_isotropic_batch, fast_normal_3
+from ..lib.simd_math import generate_all_directions_batch
 
 @dataclass
 class WavePropagator:
@@ -78,7 +78,7 @@ class WavePropagator:
         total_rays = n_sources * n_ray_per_source
         
         # Generate all directions in one batch
-        directions = self._generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos)
+        directions = generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos)
         
         return directions
     
