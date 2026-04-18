@@ -63,10 +63,11 @@ class WavePropagator:
                 if source.type == 'SPERE' and source.size > 0:
                     source_size = source.size
                     n_points = int(np.random.uniform(1, 10, size=1))
-                    source_pos = np.array([self._source_points(n_points, source_pos, source_size)], dtype=np.float32)
+                    source_pos = self._source_points(n_points, source_pos, source_size)
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
-        directions = np.array([self._generate_isotropic_directions(source_pos, output_pos, n_rays)], dtype=np.float32)
+        directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
+        source_pos = np.array([source_pos], dtype=np.float32)
         print(source_pos, directions)
         intercect = scene.run(source_pos, directions)
 
