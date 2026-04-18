@@ -71,9 +71,7 @@ class WavePropagator:
 
         source_pos = np.array([source_pos.tolist()], dtype=np.float32)
 
-        intersect = scene.run(source_pos, directions)
-
-        print(intersect)
+        scene.run(source_pos, directions)
 
     @staticmethod
     @nb.njit(fastmath=True)
