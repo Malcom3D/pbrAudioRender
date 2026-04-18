@@ -73,7 +73,7 @@ class WavePropagator:
 
         hit = scene.run(source_pos, directions)
 
-        print('hit: ', hit.tolist())
+        print('hit: ', hit["geomID"], hit["primID"], hit["u"], hit["v"], hit["tfar"])
 
     @staticmethod
     @nb.njit(fastmath=True)
