@@ -77,6 +77,7 @@ class WavePropagator:
         n_ray_per_source = int(n_rays / n_sources)
         total_rays = n_sources * n_ray_per_source
         
+        print('_generate_initial_directions:', total_rays, n_sources, n_ray_per_source, source_pos, output_pos)
         # Generate all directions in one batch
         directions = generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos)
         
