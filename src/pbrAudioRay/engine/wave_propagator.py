@@ -67,10 +67,45 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
-        print('source_pos: ', source_pos, 'directions: ', directions)
+        sources_pos = np.array(source_pos)
         intercect = scene.run(source_pos, directions)
 
         print(intersect)
+
+    @staticmethod
+    @nb.njit(fastmath=True)
+    def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
+        """
+        Generate random points uniformly distributed inside a sphere using Marsaglia's method.
+        More efficient than rejection sampling.
+        """
+        points = np.zeros((n_points, 3))
+        cx, cy, cz = source_center[0], source_center[1], source_center[2]
+
+        for i in range(n_points):
+            # Marsaglia's method for uniform distribution in sphere
+            while True:
+                # Generate random point on unit disk
+                u = 2.0 * np.random.random() - 1.0
+                v = 2.0 * np.random.random() - 1.0
+                s = u*u + v*v
+
+                if s < 1.0:
+                    # Generate random radius with cubic root for uniform volume distribution
+                    r = source_size * np.cbrt(np.random.random())
+
+                    # Calculate coordinates
+                    sqrt_term = np.sqrt(1.0 - s)
+                    x = 2.0 * u * sqrt_term
+                    y = 2.0 * v * sqrt_term
+                    z = 1.0 - 2.0 * s
+
+                    # Scale and translate
+                    points[i, 0] = cx + r * x
+                    points[i, 1] = cy + r * y
+                    points[i, 2] = cz + r * z
+                    break
+        return points
 
     def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
         """
