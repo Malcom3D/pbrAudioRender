@@ -84,7 +84,7 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
         # Use deterministic check based on seed
         if ((seed * 1103515245 + 12345) & 0x7FFFFFFF) % 1000 < 300:
              fn3 = np.array([fast_normal_3(seed)])
-             output_dirs[source_idx] += (fn3 * 0.1)
+             output_dirs[source_idx] += fn3 * 0.1
              norm = np.sqrt(np.sum(output_dirs[source_idx]**2))
              directions[i] = output_dirs[source_idx] / norm
 #            # Directed ray with jitter

@@ -65,11 +65,66 @@ class WavePropagator:
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
-        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
+#        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
+        directions = self._generate_isotropic_directions(source_pos, output_pos, number_of_rays, direction_seed)
         intercect = scene.run(source_pos, directions)
 
         print(intersect)
 
+    def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
+        """
+        Generate random directions with isotropic probability distribution in 4π sr.
+ 
+        Parameters
+        ----------
+        src : np.array([float, float, float])
+            (x, y, z) coordinates of source point
+        dst : np.array([float, float, float])
+            (x, y, z) coordinates of destination point
+        n_directions : int
+            Number of random isotropic directions to generate
+        seed : int, optional
+            Random seed for reproducibility
+
+        Returns
+        -------
+        isotropic_dirs : List[np.ndarray]
+            List of n_directions unit vectors with isotropic distribution and the normalized unit vector from source to destination
+        """
+
+        if seed is not None:
+            np.random.seed(seed)
+
+        # Direct direction
+        direct_vec = dst - src
+        vec_norm = np.linalg.norm(direct_vec)
+        if vec_norm < 1e-12:
+            raise ValueError("Source and destination are coincident")
+        direct_dir = direct_vec / vec_norm
+
+        # Generate isotropic directions
+        isotropic_dirs = []
+
+        for _ in range(n_directions):
+            # Marsaglia method (1972) for uniform distribution on sphere
+            # Generate two uniform random numbers
+            while True:
+                x1 = np.random.uniform(-1, 1)
+                x2 = np.random.uniform(-1, 1)
+                s = x1**2 + x2**2
+                if s < 1:
+                    break
+
+            # Map to sphere surface coordinates
+            z = 1 - 2 * s
+            factor = 2 * np.sqrt(1 - s)
+            x = x1 * factor
+            y = x2 * factor
+
+            direction = np.array([x, y, z])
+            isotropic_dirs.append(direction)
+        isotropic_dirs += [direct_dir]
+        return isotropic_dirs
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Batch-optimized version for maximum performance"""
