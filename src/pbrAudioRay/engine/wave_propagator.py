@@ -84,7 +84,7 @@ class WavePropagator:
     
     @staticmethod
     @nb.njit(parallel=True, fastmath=True, cache=True)
-    def _generate_all_directions_batch(total_rays, n_sources, n_ray_per_source, source_pos, output_pos):
+    def _generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_source: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Generate all directions in batch with SIMD optimizations"""
         directions = np.empty((total_rays, 3), dtype=np.float64)
         
