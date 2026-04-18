@@ -80,28 +80,33 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
         # Determine if this is a directed ray (30% probability)
         # Use deterministic check based on seed
         if ((seed * 1103515245 + 12345) & 0x7FFFFFFF) % 1000 < 300:
-            # Directed ray with jitter
-            x = output_dirs[source_idx, 0]
-            y = output_dirs[source_idx, 1]
-            z = output_dirs[source_idx, 2]
+             fn3 = np.array(fast_normal_3(seed))
+             output_dirs += fn3 * 0.1
+             norm = np.sqrt(np.sum(fn3**2))
+             directions = output_dirs / norm
+#            # Directed ray with jitter
+#            x = output_dirs[source_idx, 0]
+#            y = output_dirs[source_idx, 1]
+#            z = output_dirs[source_idx, 2]
 
             # Generate jitter using fast normal RNG
-            jx, jy, jz = fast_normal_3(seed)
-            x += jx * 0.1
-            y += jy * 0.1
-            z += jz * 0.1
+#            jx, jy, jz = fast_normal_3(seed)
+#            x += jx * 0.1
+#            y += jy * 0.1
+#            z += jz * 0.1
 
             # Normalize
-            norm = np.sqrt(x*x + y*y + z*z)
-            directions[i, 0] = x / norm
-            directions[i, 1] = y / norm
-            directions[i, 2] = z / norm
+#            norm = np.sqrt(x*x + y*y + z*z)
+#            directions[i, 0] = x / norm
+#            directions[i, 1] = y / norm
+#            directions[i, 2] = z / norm
         else:
             # Isotropic ray
-            x, y, z = fast_isotropic_batch(seed)
-            directions[i, 0] = x
-            directions[i, 1] = y
-            directions[i, 2] = z
+            directions = np.array(fast_isotropic_batch(seed))
+#            x, y, z = fast_isotropic_batch(seed)
+#            directions[i, 0] = x
+#            directions[i, 1] = y
+#            directions[i, 2] = z
 
     return directions
 
