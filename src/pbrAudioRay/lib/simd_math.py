@@ -22,7 +22,7 @@ from numba import float64, int32
 
 @nb.njit(fastmath=True, cache=True)
 def dot_product_batch(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    ""Batch dot product using SIMD"""
+    """Batch dot product using SIMD"""
     n = a.shape[0]
     result = np.zeros(n, dtype=np.float64)
     for i in nb.prange(n):
@@ -186,8 +186,7 @@ def reflect_batch(incident: np.ndarray, normal: np.ndarray) -> np.ndarray:
     return result
 
 @nb.njit(fastmath=True, cache=True)
-def refract_batch(incident: np.ndarray, normal: np.ndarray,
-                 n1: float, n2: float) -> np.ndarray:
+def refract_batch(incident: np.ndarray, normal: np.ndarray, n1: float, n2: float) -> np.ndarray:
     """Batch refraction computation using SIMD"""
     n = incident.shape[0]
     result = np.zeros_like(incident)
@@ -225,8 +224,7 @@ def compute_distance_batch(points1: np.ndarray, points2: np.ndarray) -> np.ndarr
     return result
 
 @nb.njit(fastmath=True, cache=True)
-def compute_energy_decay_batch(energies: np.ndarray, distances: np.ndarray,
-                             absorption_coeffs: np.ndarray) -> np.ndarray:
+def compute_energy_decay_batch(energies: np.ndarray, distances: np.ndarray, absorption_coeffs: np.ndarray) -> np.ndarray:
     """Batch energy decay computation using SIMD"""
     n_rays, n_bands = energies.shape
     result = energies.copy()
@@ -239,8 +237,7 @@ def compute_energy_decay_batch(energies: np.ndarray, distances: np.ndarray,
     return result
 
 @nb.njit(fastmath=True, parallel=True, cache=True)
-def compute_phase_shift_batch(phases: np.ndarray, distances: np.ndarray,
-                            frequencies: np.ndarray, sound_speed: float) -> np.ndarray:
+def compute_phase_shift_batch(phases: np.ndarray, distances: np.ndarray, frequencies: np.ndarray, sound_speed: float) -> np.ndarray:
     """Batch phase shift computation using SIMD"""
     n_rays, n_bands = phases.shape
     result = phases.copy()
@@ -289,8 +286,7 @@ def compute_fresnel_coeffs_batch(cos_theta: np.ndarray, n1: float, n2: float) ->
     return R, T
 
 @nb.njit(fastmath=True, parallel=True, cache=True)
-def importance_resample_batch(rays: np.ndarray, gradients: np.ndarray,
-                            target_count: int) -> np.ndarray:
+def importance_resample_batch(rays: np.ndarray, gradients: np.ndarray, target_count: int) -> np.ndarray:
     """Batch importance resampling based on gradient magnitudes"""
     n_rays = rays.shape[0]
     n_bands = gradients.shape[1]
