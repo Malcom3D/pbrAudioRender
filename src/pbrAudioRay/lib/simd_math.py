@@ -48,11 +48,11 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
 
     # Pre-compute output directions for all sources
     output_dirs = np.empty((n_sources, 3), dtype=np.float64)
-    diff = source_pos - output_pos
-    norm = np.sqrt(np.sum(diff**2))
-    output_dirs = diff / norm
-#    if n_sources > 1:
-#        for i in range(n_sources):
+    if n_sources > 1:
+        for i in range(n_sources):
+            diff = source_pos - output_pos
+            norm = np.sqrt(np.sum(diff**2))
+            output_dirs[i] = diff / norm
 #            dx = output_pos[0] - source_pos[i, 0]
 #            dy = output_pos[1] - source_pos[i, 1]
 #            dz = output_pos[2] - source_pos[i, 2]
@@ -60,7 +60,10 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
 #            output_dirs[i, 0] = dx / norm
 #            output_dirs[i, 1] = dy / norm
 #            output_dirs[i, 2] = dz / norm
-#        else:
+        else:
+            diff = source_pos - output_pos
+            norm = np.sqrt(np.sum(diff**2))
+            output_dirs = diff / norm
 #            dx = output_pos[0] - source_pos[0]
 #            dy = output_pos[1] - source_pos[1]
 #            dz = output_pos[2] - source_pos[2]
@@ -81,9 +84,9 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
         # Use deterministic check based on seed
         if ((seed * 1103515245 + 12345) & 0x7FFFFFFF) % 1000 < 300:
              fn3 = np.array([fast_normal_3(seed)])
-             sum_dirs = output_dirs + (fn3 * 0.1)
-             norm = np.sqrt(np.sum(fn3**2))
-             directions = sum_dirs / norm
+             output_dirs[source_idx] += (fn3 * 0.1)
+             norm = np.sqrt(np.sum(output_dirs[source_idx]**2))
+             directions[i] = output_dirs[source_idx] / norm
 #            # Directed ray with jitter
 #            x = output_dirs[source_idx, 0]
 #            y = output_dirs[source_idx, 1]
@@ -102,7 +105,7 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
 #            directions[i, 2] = z / norm
         else:
             # Isotropic ray
-            directions = np.array([fast_isotropic_batch(seed)])
+            directions[i] = np.array([fast_isotropic_batch(seed)])
 #            x, y, z = fast_isotropic_batch(seed)
 #            directions[i, 0] = x
 #            directions[i, 1] = y
