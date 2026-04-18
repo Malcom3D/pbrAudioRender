@@ -73,7 +73,7 @@ class WavePropagator:
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Batch-optimized version for maximum performance"""
-        n_sources = source_pos.shape[0]
+        n_sources = source_pos.ndim
         n_ray_per_source = int(n_rays / n_sources)
         total_rays = n_sources * n_ray_per_source
         
