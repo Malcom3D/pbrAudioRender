@@ -67,7 +67,7 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
-        source_pos = np.array([source_pos], dtype=np.float32)
+        source_pos = np.array([source_pos.tolist()], dtype=np.float32)
         print(source_pos, directions)
         intercect = scene.run(source_pos, directions)
 
