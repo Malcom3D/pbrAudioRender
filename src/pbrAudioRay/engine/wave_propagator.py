@@ -74,7 +74,7 @@ class WavePropagator:
         hits = scene.run(source_pos, directions)
 
         for hit_idx in range(hits.size):
-            hit = hits[0]
+            hit = hits[hit_idx]
             hit["geomID"]
             ray_inter = hit["geomID"]
             primID = hit["primID"][ray_inter]
