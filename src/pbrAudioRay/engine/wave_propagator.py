@@ -74,6 +74,7 @@ class WavePropagator:
 
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
+        print(source_pos, directions)
         hits = scene.run(source_pos, directions, output=1)
         print('hit: ', self.source_idx, self.ouput_idx, hits)
 
