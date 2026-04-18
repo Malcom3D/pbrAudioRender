@@ -71,9 +71,11 @@ class WavePropagator:
 
         source_pos = np.array([source_pos.tolist()], dtype=np.float32)
 
-        hit = scene.run(source_pos, directions)
+        hits = scene.run(source_pos, directions)
 
-        print('hit: ', hit["geomID"], hit["primID"], hit["u"], hit["v"], hit["tfar"])
+        for hit_idx in range(hits.size):
+            print('hits: ', hit_idx, hits[hit_idx])
+#        print('hit: ', hit["geomID"], hit["primID"], hit["u"], hit["v"], hit["tfar"])
 
     @staticmethod
     @nb.njit(fastmath=True)
