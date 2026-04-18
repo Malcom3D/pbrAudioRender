@@ -22,7 +22,7 @@ from numba import float64, int32
 
 @nb.njit(fastmath=True, cache=True)
 def dot_product_batch(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-       """Batch dot product using SIMD"""
+    ""Batch dot product using SIMD"""
     n = a.shape[0]
     result = np.zeros(n, dtype=np.float64)
     for i in nb.prange(n):
