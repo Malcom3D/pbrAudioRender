@@ -48,6 +48,7 @@ class WavePropagator:
         embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
         scene = embree_scene.scene
         scene_info = embree_scene.scene_info
+        mesh_info = embree_scene.mesh_info
         source_pos = embree_scene.src_pos
         output_pos = embree_scene.out_pos
 
@@ -67,7 +68,7 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         
-        source_ndim = int(n_rays / source_pos.shape[0])
+        source_ndim = int(n_rays * n_bands / source_pos.shape[0])
         n_dirs = source_ndim * source_pos.shape[0]
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
@@ -75,7 +76,10 @@ class WavePropagator:
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
         hits = scene.run(source_pos, directions, output=1)
-        print('hit: ', self.source_idx, self.output_idx, hits)
+        ray_inter = hits["geomID"] >= 0
+        primID = hits["primID"][ray_inter]
+        print('obj_idx: ', mesh_info[primID])
+#        print('hit: ', self.source_idx, self.output_idx, hits)
 
 #        hits["geomID"]
 #        ray_inter = hits["geomID"]
