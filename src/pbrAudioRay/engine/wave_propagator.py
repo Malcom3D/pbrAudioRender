@@ -73,7 +73,7 @@ class WavePropagator:
 
         hit = scene.run(source_pos, directions)
 
-        print('hit: ', dir(hit), hit)
+        print('hit: ', hit.tolist())
 
     @staticmethod
     @nb.njit(fastmath=True)
