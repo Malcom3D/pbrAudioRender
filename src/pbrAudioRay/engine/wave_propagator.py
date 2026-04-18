@@ -73,15 +73,22 @@ class WavePropagator:
 
         hits = scene.run(source_pos, directions)
 
-        for hit_idx in range(hits.size):
-            hit = hits[hit_idx]
-            hit["geomID"]
-            ray_inter = hit["geomID"]
-            primID = hit["primID"][ray_inter]
-            u = hit["u"][ray_inter]
-            v = hit["v"][ray_inter]
-            tfar = hit["tfar"]
-            print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
+        hits["geomID"]
+        ray_inter = hits["geomID"]
+        primID = hits["primID"][ray_inter]
+        u = hits["u"][ray_inter]
+        v = hits["v"][ray_inter]
+        tfar = hits["tfar"]
+
+#        for hit_idx in range(hits.size):
+#            hit = hits[hit_idx]
+#            hit["geomID"]
+#            ray_inter = hit["geomID"]
+#            primID = hit["primID"][ray_inter]
+#            u = hit["u"][ray_inter]
+#            v = hit["v"][ray_inter]
+#            tfar = hit["tfar"]
+        print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
 
     @staticmethod
     @nb.njit(fastmath=True)
