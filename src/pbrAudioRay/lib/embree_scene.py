@@ -22,6 +22,7 @@ from numba import prange
 from dask import delayed, compute
 
 import trimesh
+from embreex import rtcore as rtc
 from embreex import rtcore_scene as rtcs
 from embreex.mesh_construction import TriangleMesh
 
