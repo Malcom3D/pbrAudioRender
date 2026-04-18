@@ -22,7 +22,6 @@ from numba import prange
 from dask import delayed, compute
 
 import trimesh
-from embreex import rtcore as rtc
 from embreex import rtcore_scene as rtcs
 from embreex.mesh_construction import TriangleMesh
 
@@ -65,8 +64,7 @@ class EmbreeScene:
         Returns:
             Dictionary containing scene data for efficient ray tracing
         """
-        embreeDevice = rtc.EmbreeDevice()
-        scene = rtcs.EmbreeScene(embreeDevice)
+        scene = rtcs.EmbreeScene()
 
         # Store mesh information for SIMD processing
         self.scene_info = {
