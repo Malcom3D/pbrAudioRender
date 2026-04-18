@@ -63,12 +63,11 @@ class WavePropagator:
                 if source.type == 'SPERE' and source.size > 0:
                     source_size = source.size
                     n_points = int(np.random.uniform(1, 10, size=1))
-                    source_pos = self._source_points(n_points, source_pos, source_size)
+                    source_pos = np.array([self._source_points(n_points, source_pos, source_size)], dtype=np.float32)
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
-        directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
-        sources_pos = np.array([source_pos])
-        intercect = scene.run(sources_pos, directions)
+        directions = np.array(self._generate_isotropic_directions(source_pos, output_pos, n_rays), dtype=float32)
+        intercect = scene.run(source_pos, directions)
 
         print(intersect)
 
@@ -160,7 +159,7 @@ class WavePropagator:
             direction = np.array([x, y, z])
             isotropic_dirs.append(direction)
         isotropic_dirs += [direct_dir]
-        return np.array(isotropic_dirs)
+        return isotropic_dirs
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Batch-optimized version for maximum performance"""
@@ -318,41 +317,6 @@ class WavePropagator:
             rays = new_rays
         
         return impulse_response
-
-    @staticmethod
-    @nb.njit(fastmath=True)
-    def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
-        """
-        Generate random points uniformly distributed inside a sphere using Marsaglia's method.
-        More efficient than rejection sampling.
-        """
-        points = np.zeros((n_points, 3))
-        cx, cy, cz = source_center[0], source_center[1], source_center[2]
-    
-        for i in range(n_points):
-            # Marsaglia's method for uniform distribution in sphere
-            while True:
-                # Generate random point on unit disk
-                u = 2.0 * np.random.random() - 1.0
-                v = 2.0 * np.random.random() - 1.0
-                s = u*u + v*v
-
-                if s < 1.0:
-                    # Generate random radius with cubic root for uniform volume distribution
-                    r = source_size * np.cbrt(np.random.random())
-                
-                    # Calculate coordinates
-                    sqrt_term = np.sqrt(1.0 - s)
-                    x = 2.0 * u * sqrt_term
-                    y = 2.0 * v * sqrt_term
-                    z = 1.0 - 2.0 * s
-
-                    # Scale and translate
-                    points[i, 0] = cx + r * x
-                    points[i, 1] = cy + r * y
-                    points[i, 2] = cz + r * z
-                    break
-        return points
 
     def xxxx_generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Generate initial rays with importance sampling"""
