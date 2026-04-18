@@ -58,7 +58,7 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
         output_dirs[i, 2] = dz / norm
 
     # Process rays in parallel
-    for i in prange(total_rays):
+    for i in nb.prange(total_rays):
         source_idx = i // n_ray_per_source
 
         # Thread-safe random using thread ID and iteration
@@ -214,7 +214,7 @@ def compute_distance_batch(points1: np.ndarray, points2: np.ndarray) -> np.ndarr
     result = np.zeros(n, dtype=np.float64)
 
     chunk_size = 128
-    for chunk_start in prange(0, n, chunk_size):
+    for chunk_start in nb.prange(0, n, chunk_size):
         chunk_end = min(chunk_start + chunk_size, n)
         for i in range(chunk_start, chunk_end):
             dx = points1[i, 0] - points2[i, 0]
@@ -244,7 +244,7 @@ def compute_phase_shift_batch(phases: np.ndarray, distances: np.ndarray, frequen
     result = phases.copy()
 
     chunk_size = 64
-    for chunk_start in prange(0, n_rays, chunk_size):
+    for chunk_start in nb.prange(0, n_rays, chunk_size):
         chunk_end = min(chunk_start + chunk_size, n_rays)
         for i in range(chunk_start, chunk_end):
             for j in range(n_bands):
@@ -294,7 +294,7 @@ def importance_resample_batch(rays: np.ndarray, gradients: np.ndarray, target_co
 
     # Compute gradient magnitudes
     grad_mags = np.zeros(n_rays, dtype=np.float64)
-    for i in prange(n_rays):
+    for i in nb.prange(n_rays):
         mag = 0.0
         for j in range(n_bands):
             for k in range(4):  # 4 gradient parameters
