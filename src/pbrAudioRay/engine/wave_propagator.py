@@ -124,7 +124,7 @@ class WavePropagator:
             direction = np.array([x, y, z])
             isotropic_dirs.append(direction)
         isotropic_dirs += [direct_dir]
-        return isotropic_dirs
+        return np.array(isotropic_dirs)
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
         """Batch-optimized version for maximum performance"""
