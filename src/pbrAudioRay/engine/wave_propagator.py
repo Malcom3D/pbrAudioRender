@@ -163,7 +163,7 @@ class WavePropagator:
 
             direction = [x, y, z]
             isotropic_dirs.append(direction)
-        isotropic_dirs += direct_dir.to_list()
+        isotropic_dirs += direct_dir.tolist()
         return isotropic_dirs
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
