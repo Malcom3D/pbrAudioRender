@@ -263,7 +263,7 @@ def compute_fresnel_coeffs_batch(cos_theta: np.ndarray, n1: float, n2: float) ->
     ratio = n1 / n2
 
     for i in range(n):
-        cos_i = abs(cos_theta[i[i])
+        cos_i = abs(cos_theta[i])
         sin_i2 = max(0.0, 1.0 - cos_i * cos_i)
         sin_t2 = ratio * ratio * sin_i2
 
