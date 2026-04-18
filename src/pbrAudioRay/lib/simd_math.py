@@ -48,23 +48,26 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
 
     # Pre-compute output directions for all sources
     output_dirs = np.empty((n_sources, 3), dtype=np.float64)
-    if n_sources > 1:
-        for i in range(n_sources):
-            dx = output_pos[0] - source_pos[i, 0]
-            dy = output_pos[1] - source_pos[i, 1]
-            dz = output_pos[2] - source_pos[i, 2]
-            norm = np.sqrt(dx*dx + dy*dy + dz*dz)
-            output_dirs[i, 0] = dx / norm
-            output_dirs[i, 1] = dy / norm
-            output_dirs[i, 2] = dz / norm
-        else:
-            dx = output_pos[0] - source_pos[0]
-            dy = output_pos[1] - source_pos[1]
-            dz = output_pos[2] - source_pos[2]
-            norm = np.sqrt(dx*dx + dy*dy + dz*dz)
-            output_dirs[0] = dx / norm
-            output_dirs[1] = dy / norm
-            output_dirs[2] = dz / norm
+    diff = source_pos - output_pos
+    norm = np.sqrt(np.sum(diff**2))
+    output_dirs = diff / norm
+#    if n_sources > 1:
+#        for i in range(n_sources):
+#            dx = output_pos[0] - source_pos[i, 0]
+#            dy = output_pos[1] - source_pos[i, 1]
+#            dz = output_pos[2] - source_pos[i, 2]
+#            norm = np.sqrt(dx*dx + dy*dy + dz*dz)
+#            output_dirs[i, 0] = dx / norm
+#            output_dirs[i, 1] = dy / norm
+#            output_dirs[i, 2] = dz / norm
+#        else:
+#            dx = output_pos[0] - source_pos[0]
+#            dy = output_pos[1] - source_pos[1]
+#            dz = output_pos[2] - source_pos[2]
+#            norm = np.sqrt(dx*dx + dy*dy + dz*dz)
+#            output_dirs[0] = dx / norm
+#            output_dirs[1] = dy / norm
+#            output_dirs[2] = dz / norm
 
     # Process rays in parallel
     for i in nb.prange(total_rays):
