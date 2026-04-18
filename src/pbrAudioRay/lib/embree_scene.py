@@ -64,7 +64,8 @@ class EmbreeScene:
         Returns:
             Dictionary containing scene data for efficient ray tracing
         """
-        scene = rtcs.EmbreeScene()
+        embreeDevice = rtc.EmbreeDevice()
+        scene = rtcs.EmbreeScene(embreeDevice)
 
         # Store mesh information for SIMD processing
         self.scene_info = {
