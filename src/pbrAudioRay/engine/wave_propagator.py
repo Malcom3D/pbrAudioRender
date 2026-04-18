@@ -50,7 +50,7 @@ class WavePropagator:
         scene_info = embree_scene.scene_info
         source_pos = embree_scene.src_pos
         output_pos = embree_scene.out_pos
-        
+
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
@@ -67,7 +67,10 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
+        directions = np.array(directions, dtype=np.float32)
+
         source_pos = np.array([source_pos.tolist()], dtype=np.float32)
+
         print(source_pos, directions)
         intercect = scene.run(source_pos, directions)
 
@@ -158,9 +161,9 @@ class WavePropagator:
             x = x1 * factor
             y = x2 * factor
 
-            direction = np.array([x, y, z])
+            direction = [x, y, z]
             isotropic_dirs.append(direction)
-        isotropic_dirs += [direct_dir]
+        isotropic_dirs += direct_dir.to_list()
         return isotropic_dirs
 
     def _generate_initial_directions(self, n_rays: int, source_pos: np.ndarray, output_pos: np.ndarray):
