@@ -18,6 +18,7 @@
 
 import numpy as np
 import numba as nb
+from typing import Tuple
 from numba import float64, int32
 
 @nb.njit(fastmath=True, cache=True)
