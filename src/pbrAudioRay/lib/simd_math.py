@@ -48,7 +48,7 @@ def generate_all_directions_batch(total_rays: int, n_sources: int, n_ray_per_sou
 
     # Pre-compute output directions for all sources
     output_dirs = np.empty((n_sources, 3), dtype=np.float64)
-    for i in range(n_sources):
+    for i in nb.prange(n_sources):
         dx = output_pos[0] - source_pos[i, 0]
         dy = output_pos[1] - source_pos[i, 1]
         dz = output_pos[2] - source_pos[i, 2]
