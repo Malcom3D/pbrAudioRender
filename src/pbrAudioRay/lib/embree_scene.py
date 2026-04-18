@@ -47,7 +47,7 @@ class EmbreeScene:
         self.out_pos, self.output_mesh = self._get_output_mesh(output_idx)
 
         # Init store for meshes faces and obj_idx information for SIMD processing
-        self.mesh_info = np.array([], dtype=np.float32)
+        self.mesh_info = np.zeros((0,3,3), dtype=np.float32)
         self.scene_info = np.array([], dtype=np.int32)
 
         # get the AcousticDomain mesh
