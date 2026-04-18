@@ -46,6 +46,10 @@ class EmbreeScene:
         self.src_pos, self.source_mesh = self._get_source_mesh(source_idx)
         self.out_pos, self.output_mesh = self._get_output_mesh(output_idx)
 
+        # Init store for meshes faces and obj_idx information for SIMD processing
+        self.mesh_info = np.array([], dtype=np.float32)
+        self.scene_info = np.array([], dtype=np.int32)
+
         # get the AcousticDomain mesh
         self.ac_mesh = _acoustic_domain_mesh(config)
 
@@ -68,19 +72,6 @@ class EmbreeScene:
         embreeDevice = rtc.EmbreeDevice()
         scene = rtcs.EmbreeScene(embreeDevice)
 
-        # Store mesh information for SIMD processing
-        self.scene_info = {
-            'vertices': [],      # List of vertex arrays
-            'faces': [],         # List of face arrays
-            'normals': [],       # List of normal arrays
-            'obj_ids': [],       # Object IDs for each mesh
-            'materials': [],     # Material properties for each mesh
-            'bboxes': [],        # Bounding boxes for each mesh
-            'triangle_counts': [], # Triangle counts for each mesh
-            'vertex_offsets': [0], # Cumulative vertex offsets
-            'face_offsets': [0],   # Cumulative face offsets
-        }
-        
         # Add acoustic domain mesh (obj_id = -1)
         if self.ac_mesh is not None:
             task_scene = [self._add_mesh_to_scene(scene, self.ac_mesh, -1, "acoustic_domain")]
@@ -111,24 +102,15 @@ class EmbreeScene:
         
         return scene
 
-#        return {
-#            'scene': scene,
-#            'scene_info': self.scene_info,
-#            'source_idx': self.combo[0],
-#            'output_idx': self.combo[1],
-#            'source_pos': src_pos,
-#            'output_pos': out_pos
-#        }
-
     @delayed
-    def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_id: int, name: str):
+    def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_idx: int, name: str):
         """
         Add a mesh to the Embree scene and store SIMD-friendly data.
         
         Args:
             scene: Embree scene
             mesh: Trimesh object
-            obj_id: Object identifier
+            obj_idx: Object identifier
             name: Mesh name for debugging
         """
         if mesh == None:
@@ -143,36 +125,14 @@ class EmbreeScene:
             mesh.fix_normals()
         
         # Add mesh to Embree scene
-        embree_mesh = TriangleMesh(scene, vertices, faces)
+        embree_mesh = TriangleMesh(scene, vertices[faces])
         
-        # Store mesh information for SIMD processing
-        self.scene_info['vertices'].append(vertices)
-        self.scene_info['faces'].append(faces)
-        self.scene_info['normals'].append(mesh.face_normals.astype(np.float32))
-        self.scene_info['obj_ids'].append(np.full(faces.shape[0], obj_id, dtype=np.int32))
-        
-#        # Get material properties from config
-#        material = self._get_material_properties(obj_id)
-#        self.scene_info['materials'].append(material)
-        
-#        # Store bounding box
-#        bbox = mesh.bounds
-#        self.scene_info['bboxes'].append(bbox)
-        
-        # Store triangle count
+        # Get triangle count
         triangle_count = faces.shape[0]
-        self.scene_info['triangle_counts'].append(triangle_count)
-        
-        # Update offsets
-        last_vertex_offset = self.scene_info['vertex_offsets'][-1]
-        last_face_offset = self.scene_info['face_offsets'][-1]
-        self.scene_info['vertex_offsets'].append(last_vertex_offset + vertices.shape[0])
-        self.scene_info['face_offsets'].append(last_face_offset + triangle_count)
-        
-#        # Store reference to embree mesh
-#        if not hasattr(self, 'embree_meshes'):
-#            self.embree_meshes = []
-#        self.embree_meshes.append(embree_mesh)
+
+        # Store mesh information for SIMD processing
+        self.scene_info = np.append(self.scene_info, np.full((faces.shape[0],), obj_idx, dtype=np.int32))
+        self.mesh_info = np.append(self.mesh_info, mesh.vertices[mesh.faces], axis=0)
 
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):

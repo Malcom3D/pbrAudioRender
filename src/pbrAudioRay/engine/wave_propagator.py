@@ -67,18 +67,20 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_rays)
-        directions = np.array(directions, dtype=np.float32)
+        directions = np.array([directions.tolist()], dtype=np.float32)
 
-        source_pos = np.array([source_pos.tolist()], dtype=np.float32)
+        shape_ndim = directions.shape[0] / source_pos.shape[0]
+        source_pos = np.full((shape_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
-        hits = scene.run(source_pos, directions)
+        hits = scene.run(source_pos, directions, output=1)
+        print('hit: ', self.source_idx, self.ouput_idx, hits)
 
-        hits["geomID"]
-        ray_inter = hits["geomID"]
-        primID = hits["primID"][ray_inter]
-        u = hits["u"][ray_inter]
-        v = hits["v"][ray_inter]
-        tfar = hits["tfar"]
+#        hits["geomID"]
+#        ray_inter = hits["geomID"]
+#        primID = hits["primID"][ray_inter]
+#        u = hits["u"][ray_inter]
+#        v = hits["v"][ray_inter]
+#        tfar = hits["tfar"]
 
 #        for hit_idx in range(hits.size):
 #            hit = hits[hit_idx]
@@ -88,7 +90,7 @@ class WavePropagator:
 #            u = hit["u"][ray_inter]
 #            v = hit["v"][ray_inter]
 #            tfar = hit["tfar"]
-        print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
+#        print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
 
     @staticmethod
     @nb.njit(fastmath=True)
