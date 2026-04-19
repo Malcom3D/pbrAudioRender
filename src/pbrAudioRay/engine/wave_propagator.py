@@ -78,7 +78,10 @@ class WavePropagator:
         hits = scene.run(source_pos, directions, output=1)
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]
-        print('obj_idx: ', scene_info[primID])
+        output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
+
+        print('hit: ', self.source_idx, self.output_idx, len(output), len(hits_obj_idx))
+
 #        print('hit: ', self.source_idx, self.output_idx, hits)
 
 #        hits["geomID"]
@@ -97,6 +100,25 @@ class WavePropagator:
 #            v = hit["v"][ray_inter]
 #            tfar = hit["tfar"]
 #        print('hit: ', self.source_idx, self.ouput_idx, hit_idx, ray_inter, primID, u, v , tfar)
+
+    @staticmethod
+    @nb.njit(fastmath=True)
+    def _find_output_and_obj_idx(raw_obj_idx):
+        """
+        Optimized version using boolean masks.
+        """
+        arr = np.asarray(raw_obj_idx, dtype=np.int32)
+    
+        # Create boolean masks (SIMD operations)
+        mask_minus_three = (arr == -3)
+        mask_non_negative = (arr >= 0)
+    
+        # Get indices from masks
+        indices_output = np.flatnonzero(mask_minus_three)
+        indices_obj_idx = np.flatnonzero(mask_non_negative)
+
+        return indices_output, indices_obj_idx
+
 
     @staticmethod
     @nb.njit(fastmath=True)
