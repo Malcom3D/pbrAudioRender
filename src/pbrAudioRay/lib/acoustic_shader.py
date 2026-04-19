@@ -106,7 +106,7 @@ class AcousticCoefficients:
         # Process all bands in parallel
         return self._simd_compute_averages_no_phases(freq_bands, n_bands, num_points, coeff_interp_func, avg_coeffs)
 
-#    @staticmethod
+    @staticmethod
 #    @nb.njit(parallel=True, fastmath=True, cache=True)
     def _simd_compute_averages(freq_bands: np.ndarray, n_bands: int, num_points: int, coeff_interp_func, phase_interp_func, avg_coeffs: np.ndarray, avg_phases: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -131,7 +131,7 @@ class AcousticCoefficients:
         
         return avg_coeffs, avg_phases
 
-#    @staticmethod
+    @staticmethod
 #    @nb.njit(parallel=True, fastmath=True, cache=True)
     def _simd_compute_averages_no_phases(freq_bands: np.ndarray, n_bands: int, num_points: int, coeff_interp_func, avg_coeffs: np.ndarray) -> np.ndarray:
         """
