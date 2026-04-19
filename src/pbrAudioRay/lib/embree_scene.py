@@ -154,8 +154,10 @@ class EmbreeScene:
         n_bands = len(self.freq_bands)
 
         # Get Material Info
-        self.sound_speed = np.append(self.sound_speed, np.full((faces.shape[0],), obj_config.acoustic_shader.sound_speed, dtype=np.float32)
-        self.density = np.append(self.density, np.full((faces.shape[0],), obj_config.acoustic_shader.density, dtype=np.float32)
+        sound_speed = obj_config.acoustic_shader.sound_speed
+        self.sound_speed = np.append(self.sound_speed, np.full((faces.shape[0],), sound_speed, dtype=np.float32)
+        density = obj_config.acoustic_shader.density
+        self.density = np.append(self.density, np.full((faces.shape[0],), density, dtype=np.float32)
         if obj_idx >= 0:
             # Get Object AcousticShader
             coeffs, phases = config.acoustic_domain.acoustic_shader.absorption.get_bands_avg(self.freq_bands)
