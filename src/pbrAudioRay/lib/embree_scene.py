@@ -129,6 +129,8 @@ class EmbreeScene:
             name: Mesh name for debugging
             obj_config: Object config
         """
+        config = self.entity_manager.get('config')
+
         if mesh == None:
             return
 
