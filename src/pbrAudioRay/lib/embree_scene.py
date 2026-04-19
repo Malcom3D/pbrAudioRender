@@ -166,22 +166,22 @@ class EmbreeScene:
             # Get Object AcousticShader
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else ([None] for _ in range(len(self.freq_bands)))
+            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
             self.absorption = np.append(self.absorption, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.refraction.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else None ([None] for _ in range(len(self.freq_bands)))
+            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
             self.refraction = np.append(self.refraction, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.reflection.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else None ([None] for _ in range(len(self.freq_bands)))
+            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
             self.reflection = np.append(self.reflection, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.scattering.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else None ([None] for _ in range(len(self.freq_bands)))
+            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
             self.scattering = np.append(self.scattering, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
 
     @delayed
