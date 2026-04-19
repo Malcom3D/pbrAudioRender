@@ -74,7 +74,7 @@ class WavePropagator:
 
         self.compute_scene(source_pos, directions)
 
-    def compute_scene(self, source_pos: np.ndarray, directions: np.ndarray)
+    def compute_scene(self, source_pos: np.ndarray, directions: np.ndarray):
         scene = self.embree_scene.scene
         scene_info = self.embree_scene.scene_info
         mesh_info = self.embree_scene.mesh_info
