@@ -112,7 +112,7 @@ class AcousticCoefficients:
         """
         Numba-accelerated SIMD computation of band averages with phases.
         """
-        for i in prange(n_bands):
+        for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
             
             # Compute averages using Simpson's rule for better accuracy
@@ -137,7 +137,7 @@ class AcousticCoefficients:
         """
         Numba-accelerated SIMD computation of band averages without phases.
         """
-        for i in prange(n_bands):
+        for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
             
             # Compute average using Simpson's rule for better accuracy
