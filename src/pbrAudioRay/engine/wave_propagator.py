@@ -65,16 +65,17 @@ class WavePropagator:
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         
-        source_ndim = int(n_rays * n_bands / source_pos.shape[0])
+        source_ndim = int(n_rays / source_pos.shape[0])
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
         n_dirs = source_ndim * source_pos.shape[0]
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        self.compute_scene(source_pos, directions)
+        self.first_run(source_pos, directions)
 
-    def compute_scene(self, source_pos: np.ndarray, directions: np.ndarray):
+    def first_run(self, source_pos: np.ndarray, directions: np.ndarray):
+        print('WavePropagator: first_run')
         scene = self.embree_scene.scene
         scene_info = self.embree_scene.scene_info
         mesh_info = self.embree_scene.mesh_info
