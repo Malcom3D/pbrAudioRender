@@ -84,15 +84,16 @@ class WavePropagator:
 
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]
-        output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
-
+        u = hits["u"][ray_inter]
+        v = hits["v"][ray_inter]
+        w = 1 - u - v
         hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
+        print('hits_coord: ', hits_coord)
 
+        output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
         dists = hits_coord - source_pos
-
         delay = dists / 343.4
 
-        print('hits_coord: ', hits_coord)
         print('dists: ', dists)
         print('hit: ', self.source_idx, self.output_idx, len(output), len(hits_obj_idx))
 
