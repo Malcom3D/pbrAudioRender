@@ -49,15 +49,27 @@ class EmbreeScene:
         # Init store for meshes faces and obj_idx information for SIMD processing
         self.mesh_info = np.zeros((0,3,3), dtype=np.float32)
         self.scene_info = np.array([], dtype=np.int32)
+        self.mat_info = {}
+
+        # Get frequency bands
+        self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
+        n_bands = len(self.freq_bands)
+
+        # Init store for acoustiic material info
+        self.sound_speed = np.zeros((0,1), dtype=np.float32)
+        self.density = np.zeros((0,1), dtype=np.float32)
+        self.absorption = np.zeros((0,2,n_bands), dtype=np.float32)
+        self.refraction = np.zeros((0,2,n_bands), dtype=np.float32)
+        self.reflection = np.zeros((0,2,n_bands), dtype=np.float32)
+        self.scattering = np.zeros((0,2,n_bands), dtype=np.float32)
 
         # get the AcousticDomain mesh
         self.ac_mesh = _acoustic_domain_mesh(config)
 
-        config_objs = config.objects
+        # Build embrex scene
+        self.scene = self._build_scene(self.src_pos, self.out_pos)
 
-        self.scene = self._build_scene(self.src_pos, self.out_pos, config_objs)
-
-    def _build_scene(self, src_pos: np.ndarray, out_pos: np.ndarray, config_objs: Any):
+    def _build_scene(self, src_pos: np.ndarray, out_pos: np.ndarray):
         """
         Build SIMD-friendly scene representation for Embree ray tracing.
         
@@ -69,12 +81,15 @@ class EmbreeScene:
         Returns:
             Dictionary containing scene data for efficient ray tracing
         """
+        config = self.entity_manager.get('config')
+        config_objs = config.objects
+
         embreeDevice = rtc.EmbreeDevice()
         scene = rtcs.EmbreeScene(embreeDevice)
 
         # Add acoustic domain mesh (obj_id = -1)
         if self.ac_mesh is not None:
-            task_scene = [self._add_mesh_to_scene(scene, self.ac_mesh, -1, "acoustic_domain")]
+            task_scene = [self._add_mesh_to_scene(scene, self.ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
         
         # Add source mesh (obj_id = -2)
         if self.source_mesh is not None:
@@ -95,7 +110,7 @@ class EmbreeScene:
 
         # Add all acoustic objects with their actual obj_ids
         for obj_mesh, obj_idx, name in meshes_results:
-            task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name)]
+            task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name, obj_config)]
 
         # Finalize scene building
         results = compute(*task_scene) 
@@ -103,7 +118,7 @@ class EmbreeScene:
         return scene
 
     @delayed
-    def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_idx: int, name: str):
+    def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_idx: int, name: str, obj_config: Any = None):
         """
         Add a mesh to the Embree scene and store SIMD-friendly data.
         
@@ -112,6 +127,7 @@ class EmbreeScene:
             mesh: Trimesh object
             obj_idx: Object identifier
             name: Mesh name for debugging
+            obj_config: Object config
         """
         if mesh == None:
             return
@@ -133,6 +149,19 @@ class EmbreeScene:
         # Store mesh information for SIMD processing
         self.scene_info = np.append(self.scene_info, np.full((faces.shape[0],), obj_idx, dtype=np.int32))
         self.mesh_info = np.append(self.mesh_info, mesh.vertices[mesh.faces], axis=0)
+
+        # Number of frequency bands
+        n_bands = len(self.freq_bands)
+
+        # Get Material Info
+        self.sound_speed = np.append(self.sound_speed, np.full((faces.shape[0],), obj_config.acoustic_shader.sound_speed, dtype=np.float32)
+        self.density = np.append(self.density, np.full((faces.shape[0],), obj_config.acoustic_shader.density, dtype=np.float32)
+        if obj_idx >= 0:
+            # Get Object AcousticShader
+            self.absorption = np.append(self.absorption, np.full((faces.shape[0],2,n_bands), [config.acoustic_domain.acoustic_shader.absorption.get_bands_avg(self.freq_bands)], dtype=np.float32)
+            self.refraction = np.append(self.refraction, np.full((faces.shape[0],2,n_bands), [config.acoustic_domain.acoustic_shader.refraction.get_bands_avg(self.freq_bands)], dtype=np.float32)
+            self.reflection = np.append(self.reflection, np.full((faces.shape[0],2,n_bands), [config.acoustic_domain.acoustic_shader.reflection.get_bands_avg(self.freq_bands)], dtype=np.float32)
+            self.scattering = np.append(self.scattering, np.full((faces.shape[0],2,n_bands), [config.acoustic_domain.acoustic_shader.scattering.get_bands_avg(self.freq_bands)], dtype=np.float32)
 
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):

@@ -45,12 +45,9 @@ class WavePropagator:
     def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-        embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        scene = embree_scene.scene
-        scene_info = embree_scene.scene_info
-        mesh_info = embree_scene.mesh_info
-        source_pos = embree_scene.src_pos
-        output_pos = embree_scene.out_pos
+        self.embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+        source_pos = self.embree_scene.src_pos
+        output_pos = self.embree_scene.out_pos
 
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
@@ -69,17 +66,33 @@ class WavePropagator:
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
         
         source_ndim = int(n_rays * n_bands / source_pos.shape[0])
+        source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
+
         n_dirs = source_ndim * source_pos.shape[0]
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
+        self.compute_scene(source_pos, directions)
+
+    def compute_scene(self, source_pos: np.ndarray, directions: np.ndarray)
+        scene = self.embree_scene.scene
+        scene_info = self.embree_scene.scene_info
+        mesh_info = self.embree_scene.mesh_info
 
         hits = scene.run(source_pos, directions, output=1)
+
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]
         output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
 
+        hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
+
+        dists = hits_coord - source_pos
+
+        delay = dists / 343.4
+
+        print('hits_coord: ', hits_coord)
+        print('dists: ', dists)
         print('hit: ', self.source_idx, self.output_idx, len(output), len(hits_obj_idx))
 
 #        print('hit: ', self.source_idx, self.output_idx, hits)
