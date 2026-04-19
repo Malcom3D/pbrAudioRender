@@ -156,10 +156,10 @@ class AcousticCoefficients:
 @dataclass
 class AcousticProperties:
     """Container for acoustic properties."""
-    absorption: Optional[AcousticCoefficients] = None
-    refraction: Optional[AcousticCoefficients] = None
-    reflection: Optional[AcousticCoefficients] = None
-    scattering: Optional[AcousticCoefficients] = None
+    absorption: Union[float, Optional[AcousticCoefficients]] = None
+    refraction: Union[float, Optional[AcousticCoefficients]] = None
+    reflection: Union[float, Optional[AcousticCoefficients]] = None
+    scattering: Union[float, Optional[AcousticCoefficients]] = None
 
 @dataclass
 class AcousticShader:
