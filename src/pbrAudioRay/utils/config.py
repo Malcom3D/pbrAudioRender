@@ -252,6 +252,8 @@ class Config:
         
         if 'absorption' in acoustic_props_data:
             abs_data = acoustic_props_data['absorption']
+            if isinstance(abs_data, float):
+                abs_data = {"frequencies": [shader_data.get('low_frequency', 1.0), shader_data.get('high_frequency', 24000.0)], "coefficients": [abs_data, abs_data], "phases": []}
             acoustic_properties.absorption = AcousticCoefficients(
                 frequencies=np.array(abs_data['frequencies']),
                 coefficients=np.array(abs_data['coefficients'])
@@ -259,6 +261,8 @@ class Config:
         
         if 'refraction' in acoustic_props_data:
             refr_data = acoustic_props_data['refraction']
+            if isinstance(refr_data, float):
+                refr_data = {"frequencies": [shader_data.get('low_frequency', 1.0), shader_data.get('high_frequency', 24000.0)], "coefficients": [refr_data, refr_data], "phases": []}
             acoustic_properties.refraction = AcousticCoefficients(
                 frequencies=np.array(refr_data['frequencies']),
                 coefficients=np.array(refr_data['coefficients'])
@@ -266,6 +270,8 @@ class Config:
         
         if 'reflection' in acoustic_props_data:
             refl_data = acoustic_props_data['reflection']
+            if isinstance(refl_data, float):
+                refl_data = {"frequencies": [shader_data.get('low_frequency', 1.0), shader_data.get('high_frequency', 24000.0)], "coefficients": [refl_data, refl_data], "phases": []}
             acoustic_properties.reflection = AcousticCoefficients(
                 frequencies=np.array(refl_data['frequencies']),
                 coefficients=np.array(refl_data['coefficients'])
@@ -273,6 +279,8 @@ class Config:
         
         if 'scattering' in acoustic_props_data:
             scat_data = acoustic_props_data['scattering']
+            if isinstance(scat_data, float):
+                scat_data = {"frequencies": [shader_data.get('low_frequency', 1.0), shader_data.get('high_frequency', 24000.0)], "coefficients": [scat_data, scat_data], "phases": []}
             acoustic_properties.scattering = AcousticCoefficients(
                 frequencies=np.array(scat_data['frequencies']),
                 coefficients=np.array(scat_data['coefficients'])
