@@ -162,16 +162,16 @@ class EmbreeScene:
         self.density = np.append(self.density, np.full((faces.shape[0],), density, dtype=np.float32))
         if obj_idx >= 0:
             # Get Object AcousticShader
-            coeffs, phases = obj_config.acoustic_shader.absorption.get_bands_avg(self.freq_bands)
+            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
             self.absorption = np.append(self.absorption, np.full((faces.shape[0],2,n_bands), [coeffs.tolist(), phases.tolist()], dtype=np.float32))
 
-            coeffs, phases = obj_config.acoustic_shader.refraction.get_bands_avg(self.freq_bands)
+            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.refraction.get_bands_avg(self.freq_bands)
             self.refraction = np.append(self.refraction, np.full((faces.shape[0],2,n_bands), [coeffs.tolist(), phases.tolist()], dtype=np.float32))
 
-            coeffs, phases = obj_config.acoustic_shader.reflection.get_bands_avg(self.freq_bands)
+            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.reflection.get_bands_avg(self.freq_bands)
             self.reflection = np.append(self.reflection, np.full((faces.shape[0],2,n_bands), [coeffs.tolist(), phases.tolist()], dtype=np.float32))
 
-            coeffs, phases = obj_config.acoustic_shader.scattering.get_bands_avg(self.freq_bands)
+            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.scattering.get_bands_avg(self.freq_bands)
             self.scattering = np.append(self.scattering, np.full((faces.shape[0],2,n_bands), [coeffs.tolist(), phases.tolist()], dtype=np.float32))
 
     @delayed
