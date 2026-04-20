@@ -64,15 +64,16 @@ class WavePropagator:
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
 #        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
-        
-        source_ndim = int(n_rays / source_pos.shape[0])
+
+        n_src = source_pos.shape[0]
+        source_ndim = int(n_rays / n_src)
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
 
-        n_dirs = source_ndim * source_pos.shape[0]
+        n_dirs = source_ndim * n_src
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        print('WavePropagator: ', source_ndim, n_dirs, len(source_pos), len(directions))
+        print('WavePropagator: ', n_rays, source_ndim, n_dirs, len(source_pos), len(directions))
 
         self.first_run(source_pos, directions)
 
@@ -92,7 +93,8 @@ class WavePropagator:
         w = 1 - u - v
         try:
             hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        except:
+        except Exception as e:
+            print(e)
             print('WavePropagator: except: ', self.source_idx, self.output_idx)
             print('                  primID: ', len(primID), primID)
             print('                  mesh_info: ', len(mesh_info), mesh_info)
