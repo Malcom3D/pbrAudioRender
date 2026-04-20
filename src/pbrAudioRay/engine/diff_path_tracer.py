@@ -27,3 +27,9 @@ class DiffPathTracer:
     Implements differentiable path tracing for acoustic rendering
     Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
     """
+    acoustic_scene: Any # AcousticScene
+    acoustic_rays: Any # AcousticRay
+
+    def compute(self, hits):
+        #return sources, directions
+        pass

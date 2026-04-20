@@ -49,7 +49,7 @@ class AcousticRay:
         self.origins = np.zeros((n_rays, 3), dtype=np.float32)
         self.directions = np.zeros((n_rays, 3), dtype=np.float32)
 
-        # Frequency Frequency-dependent energy (stored as complex for phase information)
+        # Frequency-dependent energy (stored as complex for phase information)
         self.energy = np.zeros((n_rays, n_freq_bands), dtype=np.complex64)
 
         # Ray state flags

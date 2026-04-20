@@ -27,7 +27,10 @@ from ..lib.embree_scene import EmbreeScene
 @dataclass
 class RayTracer:
     entity_manager: EntityManager
-    embree_scene: EmbreeScene
+    scene: Any # embreex.rtcore_scene.EmbreeScene
 
     def __post_init__(self):
         config = entity_manager.get('config')
+
+    def compute(self, source_pos: np.ndarray, directions: np.ndarray):
+        return self.scene.run(source_pos, directions, output=1)
