@@ -75,7 +75,7 @@ class WavePropagator:
         self.first_run(source_pos, directions)
 
     def first_run(self, source_pos: np.ndarray, directions: np.ndarray):
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(directions))
+        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(source_pos), len(directions))
         scene = self.embree_scene.scene
         scene_info = self.embree_scene.scene_info
         mesh_info = self.embree_scene.mesh_info
@@ -84,7 +84,7 @@ class WavePropagator:
 
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, primID)
+        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(primID), primID)
         u = hits["u"][ray_inter]
         v = hits["v"][ray_inter]
         w = 1 - u - v
