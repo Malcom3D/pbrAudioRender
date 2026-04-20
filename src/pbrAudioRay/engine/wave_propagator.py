@@ -24,6 +24,10 @@ from typing import List, Tuple
 from dataclasses import dataclass
 
 from ..core.entity_manager import EntityManager
+
+from ..core.ray_tracer import RayTracer
+from ..core.diff_path_tracer import DiffPathTracer
+
 from ..lib.embree_scene import EmbreeScene
 from ..lib.acoustic_ray import AcousticRay
 from ..lib.simd_math import generate_all_directions_batch
@@ -37,7 +41,7 @@ class WavePropagator:
     def __post_init__(self):
         self.source_idx, self.output_idx = self.combo
         self.config = self.entity_manager.get('config')
-        
+
         # Get frequency bands
         self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
         
@@ -45,15 +49,27 @@ class WavePropagator:
     def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
-        self.embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        source_pos = self.embree_scene.src_pos
-        output_pos = self.embree_scene.out_pos
+        embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
+        scene = embree_scene.scene
+        acoustic_scene = embree_scene.acoustic_scene
 
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
         max_interactions = self.config.wave_propagation.max_interactions
-        rays = AcousticRay(n_rays, n_bands, max_interactions)
+
+        # Init AcousticRay storage
+        acoustic_rays = AcousticRay(n_rays, n_bands, max_interactions)
+
+        # Init RayTracer engine
+        self.ray_tracer = RayTracer(scene)
+
+        # Init DiffPathTracer engine
+        self.diff_path_tracer = DiffPathTracer(acoustic_scene, acoustic_rays)
+
+        # compute first sources and directions
+        source_pos = embree_scene.src_pos
+        output_pos = embree_scene.out_pos
 
         # Diffuse source
         for source in self.config.sources:
@@ -73,32 +89,35 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        print('WavePropagator: ', n_rays, source_ndim, n_dirs, len(source_pos), len(directions))
+        self.compute_loop(source_pos, directions)
 
-        self.first_run(source_pos, directions)
+    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray):
+        hits = self.ray_tracer.compute(source_pos, directions)
+        source_pos, directions = self.diff_path_tracer.compute(hits)
 
-    def first_run(self, source_pos: np.ndarray, directions: np.ndarray):
-        scene = self.embree_scene.scene
-        scene_info = self.embree_scene.scene_info
-        mesh_info = self.embree_scene.mesh_info
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(mesh_info))
+        self.compute_loop(source_pos, directions)
 
-        hits = scene.run(source_pos, directions, output=1)
+#        scene = self.embree_scene.scene
+#        scene_info = self.embree_scene.scene_info
+#        mesh_info = self.embree_scene.mesh_info
+#        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(mesh_info))
 
-        ray_inter = hits["geomID"] >= 0
-        primID = hits["primID"][ray_inter]
+#        hits = scene.run(source_pos, directions, output=1)
+
+#        ray_inter = hits["geomID"] >= 0
+#        primID = hits["primID"][ray_inter]
 #        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(primID), primID)
-        u = hits["u"][ray_inter]
-        v = hits["v"][ray_inter]
-        w = 1 - u - v
-        try:
-            hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        except Exception as e:
-            print(e)
-            print('WavePropagator: except: ', self.source_idx, self.output_idx)
-            print('                  primID: ', len(primID), primID)
-            print('                  mesh_info: ', len(mesh_info), mesh_info)
-            print('                  scene_info: ', len(scene_info), scene_info)
+#        u = hits["u"][ray_inter]
+#        v = hits["v"][ray_inter]
+#        w = 1 - u - v
+#        try:
+#            hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
+#        except Exception as e:
+#            print(e)
+#            print('WavePropagator: except: ', self.source_idx, self.output_idx)
+#            print('                  primID: ', len(primID), primID)
+#            print('                  mesh_info: ', len(mesh_info), mesh_info)
+#            print('                  scene_info: ', len(scene_info), scene_info)
 
 #        print('hits_coord: ', hits_coord)
 #        dists = hits_coord - source_pos
