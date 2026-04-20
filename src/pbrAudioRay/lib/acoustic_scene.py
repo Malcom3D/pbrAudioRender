@@ -41,7 +41,7 @@ class AcousticScene:
         self.reflection = np.zeros((0,2,n_bands), dtype=np.float32)
         self.scattering = np.zeros((0,2,n_bands), dtype=np.float32)
 
-    def add_info(self, obj_idx: obj_config: Any, int, vertices: np.ndarray, faces: np.ndarray)
+    def add_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray)
         # Get triangle count
         triangle_count = faces.shape[0]
 
