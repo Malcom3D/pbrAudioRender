@@ -196,7 +196,7 @@ class AcousticObject:
             elif len(split_edges_in_face) == 2:
                 # Two edges split - create three triangles
                 # Find the vertex opposite to the unsplit edge
-                unsplit_edge = (set([0,,1,2]) - set(split_edges_in_face)).pop()
+                unsplit_edge = (set([0,1,2]) - set(split_edges_in_face)).pop()
                 v_opposite = face[unsplit_edge]
             
                 # Get the two split vertices
