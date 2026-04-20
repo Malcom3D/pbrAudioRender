@@ -45,7 +45,7 @@ class AcousticObject:
         use_extended_reaction = config.wave_propagation.use_extended_reaction
 
         # If no ADR threshold or no source_pos or output_pos, return full mesh
-        if adr_threshold == None or source_pos == None or output_pos == None:
+        if adr_threshold == None or not isinstance(source_pos, np.ndarray) or isinstance(output_pos, np.ndarray):
             return mesh
 
         # Calculate distances from object to source and output
