@@ -18,58 +18,16 @@
 
 import numpy as np
 import numba as nb
+from typing import Tuple, Optional, List, Any
+from dataclasses import dataclass, field
 
+from ..core.entity_manager import EntityManager
+from ..lib.embree_scene import EmbreeScene
+
+@dataclass
 class RayTracer:
-    """
-    Implements differentiable path tracing for acoustic rendering
-    Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
-    """
-    
-    def __init__(self, entity_manager):
-        self.entity_manager = entity_manager
-        self.config = entity_manager.get('config')
-        
-    def compute_gradient_paths(self, frame_idx):
-        """
-        Compute paths with gradient information for differentiable rendering
-        """
-        # Implementation of Algorithm 1 from the paper
-        paths = self._sample_initial_paths(frame_idx)
-        
-        for bounce in range(self.config.wave_propagation.max_interactions):
-            # Propagate paths
-            paths = self._propagate_paths(paths, frame_idx)
-            
-            # Compute gradients
-            gradients = self._compute_path_gradients(paths)
-            
-            # Apply importance sampling based on gradients
-            paths = self._resample_paths(paths, gradients)
-        
-        return self._accumulate_path_contributions(paths)
-    
-    @nb.njit
-    def _compute_path_gradients(self, paths):
-        """
-        Compute gradients of acoustic properties along paths
-        This enables differentiable rendering for parameter optimization
-        """
-        gradients = []
-        for path in paths:
-            # Compute gradient of energy w.r.t. material parameters
-            grad = np.zeros((len(path.segments), 4))  # [absorption, reflection, scattering, refraction]
-            
-            for i, segment in enumerate(path.segments):
-                # Finite differences for gradient estimation
-                eps = 1e-6
-                
-                # Perturb absorption
-                energy_plus = segment.energy * (1 + eps)
-                energy_minus = segment.energy * (1 - eps)
-                grad[i, 0] = (energy_plus - energy_minus) / (2 * eps)
-                
-                # Similar for other parameters...
-            
-            gradients.append(grad)
-        
-        return gradients
+    entity_manager: EntityManager
+    embree_scene: EmbreeScene
+
+    def __post_init__(self):
+        config = entity_manager.get('config')
