@@ -22,8 +22,6 @@ import trimesh
 from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
-from rigidBody import Pym2f
-
 from ..core.entity_manager import EntityManager
 from ..lib.functions import _load_mesh
 
@@ -37,16 +35,17 @@ class AcousticObject:
     def __post_init__(self):
         self.obj_idx = self.config_obj.idx
 
-    def get_mesh(self, frame_idx: int, source_pos: np.ndarray, output_pos: np.ndarray) -> trimesh.Trimesh:
+    def get_mesh(self, frame_idx: int, source_pos: np.ndarray = None, output_pos: np.ndarray = None) -> trimesh.Trimesh:
         """ Return mesh object geometry refined using ADR if distance from sources and listeners is greater than a threshold """
         vertices, normals, faces = _load_mesh(self.config_obj, frame_idx)
         mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
 
         config = self.entity_manager.get('config')
         adr_threshold = config.system.adr_threshold
+        use_extended_reaction = config.wave_propagation.use_extended_reaction
 
-        # If no ADR threshold, return full mesh
-        if adr_threshold is None:
+        # If no ADR threshold or no source_pos or output_pos, return full mesh
+        if adr_threshold == None or source_pos == None or output_pos == None:
             return mesh
 
         # Calculate distances from object to source and output
@@ -67,6 +66,8 @@ class AcousticObject:
 
         # Return appropriate LOD mesh
         if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
+            if use_extended_reaction:
+                # save resonance_obj for pym2f.compute(obj_idx)
             return simplified
         else:
             return mesh
