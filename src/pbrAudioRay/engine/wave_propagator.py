@@ -77,23 +77,30 @@ class WavePropagator:
         self.first_run(source_pos, directions)
 
     def first_run(self, source_pos: np.ndarray, directions: np.ndarray):
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx)
         scene = self.embree_scene.scene
         scene_info = self.embree_scene.scene_info
         mesh_info = self.embree_scene.mesh_info
+        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(mesh_info))
 
         hits = scene.run(source_pos, directions, output=1)
 
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(primID), primID)
+#        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(primID), primID)
         u = hits["u"][ray_inter]
         v = hits["v"][ray_inter]
         w = 1 - u - v
-        hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        print('hits_coord: ', hits_coord)
-        dists = hits_coord - source_pos
-        delay = dists / 343.4
+        try:
+            hits_coord = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
+        except:
+            print('WavePropagator: except: ', self.source_idx, self.output_idx)
+            print('                  primID: ', len(primID), primID)
+            print('                  mesh_info: ', len(mesh_info), mesh_info)
+            print('                  scene_info: ', len(scene_info), scene_info)
+
+#        print('hits_coord: ', hits_coord)
+#        dists = hits_coord - source_pos
+#        delay = dists / 343.4
 #        print(self.source_idx, self.output_idx, 'delay: ', delay)
 
 #        print('hit: ', self.source_idx, self.output_idx, len(output), len(hits_obj_idx))
