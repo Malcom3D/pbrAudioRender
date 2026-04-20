@@ -68,6 +68,7 @@ class AcousticObject:
         if simplified.is_watertight and simplified.is_volume and simplified.is_winding_consistent:
             if use_extended_reaction:
                 # save resonance_obj for pym2f.compute(obj_idx)
+                pass
             return simplified
         else:
             return mesh
