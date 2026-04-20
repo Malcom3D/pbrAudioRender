@@ -72,10 +72,12 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
+        print('WavePropagator: ', source_ndim, n_dirs, len(source_pos), len(directions))
+
         self.first_run(source_pos, directions)
 
     def first_run(self, source_pos: np.ndarray, directions: np.ndarray):
-        print('WavePropagator: first_run: ', self.source_idx, self.output_idx, len(source_pos), len(directions))
+        print('WavePropagator: first_run: ', self.source_idx, self.output_idx)
         scene = self.embree_scene.scene
         scene_info = self.embree_scene.scene_info
         mesh_info = self.embree_scene.mesh_info
@@ -92,7 +94,7 @@ class WavePropagator:
         print('hits_coord: ', hits_coord)
         dists = hits_coord - source_pos
         delay = dists / 343.4
-        print(self.source_idx, self.output_idx, 'delay: ', delay)
+#        print(self.source_idx, self.output_idx, 'delay: ', delay)
 
 #        print('hit: ', self.source_idx, self.output_idx, len(output), len(hits_obj_idx))
 
