@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
 from ..lib.functions import _acoustic_domain_mesh, _load_pose
+from ..lib.acoustic_scene import AcousticScene
 
 @dataclass
 class EmbreeScene:
@@ -42,34 +43,21 @@ class EmbreeScene:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
-        source_idx, output_idx = self.combo
-        self.src_pos, self.source_mesh = self._get_source_mesh(source_idx)
-        self.out_pos, self.output_mesh = self._get_output_mesh(output_idx)
-
-        # Init store for meshes faces and obj_idx information for SIMD processing
-        self.mesh_info = np.zeros((0,3,3), dtype=np.float32)
-        self.scene_info = np.array([], dtype=np.int32)
-        self.mat_info = {}
-
         # Get frequency bands
-        self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
-        n_bands = len(self.freq_bands)
+        freq_bands = self.entity_manager.get('frequency_bands').get_bands()
 
-        # Init store for acoustiic material info
-        self.sound_speed = np.zeros((0,1), dtype=np.float32)
-        self.density = np.zeros((0,1), dtype=np.float32)
-        self.absorption = np.zeros((0,2,n_bands), dtype=np.float32)
-        self.refraction = np.zeros((0,2,n_bands), dtype=np.float32)
-        self.reflection = np.zeros((0,2,n_bands), dtype=np.float32)
-        self.scattering = np.zeros((0,2,n_bands), dtype=np.float32)
+        # Init store for multi bands fraquencies scene information for SIMD processing
+        self.acoustic_scene = AcousticScene(freq_bands)
 
-        # get the AcousticDomain mesh
-        self.ac_mesh = _acoustic_domain_mesh(config)
+        # get source and output mesh
+        source_idx, output_idx = self.combo
+        src_pos, source_mesh = self._get_source_mesh(source_idx)
+        out_pos, output_mesh = self._get_output_mesh(output_idx)
 
         # Build embrex scene
-        self.scene = self._build_scene(self.src_pos, self.out_pos)
+        self.scene = self._build_scene(src_pos, source_mesh, out_pos, output_mesh)
 
-    def _build_scene(self, src_pos: np.ndarray, out_pos: np.ndarray):
+    def _build_scene(self, src_pos: np.ndarray, source_mesh: trimesh.Trimesh, out_pos: np.ndarray, output_mesh: trimesh.Trimesh):
         """
         Build SIMD-friendly scene representation for Embree ray tracing.
         
@@ -84,20 +72,23 @@ class EmbreeScene:
         config = self.entity_manager.get('config')
         config_objs = config.objects
 
+        # get the AcousticDomain mesh
+        ac_mesh = _acoustic_domain_mesh(config)
+
         embreeDevice = rtc.EmbreeDevice()
         scene = rtcs.EmbreeScene(embreeDevice)
 
         # Add acoustic domain mesh (obj_id = -1)
-        if self.ac_mesh is not None:
-            task_scene = [self._add_mesh_to_scene(scene, self.ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
+        if ac_mesh is not None:
+            task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
         
         # Add source mesh (obj_id = -2)
-        if self.source_mesh is not None:
-            task_scene += [self._add_mesh_to_scene(scene, self.source_mesh, -2, "source")]
+        if source_mesh is not None:
+            task_scene += [self._add_mesh_to_scene(scene, source_mesh, -2, "source")]
         
         # Add output mesh (obj_id = -3)
-        if self.output_mesh is not None:
-            task_scene += [self._add_mesh_to_scene(scene, self.output_mesh, -3, "output")]
+        if output_mesh is not None:
+            task_scene += [self._add_mesh_to_scene(scene, output_mesh, -3, "output")]
         
         # Get all acoustic objects mesh
         task_mesh = []
@@ -145,44 +136,8 @@ class EmbreeScene:
         # Add mesh to Embree scene
         embree_mesh = TriangleMesh(scene, vertices[faces])
         
-        # Get triangle count
-        triangle_count = faces.shape[0]
-
         # Store mesh information for SIMD processing
-        self.scene_info = np.append(self.scene_info, np.full((faces.shape[0],), obj_idx, dtype=np.int32))
-        self.mesh_info = np.append(self.mesh_info, mesh.vertices[mesh.faces], axis=0)
-
-        # Number of frequency bands
-        n_bands = len(self.freq_bands)
-
-        # Get Material Info
-        if obj_idx >= -1:
-            sound_speed = obj_config.acoustic_shader.sound_speed
-            self.sound_speed = np.append(self.sound_speed, np.full((faces.shape[0],), sound_speed, dtype=np.float32))
-            density = obj_config.acoustic_shader.density
-            self.density = np.append(self.density, np.full((faces.shape[0],), density, dtype=np.float32))
-
-        if obj_idx >= 0:
-            # Get Object AcousticShader
-            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
-            coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.absorption = np.append(self.absorption, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
-
-            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.refraction.get_bands_avg(self.freq_bands)
-            coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.refraction = np.append(self.refraction, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
-
-            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.reflection.get_bands_avg(self.freq_bands)
-            coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.reflection = np.append(self.reflection, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
-
-            coeffs, phases = obj_config.acoustic_shader.acoustic_properties.scattering.get_bands_avg(self.freq_bands)
-            coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.scattering = np.append(self.scattering, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
+        self.acoustic_scene.add_info(obj_idx, obj_config, vertices, faces)
 
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):

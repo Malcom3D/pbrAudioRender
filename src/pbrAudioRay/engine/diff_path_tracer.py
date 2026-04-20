@@ -21,13 +21,9 @@ import numba as nb
 from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-from ..lib.embree_scene import EmbreeScene
-
 @dataclass
-class RayTracer:
-    entity_manager: EntityManager
-    embree_scene: EmbreeScene
-
-    def __post_init__(self):
-        config = entity_manager.get('config')
+class DiffPathTracer:
+    """
+    Implements differentiable path tracing for acoustic rendering
+    Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
+    """
