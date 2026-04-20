@@ -51,20 +51,19 @@ class EmbreeScene:
 
         # get source and output mesh
         source_idx, output_idx = self.combo
-        src_pos, source_mesh = self._get_source_mesh(source_idx)
-        out_pos, output_mesh = self._get_output_mesh(output_idx)
+        self.src_pos, source_mesh = self._get_source_mesh(source_idx)
+        self.out_pos, output_mesh = self._get_output_mesh(output_idx)
 
         # Build embrex scene
-        self.scene = self._build_scene(src_pos, source_mesh, out_pos, output_mesh)
+        self.scene = self._build_scene(source_mesh, output_mesh)
 
-    def _build_scene(self, src_pos: np.ndarray, source_mesh: trimesh.Trimesh, out_pos: np.ndarray, output_mesh: trimesh.Trimesh):
+    def _build_scene(self, source_mesh: trimesh.Trimesh, output_mesh: trimesh.Trimesh):
         """
         Build SIMD-friendly scene representation for Embree ray tracing.
         
         Args:
-            src_pos: Source position (3D)
-            out_pos: Output position (3D)
-            config_objs: List of object configurations
+            source_mesh: trimesh.Trimesh source mesh
+            output_mesh: trimesh.Trimesh output mesh
             
         Returns:
             Dictionary containing scene data for efficient ray tracing
@@ -96,7 +95,7 @@ class EmbreeScene:
         for obj_config in config_objs:
             for key in objects.keys():
                 if objects[key].obj_idx == obj_config.idx:
-                    task_mesh += [self._get_obj_mesh(objects[key], obj_config, src_pos, out_pos)]
+                    task_mesh += [self._get_obj_mesh(objects[key], obj_config)]
         meshes_results = compute(*task_mesh)
 
         # Add all acoustic objects with their actual obj_ids
@@ -140,9 +139,9 @@ class EmbreeScene:
         self.acoustic_scene.add_info(obj_idx, obj_config, vertices, faces)
 
     @delayed
-    def _get_obj_mesh(self, object: Any, obj_config: Any, src_pos: np.ndarray, out_pos: np.ndarray):
+    def _get_obj_mesh(self, object: Any, obj_config: Any):
         """ Get mesh object geometry with LOD from AcousticObject """
-        mesh = object.get_mesh(self.frame_idx, src_pos, out_pos)
+        mesh = object.get_mesh(self.frame_idx, self.src_pos, self.out_pos)
         return mesh, obj_config.idx, obj_config.name
 
     def _get_source_mesh(self, source_idx: int): 
