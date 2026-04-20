@@ -26,7 +26,6 @@ from ..lib.embree_scene import EmbreeScene
 
 @dataclass
 class RayTracer:
-    entity_manager: EntityManager
     scene: Any # embreex.rtcore_scene.EmbreeScene
 
     def __post_init__(self):
