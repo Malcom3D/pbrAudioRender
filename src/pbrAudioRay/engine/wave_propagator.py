@@ -89,14 +89,14 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        self.compute_loop(source_pos, directions)
+        self.compute_loop(source_pos, output_pos, directions)
 
     def compute_loop(self, source_pos: np.ndarray, output_pos: np.ndarray, directions: np.ndarray):
         hits = self.ray_tracer.compute(source_pos, directions)
         next_source_pos, next_directions = self.diff_path_tracer.compute(hits, source_pos, output_pos)
 
         if not next_source_pos and not next_directions:
-            self.compute_loop(next_source_pos, next_directions)
+            self.compute_loop(next_source_pos, output_pos, next_directions)
 
         print('WavePropagator: compute_loop end')
 
