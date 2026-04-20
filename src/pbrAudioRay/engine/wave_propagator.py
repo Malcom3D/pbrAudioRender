@@ -25,8 +25,8 @@ from dataclasses import dataclass
 
 from ..core.entity_manager import EntityManager
 
-from ..core.ray_tracer import RayTracer
-from ..core.diff_path_tracer import DiffPathTracer
+from ..engine.ray_tracer import RayTracer
+from ..engine.diff_path_tracer import DiffPathTracer
 
 from ..lib.embree_scene import EmbreeScene
 from ..lib.acoustic_ray import AcousticRay
@@ -93,9 +93,9 @@ class WavePropagator:
 
     def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray):
         hits = self.ray_tracer.compute(source_pos, directions)
-        source_pos, directions = self.diff_path_tracer.compute(hits)
+        next_source_pos, next_directions = self.diff_path_tracer.compute(hits)
 
-        self.compute_loop(source_pos, directions)
+        self.compute_loop(next_source_pos, next_directions)
 
 #        scene = self.embree_scene.scene
 #        scene_info = self.embree_scene.scene_info
