@@ -95,7 +95,8 @@ class WavePropagator:
         hits = self.ray_tracer.compute(source_pos, directions)
         next_source_pos, next_directions = self.diff_path_tracer.compute(hits, source_pos, output_pos)
 
-        if not next_source_pos and not next_directions:
+        print(len(next_source_pos), len(next_directions))
+        if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             self.compute_loop(next_source_pos, output_pos, next_directions)
 
         print('WavePropagator: compute_loop end')
