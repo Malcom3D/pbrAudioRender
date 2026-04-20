@@ -40,8 +40,8 @@ class DiffPathTracer:
         v = hits["v"][ray_inter]
         w = 1 - u - v
         next_source_pos = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        print('DiffPathTracer: ', len(source_pos), len(next_source_pos))
         dists = next_source_pos - source_pos
+        print('DiffPathTracer: ', len(dists), len(source_pos), len(next_source_pos))
         delay = dists / 343.4
         output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
 
