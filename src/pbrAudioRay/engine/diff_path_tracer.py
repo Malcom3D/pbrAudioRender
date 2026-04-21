@@ -60,7 +60,8 @@ class DiffPathTracer:
  
         # filter raw hit coords and pos from output, source and acoustic domain
         output_ray = raw_source_pos[mask_output]
-        next_source_pos = next_source_pos[mask_non_negative]
+        next_source_pos = raw_source_pos[mask_non_negative]
+
         dists = raw_dists[mask_non_negative]
         hit_obj_idx = scene_info[mask_non_negative]
 
