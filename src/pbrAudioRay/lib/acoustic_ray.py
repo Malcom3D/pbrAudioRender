@@ -26,7 +26,7 @@ class AcousticRay:
     """Ray data structure for multiple frequency bands with SIMD optimization"""
     n_rays: int
     n_freq_bands: int
-    max_depth:: int = 10
+    max_depth: int = 10
     
     def __post_init__(self):
         """
