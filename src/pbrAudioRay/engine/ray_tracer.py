@@ -22,7 +22,6 @@ from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
-from ..lib.embree_scene import EmbreeScene
 
 @dataclass
 class RayTracer:

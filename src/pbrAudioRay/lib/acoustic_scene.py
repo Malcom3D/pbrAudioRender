@@ -41,7 +41,18 @@ class AcousticScene:
         self.reflection = np.zeros((0,2,n_bands), dtype=np.float32)
         self.scattering = np.zeros((0,2,n_bands), dtype=np.float32)
 
-    def add_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray):
+        # Init ASO store for acoustic source and output
+        self.aso_pos = np.zeros((num_objects, 3), dtype=np.float32)
+        self.aso_medium = np.zeros(num_objects, dtype=np.int32)
+        self.aso_radius = np.empty(num_objects, dtype=np.float32)
+
+    def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
+        idx = 0 if aso_id == -2 else 1
+        self.aso_pos[idx] = position.tolist()
+        self.aso_medium[idx] = medium_idx
+        self.aso_radius[idx] = radius if not radius == None else np.nan
+
+    def add_mesh_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray):
         n_bands = len(self.freq_bands)
         # Get triangle count
         triangle_count = faces.shape[0]
