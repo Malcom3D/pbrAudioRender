@@ -33,6 +33,14 @@ class DiffPathTracer:
     def compute(self, hits: Any):
         mesh_info = self.acoustic_scene.mesh_info
         scene_info = self.acoustic_scene.scene_info
+
+        sound_speed = self.acoustic_scene.sound_speed
+        density = self.acoustic_scene.density
+        absorption = self.acoustic_scene.absorption
+        refraction = self.acoustic_scene.refraction
+        reflection = self.acoustic_scene.reflection
+        scattering = self.acoustic_scene.scattering
+
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
 
@@ -41,34 +49,34 @@ class DiffPathTracer:
         u = hits["u"][ray_inter]
         v = hits["v"][ray_inter]
         w = 1 - u - v
-        next_source_pos = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        dists = next_source_pos - source_pos
-        print('DiffPathTracer: ', len(dists), len(source_pos), len(next_source_pos))
-        delay = dists / 343.4
-        output, hits_obj_idx = self._find_output_and_obj_idx(scene_info[primID])
+
+        # compute raw hit coords and dists
+        raw_source_pos = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
+        raw_dists = next_source_pos - source_pos
+
+        mask_non_negative = (scene_info[primID] >= 0)
+        mask_from_ac = (scene_info[primID] >= -1)
+        mask_output = (scene_info[primID] == -3)
+ 
+        # filter raw hit coords and pos from output, source and acoustic domain
+        output_ray = raw_source_pos[mask_output]
+        next_source_pos = next_source_pos[mask_non_negative]
+        dists = raw_dists[mask_non_negative]
+        hit_obj_idx = scene_info[mask_non_negative]
+
+        obj_sound_speed = sound_speed[mask_from_ac]
+        obj_density = density[mask_from_ac]
+        obj_absorption = absorption[mask_from_ac]
+        obj_refraction = refraction[mask_from_ac]
+        obj_reflection = reflection[mask_from_ac]
+        obj_scattering = scattering[mask_from_ac]
+
+        delay = dists / obj_sound_speed
 
         n_dirs = next_source_pos.shape[0]
-        next_directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
+        next_directions = self._generate_isotropic_directions(next_source_pos, output_pos, n_dirs)
 
         return next_source_pos, next_directions
-
-    @staticmethod
-    @nb.njit(fastmath=True)
-    def _find_output_and_obj_idx(raw_obj_idx):
-        """
-        Optimized version using boolean masks. 
-        """
-        arr = np.asarray(raw_obj_idx, dtype=np.int32)
-
-        # Create boolean masks (SIMD operations)
-        mask_minus_three = (arr == -3)
-        mask_non_negative = (arr >= 0)
-
-        # Get indices from masks
-        indices_output = np.flatnonzero(mask_minus_three)
-        indices_obj_idx = np.flatnonzero(mask_non_negative)
-
-        return indices_output, indices_obj_idx
 
     def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
         """
