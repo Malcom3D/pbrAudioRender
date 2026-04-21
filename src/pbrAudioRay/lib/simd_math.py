@@ -338,3 +338,61 @@ def importance_resample_batch(rays: np.ndarray, gradients: np.ndarray, target_co
         indices[i] = min(idx, n_rays - 1)
 
     return indices
+
+# Additional SIMD-optimized functions for ./lib/simd_math.py
+
+@nb.njit(fastmath=True, parallel=True, cache=True)
+def compute_acoustic_transfer_batch(origins: np.ndarray, directions: np.ndarray,
+                                   frequencies: np.ndarray, sound_speed: float,
+                                   distances: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Compute acoustic transfer function for batch of rays.
+    Returns (transfer_magnitude, transfer_phase)
+    """
+    n_rays, n_bands = origins.shape[0], frequencies.shape[0]
+    magnitude = np.ones((n_rays, n_bands), dtype=np.float32)
+    phase = np.zeros((n_rays, n_bands), dtype=np.float32)
+    
+    for i in nb.prange(n_rays):
+        for k in range(n_bands):
+            # Inverse square law for magnitude
+            if distances[i] > 0:
+                magnitude[i, k] = 1.0 / (distances[i] * distances[i])
+            
+            # Phase shift due to propagation
+            phase[i, k] = 2.0 * np.pi * frequencies[k] * distances[i] / sound_speed
+    
+    return magnitude, phase
+
+@nb.njit(fastmath=True, cache=True)
+def importance_sample_directions_batch(current_dirs: np.ndarray, gradients: np.ndarray,
+                                      n_samples: int, temperature: float = 1.0) -> np.ndarray:
+    """
+    Importance sample new directions based on gradients.
+    """
+    n_rays = current_dirs.shape[0]
+    new_dirs = np.zeros((n_rays, n_samples, 3), dtype=np.float32)
+    
+    for i in range(n_rays):
+        # Compute gradient magnitude as importance weight
+        grad_mag = np.sqrt(np.sum(gradients[i]**2))
+        
+        # Generate samples biased by gradient direction
+        for j in range(n_samples):
+            # Base direction influenced by gradient
+            if grad_mag > 1e-6:
+                grad_dir = gradients[i] / grad_mag
+                # Add noise with temperature control
+                noise = temperature * np.random.randn(3)
+                sample_dir = current_dirs[i] + 0.1 * grad_dir + 0.05 * noise
+            else:
+                # Isotropic sampling if no gradient
+                sample_dir = np.random.randn(3)
+            
+            # Normalize
+            norm = np.sqrt(np.sum(sample_dir**2))
+            if norm > 1e-6:
+                new_dirs[i, j] = sample_dir / norm
+    
+    return new_dirs
+
