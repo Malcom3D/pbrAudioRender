@@ -78,7 +78,8 @@ class DiffPathTracer:
         next_positions, next_directions = self._process_hits(
             valid_geom_ids, valid_prim_ids, valid_u, valid_v
         )
-        
+
+        print('next_positions: ', next_positions.shape, 'next_directions: ', next_directions.shape)
         return next_positions, next_directions
     
     def _process_hits(self, geom_ids: np.ndarray, prim_ids: np.ndarray, u_coords: np.ndarray, v_coords: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
