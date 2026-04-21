@@ -52,7 +52,7 @@ class DiffPathTracer:
 
         # compute raw hit coords and dists
         raw_source_pos = (np.vstack(w) * mesh_info[primID][:, 0, :] + np.vstack(u) * mesh_info[primID][:, 1, :] + np.vstack(v) * mesh_info[primID][:, 2, :])
-        raw_dists = next_source_pos - source_pos
+        raw_dists = raw_source_pos - source_pos
 
         mask_non_negative = (scene_info[primID] >= 0)
         mask_from_ac = (scene_info[primID] >= -1)
