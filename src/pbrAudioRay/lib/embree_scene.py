@@ -98,6 +98,8 @@ class EmbreeScene:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config)]
         meshes_results = compute(*task_mesh)
 
+        print('self.src_pos shape', self.src_pos.shape)
+        print('self.out_pos shape', self.out_pos.shape)
         src_medium, out_medium = (np.nan for _ in range(2))
         for obj_mesh, obj_idx, name in meshes_results:
             # Check if source and output points is inside the mesh and add all acoustic objects with their actual obj_ids
