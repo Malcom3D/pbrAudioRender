@@ -72,7 +72,7 @@ class AcousticRay:
         self.hit = np.zeros(n_rays, dtype=np.bool_)
         self.distance = np.full(n_rays, np.inf, dtype=np.float32)
         self.object_idx = np.full(n_rays, -1, dtype=np.int32)
-        self..face_idx = np.full(n_rays, -1, dtype=np.int32)
+        self.face_idx = np.full(n_rays, -1, dtype=np.int32)
         self.barycentric = np.zeros((n_rays, 3), dtype=np.float32)
         self.normal = np.zeros((n_rays, 3), dtype=np.float32)
         self.point = np.zeros((n_rays, 3), dtype=np.float32)
