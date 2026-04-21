@@ -30,9 +30,11 @@ class DiffPathTracer:
     acoustic_scene: Any # AcousticScene
     acoustic_rays: Any # AcousticRay
 
-    def compute(self, hits: Any, source_pos: np.ndarray, output_pos: np.ndarray):
+    def compute(self, hits: Any):
         mesh_info = self.acoustic_scene.mesh_info
         scene_info = self.acoustic_scene.scene_info
+        source_pos = self.acoustic_scene.aso_pos[0]
+        output_pos = self.acoustic_scene.aso_pos[1]
 
         ray_inter = hits["geomID"] >= 0
         primID = hits["primID"][ray_inter]

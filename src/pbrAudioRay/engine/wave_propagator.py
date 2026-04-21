@@ -91,13 +91,13 @@ class WavePropagator:
 
         self.compute_loop(source_pos, output_pos, directions)
 
-    def compute_loop(self, source_pos: np.ndarray, output_pos: np.ndarray, directions: np.ndarray):
+    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray):
         hits = self.ray_tracer.compute(source_pos, directions)
-        next_source_pos, next_directions = self.diff_path_tracer.compute(hits, source_pos, output_pos)
+        next_source_pos, next_directions = self.diff_path_tracer.compute(hits)
 
         print(len(next_source_pos), len(next_directions))
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
-            self.compute_loop(next_source_pos, output_pos, next_directions)
+            self.compute_loop(next_source_pos, next_directions)
 
         print('WavePropagator: compute_loop end')
 

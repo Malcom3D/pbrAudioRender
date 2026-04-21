@@ -98,8 +98,22 @@ class EmbreeScene:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config)]
         meshes_results = compute(*task_mesh)
 
-        # Add all acoustic objects with their actual obj_ids
+        src_medium, out_medium = (np.nan for _ in range(2))
         for obj_mesh, obj_idx, name in meshes_results:
+            # Check if source and output points is inside the mesh and add all acoustic objects with their actual obj_ids
+            if obj_mesh.is_watertight:
+                if mesh.contains(self.src_pos) and src_medium == np.nan:
+                    # Store mesh information for SIMD processing
+                    src_medium = obj_idx
+                    if source_mesh and hasattr(source_mesh.metadata, 'radius'):
+                        src_radius = mesh.metadata['radius']
+                    self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
+                if mesh.contains(self.out_pos) and out_medium == np.nan:
+                    out_medium = obj_idx
+                    if output_mesh and hasattr(output_mesh.metadata, 'radius'):
+                        out_radius = mesh.metadata['radius']
+                    self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
+
             task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name, obj_config)]
 
         # Finalize scene building
@@ -136,7 +150,7 @@ class EmbreeScene:
         embree_mesh = TriangleMesh(scene, vertices[faces])
         
         # Store mesh information for SIMD processing
-        self.acoustic_scene.add_info(obj_idx, obj_config, vertices, faces)
+        self.acoustic_scene.add_mesh_info(obj_idx, obj_config, vertices, faces)
 
     @delayed
     def _get_obj_mesh(self, object: Any, obj_config: Any):
