@@ -97,7 +97,8 @@ class WavePropagator:
 
         print(len(next_source_pos), len(next_directions))
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
-            self.compute_loop(next_source_pos, next_directions)
+            if next_source_pos.shape[0] == 0 and next_directions.shape[0] == 0:
+                self.compute_loop(next_source_pos, next_directions)
 
         print('WavePropagator: compute_loop end')
 
