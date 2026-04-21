@@ -339,8 +339,6 @@ def importance_resample_batch(rays: np.ndarray, gradients: np.ndarray, target_co
 
     return indices
 
-# Additional SIMD-optimized functions for ./lib/simd_math.py
-
 @nb.njit(fastmath=True, parallel=True, cache=True)
 def compute_acoustic_transfer_batch(origins: np.ndarray, directions: np.ndarray,
                                    frequencies: np.ndarray, sound_speed: float,
