@@ -89,7 +89,7 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        self.compute_loop(source_pos, output_pos, directions)
+        self.compute_loop(source_pos, directions)
 
     def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray):
         hits = self.ray_tracer.compute(source_pos, directions)
