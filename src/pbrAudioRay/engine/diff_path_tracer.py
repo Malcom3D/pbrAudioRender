@@ -75,9 +75,7 @@ class DiffPathTracer:
         valid_v = v_coords[valid_hits]
         
         # Process hits to determine next ray origins and directions
-        next_positions, next_directions = self._process_hits(
-            valid_geom_ids, valid_prim_ids, valid_u, valid_v
-        )
+        next_positions, next_directions = self._process_hits(valid_geom_ids, valid_prim_ids, valid_u, valid_v)
 
         print('next_positions: ', next_positions.shape, 'next_directions: ', next_directions.shape)
         return next_positions, next_directions
@@ -147,10 +145,7 @@ class DiffPathTracer:
                     normal = normal / norm_length
                 
                 # Generate new rays based on material properties
-                new_pos, new_dirs = self._generate_scattered_rays(
-                    hit_point, normal, absorption, reflection, 
-                    refraction, scattering, obj_idx
-                )
+                new_pos, new_dirs = self._generate_scattered_rays(hit_point, normal, absorption, reflection, refraction, scattering, obj_idx)
                 
                 if new_pos is not None and new_dirs is not None:
                     next_positions.append(new_pos)
@@ -166,10 +161,7 @@ class DiffPathTracer:
         
         return next_positions, next_directions
     
-    def _generate_scattered_rays(self, hit_point: np.ndarray, normal: np.ndarray,
-                                absorption: np.ndarray, reflection: np.ndarray,
-                                refraction: np.ndarray, scattering: np.ndarray,
-                                obj_idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_scattered_rays(self, hit_point: np.ndarray, normal: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate scattered rays based on material properties.
         
@@ -200,8 +192,7 @@ class DiffPathTracer:
         directions = self._sample_hemisphere(normal, n_rays)
         
         # Apply material coefficients to ray energy
-        self._apply_material_coefficients(directions, absorption, reflection, 
-                                         refraction, scattering, obj_idx)
+        self._apply_material_coefficients(directions, absorption, reflection, refraction, scattering, obj_idx)
         
         return positions, directions
     
@@ -242,10 +233,7 @@ class DiffPathTracer:
         
         return directions
     
-    def _apply_material_coefficients(self, directions: np.ndarray,
-                                    absorption: np.ndarray, reflection: np.ndarray,
-                                    refraction: np.ndarray, scattering: np.ndarray,
-                                    obj_idx: int):
+    def _apply_material_coefficients(self, directions: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int):
         """
         Apply material coefficients to ray directions and energies.
         
