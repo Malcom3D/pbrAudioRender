@@ -144,7 +144,7 @@ class AcousticRay:
             if distances[i] > 0:
                 # Apply inverse square law
                 attenuation = 1.0 / (distances[i] * distances[i])
-                updated_energies[i[i] *= attenuation
+                updated_energies[i] *= attenuation
                 
                 # Apply phase shift
                 for j in range(n_bands):
