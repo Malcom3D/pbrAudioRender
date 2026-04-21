@@ -42,9 +42,10 @@ class AcousticScene:
         self.scattering = np.zeros((0,2,n_bands), dtype=np.float32)
 
         # Init ASO store for acoustic source and output
-        self.aso_pos = np.zeros((num_objects, 3), dtype=np.float32)
-        self.aso_medium = np.zeros(num_objects, dtype=np.int32)
-        self.aso_radius = np.empty(num_objects, dtype=np.float32)
+        num_aso = 2
+        self.aso_pos = np.zeros((num_aso, 3), dtype=np.float32)
+        self.aso_medium = np.zeros(num_aso, dtype=np.int32)
+        self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
     def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
         idx = 0 if aso_id == -2 else 1
