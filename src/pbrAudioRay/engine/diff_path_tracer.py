@@ -81,8 +81,7 @@ class DiffPathTracer:
         
         return next_positions, next_directions
     
-    def _process_hits(self, geom_ids: np.ndarray, prim_ids: np.ndarray, 
-                     u_coords: np.ndarray, v_coords: np.ndarray)) -> Tuple[np.ndarray, np.ndarray]:
+    def _process_hits(self, geom_ids: np.ndarray, prim_ids: np.ndarray, u_coords: np.ndarray, v_coords: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Process ray hits and generate new rays based on material properties.
         
