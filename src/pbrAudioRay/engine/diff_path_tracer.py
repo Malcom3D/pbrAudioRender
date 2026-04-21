@@ -60,8 +60,8 @@ class DiffPathTracer:
 
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
-        u = hits["u"]
-        v = hits["v"]
+        u_coords = hits["u"]
+        v_coords = hits["v"]
 
         # Filter rays that hit something
         valid_hits = geom_ids >= 0
