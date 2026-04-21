@@ -196,7 +196,7 @@ class DiffPathTracer:
         return positions, directions
     
     @staticmethod
-    @nb.njit(fastmath=True)
+#    @nb.njit(fastmath=True)
     def _sample_hemisphere(normal: np.ndarray, n_samples: int) -> np.ndarray:
         """
         Sample directions on a hemisphere oriented along the normal.
