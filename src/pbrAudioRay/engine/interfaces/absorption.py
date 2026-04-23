@@ -23,43 +23,20 @@ from dask import delayed, compute
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from ...core.entity_manager import EntityManager
 from ...lib.acoustic_shader import AcousticShader
 from ...lib.ray_data import RayData
 
 @dataclass
 class AbsorptionInterface:
-    entity_manager: EntityManager
+    acoustic_rays: Any
 
     @delayed
-    def compute(self, ray: RayData):
-        """Apply frequency-dependent absorption."""
-        # get fraquency bands
-        frequency_bands = self.entity_manager.get('frequency_bands')
-        freq_bands = frequency_bands.get_bands()
-
-        # Get ray data
-        low_freq, high_freq = freq_bands[ray.bands_idx]
-        shader = ray.medium.acoustic_shader
-
-        # Absorption: reduce energy
-        if ray.medium.type == 'world':
-            coeff, phase = self.get_ac_avg_coeffs(low_freq, high_freq, ray.length, shader)
-            ray.energy *= (1 - coeff)
-            if not phase == None:
-                ray.phase = np.angle(np.exp(1j * (ray.phase + phase)))
-
-        elif hasattr(shader, 'acoustic_properties') and not shader.acoustic_properties.absorption == None:
-            coeff, phase = shader.acoustic_properties.absorption.get_avg_coeffs(low_freq, high_freq)
-            ray.energy *= (1 - coeff)
-            if not phase == None:
-                ray.phase = np.angle(np.exp(1j * (ray.phase + phase)))
-
-        return ray
+    def compute(self, hit_points: np.ndarray, absorption: np.ndarray, hit_objects: np.ndarray, angle_factors: np.ndarray):
+        """Apply frequency-dependent, incident angle dependent absorption."""
 
     def get_ac_avg_coeffs(self, low_freq: float, high_freq: float, distance: float, shader: AcousticShader, humidity: float = 50.0) -> Dict[str, np.ndarray]:
         """
-        Compute frequency-dependent attenuation coefficients and spatial phase shift for a spherical sound source.
+        Compute frequency-dependent attenuation coefficients and spatial phase shift for a spherical sound source in acoustic domain.
     
         Parameters:
         -----------

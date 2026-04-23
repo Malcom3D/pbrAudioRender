@@ -18,8 +18,11 @@
 
 import numpy as np
 import numba as nb
+from dask import delayed, compute
 from typing import Tuple, Optional, List, Any, Dict
 from dataclasses import dataclass, field
+
+from engine.interface import InterfaceManager
 
 @dataclass
 class DiffPathTracer:
@@ -28,14 +31,16 @@ class DiffPathTracer:
     Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
     """
     acoustic_scene: Any  # AcousticScene
-    acoustic_rays: Any   # AcousticRay
     
     def __post_init__(self):
         # Initialize counters
         self.ray_count = 0
-        self.max_depth = 10
-        
-    def compute(self, hits: Dict) -> Tuple[np.ndarray, np.ndarray]:
+        self.current_interactions = 0
+        self.max_interactions = self.acoustic_rays.max_interactions
+        self.interface = InterfaceManager(self.acoustic_scene.freq_bands)
+
+    @delayed
+    def compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
         """
         Process ray hits and generate new rays for next bounce.
         
@@ -45,6 +50,12 @@ class DiffPathTracer:
         Returns:
             Tuple of (next_source_positions, next_directions)
         """
+
+        if self.current_interactions == self.max_interactions -1:
+            next_positions = np.array([])
+            next_directions = np.array([])
+
+        # Get scene data
         mesh_info = self.acoustic_scene.mesh_info
         scene_info = self.acoustic_scene.scene_info
 
@@ -58,98 +69,75 @@ class DiffPathTracer:
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
 
+        source_medium = self.acoustic_scene.aso_medium[0]
+        output_medium = self.acoustic_scene.aso_medium[1]
+
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
-        u_coords = hits["u"]
-        v_coords = hits["v"]
 
         # Filter rays that hit something
         valid_hits = geom_ids >= 0
         if not np.any(valid_hits):
             return np.array([]), np.array([])
         
+        u = hits["u"][valid_hits]
+        v = hits["v"][valid_hits]
+        w = 1 - u - v
+
         # Get valid hit data
         valid_geom_ids = geom_ids[valid_hits]
         valid_prim_ids = prim_ids[valid_hits]
-        valid_u = u_coords[valid_hits]
-        valid_v = v_coords[valid_hits]
+        valid_hit_coords = hit_coords[valid_hits]
         
-        # Process hits to determine next ray origins and directions
-        next_positions, next_directions = self._process_hits(valid_geom_ids, valid_prim_ids, valid_u, valid_v)
-
-        return next_positions, next_directions
-    
-    def _process_hits(self, geom_ids: np.ndarray, prim_ids: np.ndarray, u_coords: np.ndarray, v_coords: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Process ray hits and generate new rays based on material properties.
-        
-        Args:
-            geom_ids: Geometry IDs of hits
-            prim_ids: Primitive IDs of hits
-            u_coords: Barycentric u coordinates
-            v_coords: Barycentric v coordinates
-            
-        Returns:
-            Tuple of (next_positions, next_directions)
-        """
         n_hits = len(geom_ids)
         
         # Initialize arrays for next ray data
         next_positions = []
         next_directions = []
         
-        # Get scene data
-        mesh_info = self.acoustic_scene.mesh_info
-        scene_info = self.acoustic_scene.scene_info
-        
-        # Process each hit
-        for i in range(n_hits):
-            geom_id = geom_ids[i]
-            prim_id = prim_ids[i]
-            u = u_coords[i]
-            v = v_coords[i]
-            w = 1.0 - u - v
-            
-            # Get hit triangle vertices
-            triangle = mesh_info[prim_id]
-            v0, v1, v2 = triangle[0], triangle[1], triangle[2]
-            
-            # Compute hit point using barycentric coordinates
-            hit_point = w * v0 + u * v1 + v * v2
-            
-            # Get object index from scene info
-            obj_idx = scene_info[prim_id]
-            
-            # Handle different object types
-            if obj_idx == -3:  # Output hit - store for IR and stop tracing
-                self._store_output_hit(hit_point, prim_id)
-                continue
-            elif obj_idx == -2:  # Source hit - discard
-                continue
-            elif obj_idx == -1:  # Acoustic domain hit - lost
-                continue
-            else:  # Object hit - generate new rays
-                # Get material properties
-                absorption = self.acoustic_scene.absorption[prim_id]
-                reflection = self.acoustic_scene.reflection[prim_id]
-                refraction = self.acoustic_scene.refraction[prim_id]
-                scattering = self.acoustic_scene.scattering[prim_id]
-                
-                # Compute triangle normal
-                edge1 = v1 - v0
-                edge2 = v2 - v0
-                normal = np.cross(edge1, edge2)
-                norm_length = np.linalg.norm(normal)
-                if norm_length > 1e-12:
-                    normal = normal / norm_length
-                
-                # Generate new rays based on material properties
-                new_pos, new_dirs = self._generate_scattered_rays(hit_point, normal, absorption, reflection, refraction, scattering, obj_idx)
-                
-                if new_pos is not None and new_dirs is not None:
-                    next_positions.append(new_pos)
-                    next_directions.append(new_dirs)
-        
+        triangle = mesh_info[prim_id]
+        a = triangle[:, 0, :]
+        b = triangle[:, 1, :]
+        c = triangle[:, 2, :]
+
+        # Compute hit point using barycentric coordinates
+        hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
+
+        # Compute 
+        # Get object index from scene info
+        hit_obj_idx = scene_info[prim_id]
+        output_mask = (hit_obj_idx == -3)
+        intersect_mask = (hit_obj_idx >= 0)
+        hit_output = hit_obj_idx[output_mask]
+        hit_objects = hit_obj_idx[intersect_mask]
+        self._store_output_hit(hit_point, prim_id)
+ 
+        # Get material properties
+        absorption = absorption[intersect_mask][:,:,bands_idx]
+        reflection = reflection[intersect_mask][:,:,bands_idx]
+        refraction = refraction[intersect_mask][:,:,bands_idx]
+        scattering = scattering[intersect_mask][:,:,bands_idx]
+
+        # Compute triangle normal using np.cross with broadcasting
+        normals = np.cross(b-a, c-a)
+
+        # Normalize (avoid division by zero)
+        normals = np.linalg.norm(normals, axis=1, keepdims=True)
+
+        # Add small epsilon to avoid division by zero
+        normals = np.maximum(normals, 1e-12)
+
+        # Compute interaction with InterfaceManager
+        if self.max_interactions == 0:
+            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx, source_medium)
+        else:
+            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx)
+
+        # Generate new rays based on material properties
+        next_positions, next_directions = self._generate_scattered_rays(hit_points, normals, absorption, reflection, refraction, scattering, hit_objects)
+
+        # Record computed data to AcoustiRay
+
         # Convert lists to arrays
         if next_positions:
             next_positions = np.vstack(next_positions)
@@ -158,20 +146,22 @@ class DiffPathTracer:
             next_positions = np.array([])
             next_directions = np.array([])
         
-        return next_positions, next_directions
-    
-    def _generate_scattered_rays(self, hit_point: np.ndarray, normal: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int) -> Tuple[np.ndarray, np.ndarray]:
+        self.current_interactions += 1
+
+        return next_source_pos, next_directions, bands_idx, ray_data
+
+    def _generate_scattered_rays(self, hit_points: np.ndarray, normals: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate scattered rays based on material properties.
         
         Args:
-            hit_point: Point of intersection
-            normal: Surface normal at hit point
+            hit_points: Point of intersection
+            normals: Surface normals at hit points
             absorption: Absorption coefficients
             reflection: Reflection coefficients
             refraction: Refraction coefficients
             scattering: Scattering coefficients
-            obj_idx: Object index
+            hit_objects: Objects index
             
         Returns:
             Tuple of (positions, directions) for new rays
@@ -189,7 +179,7 @@ class DiffPathTracer:
         
         # Generate random directions on hemisphere
         directions = self._sample_hemisphere(normal, n_rays)
-        
+
         # Apply material coefficients to ray energy
         self._apply_material_coefficients(directions, absorption, reflection, refraction, scattering, obj_idx)
         
@@ -208,21 +198,13 @@ class DiffPathTracer:
         Returns:
             Array of sampled directions
         """
-        directions = np.zeros((n_samples, 3), dtype=np.float32)
-        
-        for i in range(n_samples):
-            # Generate random point on unit sphere
-            while True:
-                x = np.random.uniform(-1, 1)
-                y = np.random.uniform(-1, 1)
-                z = np.random.uniform(-1, 1)
-                
-                if x*x + y*y + z*z < 1.0:
-                    break
-            
+        directions = np.random.uniform(-1,1,(n_samples,3))
+
+        while not np.all(directions[:, 0]**2 + directions[:, 1]**2 + directions[:, 2]**2 < 1):
+            directions = np.random.uniform(-1,1,(n_samples,3))
+
             # Project onto hemisphere oriented along normal
-            dir_vec = np.array([x, y, z])
-            dir_vec = dir_vec / np.linalg.norm(dir_vec)
+            directions /= np.linalg.norm(directions)
             
             # Flip if pointing away from normal
             if np.dot(dir_vec, normal) < 0:
@@ -231,7 +213,7 @@ class DiffPathTracer:
             directions[i] = dir_vec
         
         return directions
-    
+
     def _apply_material_coefficients(self, directions: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int):
         """
         Apply material coefficients to ray directions and energies.
@@ -265,3 +247,40 @@ class DiffPathTracer:
         
         # For now, just increment counter
         self.ray_count += 1
+
+    def _compute_incident_angles(ray_directions, intersection_points, normals):
+        """
+        Compute incident angles for rays intersecting with surfaces.
+    
+        Parameters:
+        -----------
+        ray_directions : numpy.ndarray
+            Direction vectors of rays, shape (n_rays, 3)
+        intersection_points : numpy.ndarray
+            Points of intersection, shape (n_rays, 3)
+        normals : numpy.ndarray
+            Surface normals at intersection points, shape (n_rays, 3)
+    
+        Returns:
+        --------
+        incident_angles : numpy.ndarray
+            Incident angles in radians, shape (n_rays,)
+        """
+        # Normalize the ray direction vectors
+        ray_directions_normalized = ray_directions / np.linalg.norm(ray_directions, axis=1, keepdims=True)
+    
+        # Normalize the normals
+        normals_normalized = normals / np.linalg.norm(normals, axis=1, keepdims=True)
+    
+        # Compute the dot product between ray direction and normal
+        # Note: We use the negative of ray direction since incident angle is measured
+        # between the incoming ray and the surface normal
+        dot_products = np.sum(-ray_directions_normalized * normals_normalized, axis=1)
+    
+        # Clamp dot products to [-1, 1] to avoid numerical issues
+        dot_products = np.clip(dot_products, -1.0, 1.0)
+    
+        # Compute incident angles (arccos of dot product)
+        incident_angles = np.arccos(dot_products)
+    
+        return incident_angles

@@ -25,7 +25,7 @@ from dataclasses import dataclass
 class AcousticRay:
     """Ray data structure for multiple frequency bands with SIMD optimization"""
     n_rays: int
-    n_freq_bands: int
+    n_bands: int
     max_depth: int = 10
     
     def __post_init__(self):
@@ -33,12 +33,12 @@ class AcousticRay:
         Initialize ray data structure for vectorized operations.
         """
         n_rays = self.n_rays
-        n_freq_bands = self.n_freq_bands
+        n_bands = self.n_bands
         max_depth = self.max_depth
         
         # Ray origin and direction (SIMD-friendly layout)
-        self.origins = np.zeros((n_rays, 3), dtype=np.float32)
-        self.directions = np.zeros((n_rays, 3), dtype=np.float32)
+        self.origins = np.zeros((n_rays, n_bands, 3), dtype=np.float32)
+        self.directions = np.zeros((n_rays, n_bands, 3), dtype=np.float32)
         
         # Ray state
         self.active = np.ones(n_rays, dtype=np.bool_)
@@ -46,13 +46,13 @@ class AcousticRay:
         self.path_length = np.zeros(n_rays, dtype=np.float32)
         
         # Frequency-dependent properties
-        self.energy = np.ones((n_rays, n_freq_bands), dtype=np.complex64)
-        self.phase = np.zeros((n_rays, n_freq_bands), dtype=np.float32)
+        self.energy = np.ones((n_rays, n_bands), dtype=np.complex64)
+        self.phase = np.zeros((n_rays, n_bands), dtype=np.float32)
         
         # Material interaction history
         self.interaction_count = np.zeros(n_rays, dtype=np.int32)
         self.interaction_types = np.zeros((n_rays, max_depth), dtype=np.int32)
-        self.interaction_coeffs = np.zeros((n_rays, max_depth, n_freq_bands, 5), dtype=np.float32)
+        self.interaction_coeffs = np.zeros((n_rays, max_depth, n_bands, 5), dtype=np.float32)
         self.interaction_normals = np.zeros((n_rays, max_depth, 3), dtype=np.float32)
         self.interaction_points = np.zeros((n_rays, max_depth, 3), dtype=np.float32)
         
@@ -66,7 +66,7 @@ class AcousticRay:
         }
         
         # Gradient information
-        self.gradients = np.zeros((n_rays, n_freq_bands, 4), dtype=np.float32)
+        self.gradients = np.zeros((n_rays, n_bands, 4), dtype=np.float32)
         
         # Intersection results
         self.hit = np.zeros(n_rays, dtype=np.bool_)
@@ -76,7 +76,16 @@ class AcousticRay:
         self.barycentric = np.zeros((n_rays, 3), dtype=np.float32)
         self.normal = np.zeros((n_rays, 3), dtype=np.float32)
         self.point = np.zeros((n_rays, 3), dtype=np.float32)
+
+    def add_od(self, origins: np.ndarray, directions: np.ndarray, bands_idx: int):
+        self.origins[:, bands_idx, :] = origins
+        self.directions [:, bands_idx, :] = directions
     
+    def get_od(self, bands_idx: int):
+        origins = self.origins[:, bands_idx, :]
+        directions = self.directions [:, bands_idx, :]
+        return origins, directions
+
     def store_output_hit(self, ray_idx: int, hit_point: np.ndarray):
         """
         Store output hit information for impulse response.

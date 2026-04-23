@@ -31,213 +31,85 @@ from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, Refrac
 @dataclass
 class InterfaceManager:
     """Main interface manager handling all boundary interactions."""
-    entity_manager: EntityManager
-    ray_idx: int = 0
+    acoustic_rays: Any
 
     def __post_init__(self):
-        config = self.entity_manager.get('config')
-
-        # Get sample rate
-        self.sample_rate = config.system.sample_rate
-
-        self.ray_tracer = RayTracer(self.entity_manager)
-        self.absorption = AbsorptionInterface(self.entity_manager)
-        self.reflection = ReflectionInterface(self.entity_manager)
-        self.refraction = RefractionInterface(self.entity_manager)
-        self.scattering = ScatteringInterface(self.entity_manager)
-        self.diffraction = DiffractionInterface(self.entity_manager)
+        self.absorption = AbsorptionInterface(self.acoustic_rays)
+        self.reflection = ReflectionInterface(self.acoustic_rays)
+        self.refraction = RefractionInterface(self.acoustic_rays)
+        self.scattering = ScatteringInterface(self.acoustic_rays)
+        self.diffraction = DiffractionInterface(self.acoustic_rays)
         
 #        self.interaction_threshold = config.interface.interaction_threshold # it's neeeded for FDTD?
         self.min_impedance_ratio = config.interface.min_impedance_ratio
         self.max_impedance_ratio = config.interface.max_impedance_ratio
     
-    def compute(self, frame_idx: int, source_pos: np.ndarray, source_rot: np.ndarray, output_pos: np.ndarray, output_rot: np.ndarray, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int]):
-        config = self.entity_manager.get('config')
+    def compute(self, hit_points: np.ndarray, normals: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, hit_objects: np.ndarray, bands_idx: int, medium_idx: int = None):
 
-        # Get the medium object: AcousticDomain for the first run - ToDo use AABB to find the true medium
-        medium = config.acoustic_domain
+        # if medium_idx is present this is the first acoustic rays propagation loop
+        if not medium_idx:
+            current_medium_idx = medium_idx
 
-        # Get rays config
-        number_of_rays = config.system.number_of_rays
-        direction_seed = config.system.direction_seed
+        """Compute angle influence for coefficients computation"""
+        sources, directions = self.acoustic_rays.get_od(bands_idx)
+        incident_angles = self._compute_incident_angles(directions, hit_points, normals)
+        angle_factors = np.cos(incident_angle) if incident_angle < np.pi/2 else 0.0
 
-        # Get Frequency bands for impulse response
-        frequency_bands = self.entity_manager.get('frequency_bands')
-
-        # Compute direct and reverse isotropic directions
-        direct_isotropic_directions = self._generate_isotropic_directions(source_pos, output_pos, number_of_rays, direction_seed)
-        reverse_isotropic_directions = self._generate_isotropic_directions(output_pos, source_pos, number_of_rays, direction_seed)
-
-        direct_task, reverse_task = ([] for _ in range(2))
-        total_bands = len(frequency_bands.get_bands())
-        # Trace direct ray path (source to output)
-        for bands_idx in range(total_bands):
-            for direction in direct_isotropic_directions:
-                direct_task += [self._trace_path(source_pos, output_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, medium)]
-                self.ray_idx += 1
-        direct_rays = compute(*direct_task)
-
-        # Trace reverse ray path (output to source)
-        for bands_idx in range(total_bands):
-            for direction in reverse_isotropic_directions:
-                reverse_task += [self._trace_path(output_pos, source_pos, direction, bands_idx, scene_meshes, scene_meshes_ids, medium)]
-                self.ray_idx += 1
-        reverse_rays = compute(*reverse_task)
-
-        # Apply medium absorption
-        direct_task, reverse_task = ([] for _ in range(2))
-
-        direct_task = [self.absorption.compute(ray) for ray in direct_rays]
-        direct_rays = compute(*direct_task)
-
-        reverse_rays = [self.absorption.compute(ray) for ray in reverse_rays]
-        reverse_rays = compute(*reverse_task)
-
-        # Filter direct_rays that hit the AcousticDomain (-1, lost), the physical size of the source (-2, occluded) or the the physical size of the output (-3, goal) 
-        output_rays, dir_rays_hits = ([] for _ in range(2))
-        for direct_ray in direct_rays:
-            if not direct_ray.object_idx in [-1, -2]:
-                if direct_ray.object_idx == -3:
-                    output_rays += [direct_ray]
-                else:
-                    dir_rays_hits += [direct_ray]
-
-        # Filter reverse_rays that hit the AcousticDomain (-1, lost), the physical size of the source (-2, occluded) or the the physical size of the output (-3, goal)
-        source_rays, rev_rays_hits = ([] for _ in range(2))
-        for reverse_ray in reverse_rays:
-            if not reverse_ray.object_idx in [-1, -2]:
-                if reverse_ray.object_idx == -3:
-                    source_rays += [reverse_ray]
-                else:
-                    rev_rays_hits += [reverse_ray]
-
-        print('output_rays: ', len(output_rays), 'dir_rays_hits: ', len(dir_rays_hits), 'source_rays: ', len(source_rays), 'rev_rays_hits: ', len(rev_rays_hits))
-
-        # Compute reflected rays [ray.energy *= coeffs, direction from normal]
-        direct_task, reverse_task = ([] for _ in range(2))
-
-        direct_task = [self.reflection.compute(ray) for ray in dir_rays_hits]
-        direct_reflect_rays = compute(*direct_task)
-
-        reverse_rays = [self.reflection.compute(ray) for ray in rev_rays_hits]
-        reverse_reflect_rays = compute(*reverse_task)
-
-        # Compute scattered rays [ray.energy *= coeffs, direction from normal * random_coeffs]
-        direct_task, reverse_task = ([] for _ in range(2))
-
-        direct_task = [self.scattering.compute(ray) for ray in dir_rays_hits]
-        direct_scatter_rays = compute(*direct_task)
-
-        reverse_rays = [self.scattering.compute(ray) for ray in rev_rays_hits]
-        reverse_scatter_rays = compute(*reverse_task)
-
-        # Compute refracted rays [trasmit_ray.energy = 1 - (dir_rays_hits.energy + reflect_rays.energy + scatter_rays.energy) 
-        direct_task, reverse_task = ([] for _ in range(2))
-
-        direct_task = [self.refraction.compute(ray) for ray in dir_trasmit_rays]
-        direct_refract_rays = compute(*direct_task)
-
-        reverse_rays = [self.refraction.compute(ray) for ray in rev_trasmit_rays]
-        reverse_refract_rays = compute(*reverse_task)
-
-        # Compute diffracted rays [UTD model]
-        direct_task, reverse_task = ([] for _ in range(2))
-
-        direct_task = [self.diffraction.compute(ray) for ray in dir_rays_hits]
-        direct_diffract_rays = compute(*direct_task)
-
-        reverse_rays = [self.diffraction.compute(ray) for ray in rev_rays_hits]
-        reverse_diffract_rays = compute(*reverse_task)
-
-    @delayed
-    def _trace_path(self, src: np.ndarray, dst: np.ndarray, direction: np.ndarray, bands_idx: int, scene_meshes: List[trimesh.Trimesh], scene_meshes_ids: List[int], medium: Any = None):
-        """Trace direct line-of-sight path."""
-        hit = self.ray_tracer.intersect_ray(src, direction, scene_meshes, scene_meshes_ids)
-        # Create ray data
-        if hit['hit'] == False:
-            length = dist
-            point = None
-            normal = None
-        else:
-            length = hit['distance']
-            point = hit['point']
-            normal = hit['normal']
-
-        return RayData(
-            origin=src,
-            direction=direction,
-            ray_idx=self.ray_idx,
-            bands_idx=bands_idx,
-            medium=medium,
-            length=length,
-            energy=1.0,  # initial energy
-            phase=0.0, # initial phase
-            reflection_count=0,
-            path=[src, dst],
-            hit=hit['hit'],
-            object_idx=hit['object_idx'],
-            point=point,
-            normal=normal
-        )
-
-    def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
-        """
-        Generate random directions with isotropic probability distribution in 4π sr.
-
-        Parameters
-        ----------
-        src : np.array([float, float, float])
-            (x, y, z) coordinates of source point
-        dst : np.array([float, float, float])
-            (x, y, z) coordinates of destination point
-        n_directions : int
-            Number of random isotropic directions to generate
-        seed : int, optional
-            Random seed for reproducibility
-
-        Returns
-        -------
-        isotropic_dirs : List[np.ndarray]
-            List of n_directions unit vectors with isotropic distribution and the normalized unit vector from source to destination
-        """
-
-        if seed is not None:
-            np.random.seed(seed)
-
-        # Direct direction
-        direct_vec = dst - src
-        vec_norm = np.linalg.norm(direct_vec)
-        if vec_norm < 1e-12:
-            raise ValueError("Source and destination are coincident")
-        direct_dir = direct_vec / vec_norm
-
-        # Generate isotropic directions
-        isotropic_dirs = []
-
-        for _ in range(n_directions):
-            # Marsaglia method (1972) for uniform distribution on sphere
-            # Generate two uniform random numbers
-            while True:
-                x1 = np.random.uniform(-1, 1)
-                x2 = np.random.uniform(-1, 1)
-                s = x1**2 + x2**2
-                if s < 1:
-                    break
+        """Compute absorption"""
+        self.absorption.compute(hit_points, absorption, hit_objects, angle_factors)
         
-            # Map to sphere surface coordinates
-            z = 1 - 2 * s
-            factor = 2 * np.sqrt(1 - s)
-            x = x1 * factor
-            y = x2 * factor
-        
-            direction = np.array([x, y, z])
-            isotropic_dirs.append(direction)
-        isotropic_dirs += [direct_dir]
-        return isotropic_dirs
+        absorption_coeffs = absorption * angle_factor
+
+        """Compute reflection coefficients"""
+
+        """Compute reflected rays directions"""
+        next_directions = self.reflect_rays(directions, normals)
 
 
+    @staticmethod
+    @njit(nogil=True, fastmath=True, cache=True)
+    def reflect_rays(directions: np.ndarray, normals: np.ndarray) -> np.ndarray:
+        """Reflect ray directions using vectorized operations"""
+        dot = np.sum(directions * normals, axis=1)
+        return directions - 2 * dot[:, np.newaxis] * normals
 
-
+    def _compute_incident_angles(ray_directions: np.ndarray, intersection_points: np.ndarray, normals: np.ndarray):
+        """
+        Compute incident angles for rays intersecting with surfaces.
+    
+        Parameters:
+        -----------
+        ray_directions : numpy.ndarray
+            Direction vectors of rays, shape (n_rays, 3)
+        intersection_points : numpy.ndarray
+            Points of intersection, shape (n_rays, 3)
+        normals : numpy.ndarray
+            Surface normals at intersection points, shape (n_rays, 3)
+    
+        Returns:
+        --------
+        incident_angles : numpy.ndarray
+            Incident angles in radians, shape (n_rays,)
+        """
+        # Normalize the ray direction vectors
+        ray_directions_normalized = ray_directions / np.linalg.norm(ray_directions, axis=1, keepdims=True)
+    
+        # Normalize the normals
+#        normals_normalized = normals / np.linalg.norm(normals, axis=1, keepdims=True)
+        normals_normalized = normals
+    
+        # Compute the dot product between ray direction and normal
+        # Note: We use the negative of ray direction since incident angle is measured
+        # between the incoming ray and the surface normal
+        dot_products = np.sum(-ray_directions_normalized * normals_normalized, axis=1)
+    
+        # Clamp dot products to [-1, 1] to avoid numerical issues
+        dot_products = np.clip(dot_products, -1.0, 1.0)
+    
+        # Compute incident angles (arccos of dot product)
+        incident_angles = np.arccos(dot_products)
+    
+        return incident_angles
 
 #    def compute_interaction(self, ray, hit_info, source_pos, listener_pos):
 #        """Apply all interactions at a hit point."""

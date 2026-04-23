@@ -44,10 +44,10 @@ class EmbreeScene:
         config = self.entity_manager.get('config')
 
         # Get frequency bands
-        freq_bands = self.entity_manager.get('frequency_bands').get_bands()
+        self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
 
         # Init store for multi bands fraquencies scene information for SIMD processing
-        self.acoustic_scene = AcousticScene(freq_bands)
+        self.acoustic_scene = AcousticScene(self.freq_bands)
 
         # get source and output mesh
         source_idx, output_idx = self.combo
@@ -79,6 +79,17 @@ class EmbreeScene:
 
         # Add acoustic domain mesh (obj_id = -1)
         if ac_mesh is not None:
+            if ac_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
+                # Store mesh information for SIMD processing
+                src_medium = -1
+                if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
+                    src_radius = mesh.metadata['radius']
+                self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
+            if ac_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
+                out_medium = -1
+                if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
+                    out_radius = mesh.metadata['radius']
+                self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
             task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
         
         # Add source mesh (obj_id = -2)
@@ -88,7 +99,7 @@ class EmbreeScene:
         # Add output mesh (obj_id = -3)
         if output_mesh is not None:
             task_scene += [self._add_mesh_to_scene(scene, output_mesh, -3, "output")]
-        
+
         # Get all acoustic objects mesh
         task_mesh = []
         objects = self.entity_manager.get('objects')
@@ -107,12 +118,12 @@ class EmbreeScene:
                 if obj_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
                     # Store mesh information for SIMD processing
                     src_medium = obj_idx
-                    if source_mesh and hasattr(source_mesh.metadata, 'radius'):
+                    if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
                         src_radius = mesh.metadata['radius']
                     self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
                 if obj_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
                     out_medium = obj_idx
-                    if output_mesh and hasattr(output_mesh.metadata, 'radius'):
+                    if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
                         out_radius = mesh.metadata['radius']
                     self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
 

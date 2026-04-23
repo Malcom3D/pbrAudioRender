@@ -64,28 +64,28 @@ class AcousticScene:
         # Get Material Info
         if obj_idx >= -1:
             sound_speed = obj_config.acoustic_shader.sound_speed
-            self.sound_speed = np.append(self.sound_speed, np.full((faces.shape[0],), sound_speed, dtype=np.float32))
+            self.sound_speed = np.append(self.sound_speed, np.full((triangle_count,), sound_speed, dtype=np.float32))
             density = obj_config.acoustic_shader.density
-            self.density = np.append(self.density, np.full((faces.shape[0],), density, dtype=np.float32))
+            self.density = np.append(self.density, np.full((triangle_count,), density, dtype=np.float32))
 
         if obj_idx >= 0:
             # Get Object AcousticShader
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
             phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.absorption = np.append(self.absorption, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.absorption = np.append(self.absorption, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.refraction.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
             phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.refraction = np.append(self.refraction, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.refraction = np.append(self.refraction, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.reflection.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
             phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.reflection = np.append(self.reflection, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.reflection = np.append(self.reflection, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.scattering.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
             phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
-            self.scattering = np.append(self.scattering, np.full((faces.shape[0],2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.scattering = np.append(self.scattering, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
