@@ -97,8 +97,8 @@ class WavePropagator:
             task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
         tracer_results = compute(*task_tracer)
 
-        print('###########################################################################################')
-        print('tracer_results: ', tracer_results)
+#        print('###########################################################################################')
+#        print('tracer_results: ', tracer_results)
         return
 
         for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
