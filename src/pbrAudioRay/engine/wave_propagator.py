@@ -63,7 +63,7 @@ class WavePropagator:
         self.ray_tracer = RayTracer(scene)
 
         # Init DiffPathTracer engine
-        self.diff_path_tracer = DiffPathTracer(acoustic_scene)
+        self.diff_path_tracer = DiffPathTracer(max_interactions, acoustic_scene)
 
         # compute first sources and directions
         source_pos = embree_scene.src_pos

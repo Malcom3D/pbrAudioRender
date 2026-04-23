@@ -30,13 +30,13 @@ class DiffPathTracer:
     Implements differentiable path tracing for acoustic rendering.
     Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
     """
+    max_interactions: int
     acoustic_scene: Any  # AcousticScene
     
     def __post_init__(self):
         # Initialize counters
         self.ray_count = 0
         self.current_interactions = 0
-        self.max_interactions = self.acoustic_rays.max_interactions
         self.interface = InterfaceManager(self.acoustic_scene.freq_bands)
 
     @delayed
