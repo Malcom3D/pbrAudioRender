@@ -19,7 +19,7 @@
 import numpy as np
 import numba as nb
 from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class RayData:
