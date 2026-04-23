@@ -29,7 +29,7 @@ from ..engine.ray_tracer import RayTracer
 from ..engine.diff_path_tracer import DiffPathTracer
 
 from ..lib.embree_scene import EmbreeScene
-from ..lib.acoustic_ray import AcousticRay
+from ..lib.ray_data import RayData
 from ..lib.simd_math import generate_all_directions_batch
 
 @dataclass
@@ -57,15 +57,13 @@ class WavePropagator:
         n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
         max_interactions = self.config.wave_propagation.max_interactions
-
-        # Init AcousticRay storage
-        acoustic_rays = AcousticRay(n_rays, n_bands, max_interactions)
+        self.recursion_idx = 0
 
         # Init RayTracer engine
         self.ray_tracer = RayTracer(scene)
 
         # Init DiffPathTracer engine
-        self.diff_path_tracer = DiffPathTracer(acoustic_scene, acoustic_rays)
+        self.diff_path_tracer = DiffPathTracer(acoustic_scene)
 
         # compute first sources and directions
         source_pos = embree_scene.src_pos
@@ -79,8 +77,6 @@ class WavePropagator:
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
-#        directions = self._generate_initial_directions(n_rays, source_pos, output_pos)
-
         n_src = source_pos.shape[0]
         source_ndim = int(n_rays / n_src)
         source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
@@ -89,39 +85,43 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(source_pos, output_pos, n_dirs)
         directions = np.array(directions, dtype=np.float32)
 
-        self.compute_loop(source_pos, directions)
+        print('tracer_results: ', tracer_results)
+        print('###########################################################################################')
+        print('source_pos: ', source_pos)
+        print('###########################################################################################')
+        print('directions: ', directions)
+        return
 
-    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray):
+        # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
-        next_source_pos, next_directions = self.diff_path_tracer.compute(hits)
+
+        # Compute Paths for band_idx
+        task_tracer = []
+        for bands_idx in range(len(n_bands))]:
+            # Init  RayData storage
+            ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
+            ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions)
+            _ = self.entity_manager.register('ray_datas', ray_data)
+            task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
+        tracer_results = compute(*task_tracer)
+
+        for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
+            if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
+                if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
+                    self.recursion_idx += 1
+                    self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
+
+    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int):
+        hits = self.ray_tracer.compute(source_pos, directions)
+        next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
 
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
-                self.compute_loop(next_source_pos, next_directions)
+                self.compute_loop(next_source_pos, next_directions, bands_idx)
 
         print('WavePropagator: compute_loop end')
 
     @staticmethod
-    @nb.njit(fastmath=True)
-    def _find_output_and_obj_idx(raw_obj_idx):
-        """
-        Optimized version using boolean masks.
-        """
-        arr = np.asarray(raw_obj_idx, dtype=np.int32)
-    
-        # Create boolean masks (SIMD operations)
-        mask_minus_three = (arr == -3)
-        mask_non_negative = (arr >= 0)
-    
-        # Get indices from masks
-        indices_output = np.flatnonzero(mask_minus_three)
-        indices_obj_idx = np.flatnonzero(mask_non_negative)
-
-        return indices_output, indices_obj_idx
-
-
-    @staticmethod
-    @nb.njit(fastmath=True)
     def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
         """
         Generate random points uniformly distributed inside a sphere using Marsaglia's method.
@@ -155,57 +155,70 @@ class WavePropagator:
                     break
         return points
 
-    def _generate_isotropic_directions(self, src: np.ndarray, dst: np.ndarray, n_directions: int = 100, seed: int = None) -> List[np.ndarray]:
+    def generate_isotropic_directions_batch(n_dirs: int, src: np.ndarray, dst: np.ndarray, seed: int = 1) -> np.ndarray:
         """
-        Generate random directions with isotropic probability distribution in 4π sr.
- 
+        Generate n_dirs isotropic directions using vectorised rejection sampling,
+        plus one direct direction toward dst.
+
         Parameters
         ----------
-        src : np.array([float, float, float])
-            (x, y, z) coordinates of source point
-        dst : np.array([float, float, float])
-            (x, y, z) coordinates of destination point
-        n_directions : int
-            Number of random isotropic directions to generate
+        n_dirs : int
+            Number of isotropic directions to generate.
+        src : np.ndarray
+            Source position (3,).
+        dst : np.ndarray
+            Destination position (3,).
         seed : int, optional
-            Random seed for reproducibility
+            Random seed for reproducibility.
 
         Returns
         -------
-        isotropic_dirs : List[np.ndarray]
-            List of n_directions unit vectors with isotropic distribution and the normalized unit vector from source to destination
+        directions : np.ndarray
+            Array of shape (n_dirs + 1, 3) with the direct direction last.
         """
-
-        if seed is not None:
-            np.random.seed(seed)
+        rng = np.random.default_rng(seed)
 
         # Direct direction
         direct_vec = dst - src
-        vec_norm = np.linalg.norm(direct_vec)
-        if vec_norm < 1e-12:
-            raise ValueError("Source and destination are coincident")
-        direct_dir = direct_vec / vec_norm
+        norm = np.linalg.norm(direct_vec)
+        if norm < 1e-12:
+            direct_dir = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        else:
+            direct_dir = (direct_vec / norm).astype(np.float32)
 
-        # Generate isotropic directions
-        isotropic_dirs = []
+        # Estimate required samples (acceptance probability π/4 ≈ 0.785)
+        batch_factor = 1.5
+        accepted_u1 = []
+        accepted_u2 = []
+        accepted_s = []
+        needed = n_dirs
 
-        for _ in range(n_directions):
-            # Marsaglia method (1972) for uniform distribution on sphere
-            # Generate two uniform random numbers
-            while True:
-                x1 = np.random.uniform(-1, 1)
-                x2 = np.random.uniform(-1, 1)
-                s = x1**2 + x2**2
-                if s < 1:
-                    break
+        while needed > 0:
+            batch_size = int(needed * batch_factor)
+            # Generate uniform numbers in [-1, 1]
+            u1 = rng.uniform(-1.0, 1.0, size=batch_size).astype(np.float32)
+            u2 = rng.uniform(-1.0, 1.0, size=batch_size).astype(np.float32)
+            s = u1 * u1 + u2 * u2
+            mask = s < 1.0
+            # Keep accepted values
+            accepted_u1.append(u1[mask])
+            accepted_u2.append(u2[mask])
+            accepted_s.append(s[mask])
+            needed -= mask.sum()
 
-            # Map to sphere surface coordinates
-            z = 1 - 2 * s
-            factor = 2 * np.sqrt(1 - s)
-            x = x1 * factor
-            y = x2 * factor
+        # Concatenate all batches
+        u1_all = np.concatenate(accepted_u1)[:n_dirs]
+        u2_all = np.concatenate(accepted_u2)[:n_dirs]
+        s_all = np.concatenate(accepted_s)[:n_dirs]
 
-            direction = [x, y, z]
-            isotropic_dirs.append(direction)
-#        isotropic_dirs += [direct_dir.tolist()]
-        return isotropic_dirs
+        # Compute directions using Marsaglia's method
+        sqrt_term = np.sqrt(1.0 - s_all)
+        x = 2.0 * u1_all * sqrt_term
+        y = 2.0 * u2_all * sqrt_term
+        z = 1.0 - 2.0 * s_all
+
+        # Stack into (n_dirs, 3) array
+        isotropic = np.column_stack((x, y, z)).astype(np.float32)
+
+        # Append direct direction
+        return np.vstack((isotropic, direct_dir))
