@@ -78,6 +78,7 @@ class EmbreeScene:
         scene = rtcs.EmbreeScene(embreeDevice)
 
         # Add acoustic domain mesh (obj_id = -1)
+        src_medium, out_medium = (np.nan for _ in range(2))
         if ac_mesh is not None:
             if ac_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
                 # Store mesh information for SIMD processing
@@ -109,9 +110,6 @@ class EmbreeScene:
                     task_mesh += [self._get_obj_mesh(objects[key], obj_config)]
         meshes_results = compute(*task_mesh)
 
-        print('self.src_pos shape', self.src_pos.shape, self.src_pos)
-        print('self.out_pos shape', self.out_pos.shape, self.out_pos)
-        src_medium, out_medium = (np.nan for _ in range(2))
         for obj_mesh, obj_idx, name in meshes_results:
             # Check if source and output points is inside the mesh and add all acoustic objects with their actual obj_ids
             if obj_mesh.is_watertight:

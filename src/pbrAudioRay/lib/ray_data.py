@@ -50,3 +50,7 @@ class RayData:
         # Check if recursion_idx is already present
         if not np.any(self.recursion == recursion_idx):
             self.recursion = np.append(orig, np.full((n_rays,1), [recursion_idx], dtype=np.float32))
+
+        if not origins == None and len(origins) == n_rays and not np.any(self.origins[self.recursion == recursion_idx] == origins):
+            pass
+#            self.origin = 
