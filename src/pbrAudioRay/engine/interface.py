@@ -19,6 +19,7 @@
 import dask
 from dask import delayed, compute
 import numpy as np
+import numba as nb
 import trimesh
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
@@ -67,7 +68,7 @@ class InterfaceManager:
 
 
     @staticmethod
-    @njit(nogil=True, fastmath=True, cache=True)
+    @nb.njit(nogil=True, fastmath=True, cache=True)
     def reflect_rays(directions: np.ndarray, normals: np.ndarray) -> np.ndarray:
         """Reflect ray directions using vectorized operations"""
         dot = np.sum(directions * normals, axis=1)
