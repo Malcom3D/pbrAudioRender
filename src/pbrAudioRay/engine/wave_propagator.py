@@ -154,7 +154,7 @@ class WavePropagator:
                     break
         return points
 
-    def _generate_isotropic_directions_batch(n_dirs: int, src: np.ndarray, dst: np.ndarray, seed: int = 1) -> np.ndarray:
+    def _generate_isotropic_directions(n_dirs: int, src: np.ndarray, dst: np.ndarray, seed: int = 1) -> np.ndarray:
         """
         Generate n_dirs isotropic directions using vectorised rejection sampling,
         plus one direct direction toward dst.
