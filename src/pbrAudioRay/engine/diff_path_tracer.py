@@ -22,7 +22,7 @@ from dask import delayed, compute
 from typing import Tuple, Optional, List, Any, Dict
 from dataclasses import dataclass, field
 
-from engine.interface import InterfaceManager
+from .engine.interface import InterfaceManager
 
 @dataclass
 class DiffPathTracer:
