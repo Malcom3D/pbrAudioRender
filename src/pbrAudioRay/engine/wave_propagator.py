@@ -56,14 +56,13 @@ class WavePropagator:
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
-        max_interactions = self.config.wave_propagation.max_interactions
         self.recursion_idx = 0
 
         # Init RayTracer engine
         self.ray_tracer = RayTracer(scene)
 
         # Init DiffPathTracer engine
-        self.diff_path_tracer = DiffPathTracer(max_interactions, acoustic_scene)
+        self.diff_path_tracer = DiffPathTracer(self.entity_manager, acoustic_scene)
 
         # compute first sources and directions
         source_pos = embree_scene.src_pos
