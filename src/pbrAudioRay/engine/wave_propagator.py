@@ -84,14 +84,12 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         directions = np.array(directions, dtype=np.float32)
 
-        print('###########################################################################################')
-        print('source_pos: ', source_pos, source_pos.shape)
-        print('###########################################################################################')
-        print('directions: ', directions, directions.shape)
-        return
-
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
+
+        print('###########################################################################################')
+        print('hits: ', hits)
+        return
 
         # Compute Paths for band_idx
         task_tracer = []

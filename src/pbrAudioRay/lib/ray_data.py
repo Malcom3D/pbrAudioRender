@@ -51,9 +51,16 @@ class RayData:
         if not np.any(self.recursion == recursion_idx):
             self.recursion = np.append(orig, np.full((n_rays,1), [recursion_idx], dtype=np.float32))
 
-        if not origins == None and len(origins) == n_rays and not np.any(self.origins[self.recursion == recursion_idx] == origins):
-            pass
-#            self.origin = 
+        if not origins == None and origins.shape[0] == n_rays and not np.any(self.origins[self.recursion == recursion_idx] == origins):
+            self.origin = np.append(self.origin, origins, axis=0).astype(np.float32)
+
+        if not directions == None and directions.shape[0] == n_rays and not np.any(self.directions[self.recursion == recursion_idx] == directions):
+            self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
+
+        if not hits_coords == None and hits_coords.shape[0] == n_rays and not np.any(self.hits_coords[self.recursion == recursion_idx] == hits_coords):
+            self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
+
+
 
     def get_data(self):
         pass
