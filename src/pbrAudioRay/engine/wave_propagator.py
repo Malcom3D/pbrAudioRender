@@ -87,10 +87,6 @@ class WavePropagator:
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
 
-        print('###########################################################################################')
-        print('hits: ', hits)
-        return
-
         # Compute Paths for band_idx
         task_tracer = []
         for bands_idx in range(len(n_bands)):
@@ -100,6 +96,10 @@ class WavePropagator:
             _ = self.entity_manager.register('ray_datas', ray_data)
             task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
         tracer_results = compute(*task_tracer)
+
+        print('###########################################################################################')
+        print('tracer_results: ', tracer_results)
+        return
 
         for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
             if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
