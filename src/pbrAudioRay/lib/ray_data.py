@@ -54,3 +54,6 @@ class RayData:
         if not origins == None and len(origins) == n_rays and not np.any(self.origins[self.recursion == recursion_idx] == origins):
             pass
 #            self.origin = 
+
+    def get_data(self):
+        pass

@@ -32,9 +32,11 @@ from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, Refrac
 @dataclass
 class InterfaceManager:
     """Main interface manager handling all boundary interactions."""
-    acoustic_rays: Any
+    entity_manager: EntityManager
+    ray_data: Any
 
     def __post_init__(self):
+        config = self.entity_manager.get('config')
         self.absorption = AbsorptionInterface(self.acoustic_rays)
         self.reflection = ReflectionInterface(self.acoustic_rays)
         self.refraction = RefractionInterface(self.acoustic_rays)
@@ -52,7 +54,7 @@ class InterfaceManager:
             current_medium_idx = medium_idx
 
         """Compute angle influence for coefficients computation"""
-        sources, directions = self.acoustic_rays.get_od(bands_idx)
+        sources, directions = self.ray_data.get_data()
         incident_angles = self._compute_incident_angles(directions, hit_points, normals)
         angle_factors = np.cos(incident_angle) if incident_angle < np.pi/2 else 0.0
 

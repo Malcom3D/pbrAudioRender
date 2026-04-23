@@ -22,6 +22,7 @@ from dask import delayed, compute
 from typing import Tuple, Optional, List, Any, Dict
 from dataclasses import dataclass, field
 
+from ..core.entity_manager import EntityManager
 from .interface import InterfaceManager
 
 @dataclass
@@ -30,14 +31,16 @@ class DiffPathTracer:
     Implements differentiable path tracing for acoustic rendering.
     Based on: https://pub.dega-akustik.de/DAGA_2024/files/upload/paper/489.pdf
     """
-    max_interactions: int
+    entity_manager: EntityManager
     acoustic_scene: Any  # AcousticScene
     
     def __post_init__(self):
+        config = self.entity_manager.get('config')
+        self.max_interactions = config.wave_propagation.max_interactions
+
         # Initialize counters
         self.ray_count = 0
         self.current_interactions = 0
-        self.interface = InterfaceManager(self.acoustic_scene.freq_bands)
 
     @delayed
     def compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
@@ -54,6 +57,8 @@ class DiffPathTracer:
         if self.current_interactions == self.max_interactions -1:
             next_positions = np.array([])
             next_directions = np.array([])
+
+        self.interface = InterfaceManager(self.entity_manager, ray_data)
 
         # Get scene data
         mesh_info = self.acoustic_scene.mesh_info
