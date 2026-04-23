@@ -85,9 +85,9 @@ class WavePropagator:
         directions = np.array(directions, dtype=np.float32)
 
         print('###########################################################################################')
-        print('source_pos: ', source_pos)
+        print('source_pos: ', source_pos, source_pos.shape)
         print('###########################################################################################')
-        print('directions: ', directions)
+        print('directions: ', directions, directions.shape)
         return
 
         # First fast rays propagation without frequency bands
