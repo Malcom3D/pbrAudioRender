@@ -54,7 +54,7 @@ class DiffPathTracer:
             Tuple of (next_source_positions, next_directions)
         """
 
-        if self.current_interactions == self.max_interactions -1:
+        if self.current_interactions == self.max_interactions:
             next_positions = np.array([])
             next_directions = np.array([])
 
@@ -107,6 +107,7 @@ class DiffPathTracer:
 
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
+        print('hit_points: ', hit_points)
 
         # Compute 
         # Get object index from scene info
