@@ -97,7 +97,7 @@ class WavePropagator:
 
         # Compute Paths for band_idx
         task_tracer = []
-        for bands_idx in range(len(n_bands))]:
+        for bands_idx in range(len(n_bands)):
             # Init  RayData storage
             ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
             ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions)
