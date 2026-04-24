@@ -179,7 +179,7 @@ class WavePropagator:
         main_dirs = main_dirs / main_dirs_norm
     
         # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
-        directions = np.zeros((n_dirs, 3))
+        directions = np.zeros((n_dirs, 3), dtype=np.float32)
 
         # Insert main direction
         directions[:n_sources] = main_dirs
