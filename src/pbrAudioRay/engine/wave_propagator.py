@@ -34,7 +34,7 @@ from ..lib.simd_math import generate_all_directions_batch
 
 @dataclass
 class WavePropagator:
-    """Optimized wave propagator using SIMD and parallel processing"""
+    """Wave propagator using SIMD and parallel processing"""
     entity_manager: EntityManager
     combo: Tuple[int, int]
     
