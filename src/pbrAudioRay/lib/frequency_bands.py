@@ -38,6 +38,7 @@ class FrequencyBands:
             low = frequencies[index]
             high = frequencies[index+1]
             self.freq_bands.append((low,high))
+        self.freq_bands.append((frequencies[-1],higher_frequency))
 
     def get_bands(self):
         return self.freq_bands

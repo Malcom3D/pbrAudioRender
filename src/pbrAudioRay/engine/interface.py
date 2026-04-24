@@ -33,15 +33,16 @@ from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, Refrac
 class InterfaceManager:
     """Main interface manager handling all boundary interactions."""
     entity_manager: EntityManager
+    acoustic_scene: Any  # AcousticScene
     ray_data: Any
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
-        self.absorption = AbsorptionInterface(self.acoustic_rays)
-        self.reflection = ReflectionInterface(self.acoustic_rays)
-        self.refraction = RefractionInterface(self.acoustic_rays)
-        self.scattering = ScatteringInterface(self.acoustic_rays)
-        self.diffraction = DiffractionInterface(self.acoustic_rays)
+        self.absorption = AbsorptionInterface(self.entity_manager, self.acoustic_scene)
+        self.reflection = ReflectionInterface(self.entity_manager, self.acoustic_scene)
+        self.scattering = ScatteringInterface(self.entity_manager, self.acoustic_scene)
+        self.refraction = RefractionInterface(self.entity_manager, self.acoustic_scene)
+        self.diffraction = DiffractionInterface(self.entity_manager, self.acoustic_scene)
         
 #        self.interaction_threshold = config.interface.interaction_threshold # it's neeeded for FDTD?
         self.min_impedance_ratio = config.interface.min_impedance_ratio

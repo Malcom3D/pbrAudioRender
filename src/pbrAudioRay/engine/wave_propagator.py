@@ -84,6 +84,9 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         directions = np.array(directions, dtype=np.float32)
 
+        energies = np.full((source_ndim,1), [1], dtype=np.float32)
+        phases = np.full((source_ndim,1), [0], dtype=np.float32)
+
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
 
@@ -92,7 +95,7 @@ class WavePropagator:
         for bands_idx in range(n_bands):
             # Init  RayData storage
             ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
-            ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions)
+            ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions, energies=energies, phases=phases)
             _ = self.entity_manager.register('ray_datas', ray_data)
             task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
         tracer_results = compute(*task_tracer)
