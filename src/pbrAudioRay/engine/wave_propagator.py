@@ -81,13 +81,12 @@ class WavePropagator:
         source_ndim = int(n_rays / n_src)
         n_dirs = source_ndim * n_src
 
-        directions = self._generate_isotropic_directions(n_dirs - n_points, source_pos, output_pos)
-
         if source_pos.ndim == 1:
             source_pos = np.array([source_pos.reshape(1,3).tolist() for _ in range(n_dirs)], dtype=np.float32).reshape(n_dirs,3)
         else:
             source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
 
+        directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         directions = directions[:source_pos.shape[0]]
 
         # First fast rays propagation without frequency bands
