@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import math
 import numpy as np
 import numba as nb
 from numba import prange
@@ -77,17 +78,14 @@ class WavePropagator:
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
+        if source_pos.ndim == 1:
+            source_pos = source_pos.reshape(1,-1)
         n_src = source_pos.shape[0]
         source_ndim = int(n_rays / n_src)
         n_dirs = source_ndim * n_src
 
-        if source_pos.ndim == 1:
-            source_pos = np.array([source_pos.reshape(1,3).tolist() for _ in range(n_dirs)], dtype=np.float32).reshape(n_dirs,3)
-        else:
-            source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
-
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
-#        directions = directions[:source_pos.shape[0]]
+        source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
 
         # First fast rays propagation without frequency bands
         print('self.ray_tracer.compute: ', n_src, source_pos.shape, directions.shape)
@@ -171,10 +169,6 @@ class WavePropagator:
         numpy.ndarray
             Direction vectors of shape (n_dirs, 3)
         """
-        # Ensure source_pos is at least 2D
-        if source_pos.ndim == 1:
-            source_pos = source_pos.reshape(1, -1)
-    
         n_sources = source_pos.shape[0]
     
         # Calculate main direction from each source to destination
@@ -186,11 +180,14 @@ class WavePropagator:
     
         # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
         directions = np.zeros((n_dirs, 3))
+
+        # Insert main direction
+        directions[:n_sources] = main_dirs
     
         # Golden ratio
         phi = np.pi * (3. - np.sqrt(5.))
-    
-        for i in range(n_dirs):
+
+        for i in range(n_sources, n_dirs):
             y = 1 - (i / float(n_dirs - 1)) * 2  # y goes from 1 to -1
             radius = np.sqrt(1 - y * y)
         
@@ -201,88 +198,4 @@ class WavePropagator:
         
             directions[i] = [x, y, z]
     
-        # If we have multiple sources, we need to distribute rays among them
-        if n_sources > 1:
-            # Distribute rays evenly among sources
-            rays_per_source = n_dirs // n_sources
-            remainder = n_dirs % n_sources
-        
-            result_directions = np.zeros((n_dirs, 3))
-            start_idx = 0
-        
-            for source_idx in range(n_sources):
-                # Calculate how many rays for this source
-                if source_idx < remainder:
-                    n_rays_this_source = rays_per_source + 1
-                else:
-                    n_rays_this_source = rays_per_source
-            
-                if n_rays_this_source > 0:
-                    # Generate directions for this source
-                    source_dirs = np.zeros((n_rays_this_source, 3))
-                
-                    # Use Fibonacci sphere for this subset
-                    phi_source = np.pi * (3. - np.sqrt(5.))
-                    for i in range(n_rays_this_source):
-                        y = 1 - (i / float(n_rays_this_source - 1)) * 2
-                        radius = np.sqrt(1 - y * y)
-                        theta = phi_source * i
-                        x = np.cos(theta) * radius
-                        z = np.sin(theta) * radius
-                        source_dirs[i] = [x, y, z]
-
-                    # Create rotation matrix to align with main direction
-                    main_dir = main_dirs[source_idx]
-
-                    # Find rotation axis and angle
-                    up = np.array([0, 1, 0])
-                    if np.abs(np.dot(main_dir, up)) > 0.99:
-                        up = np.array([1, 0, 0])
-                
-                    # Calculate rotation matrix
-                    v = np.cross(up, main_dir)
-                    c = np.dot(up, main_dir)
-                    s = np.linalg.norm(v)
-                
-                    if s > 1e-10:
-                        v = v / s
-                        vx, vy, vz = v
-                    
-                        # Rodrigues' rotation formula
-                        R = np.array([
-                            [c + vx*vx*(1-c), vx*vy*(1-c) - vz*s, vx*vz*(1-c) + vy*s],
-                            [vy*vx*(1-c) + vz*s, c + vy*vy*(1-c), vy*vz*(1-c) - vx*s],
-                            [vz*vx*(1-c) - vy*s, vz*vy*(1-c) + vx*s, c + vz*vz*(1-c)]
-                        ])
-                    
-                        # Apply rotation
-                        source_dirs = source_dirs @ R.T
-                
-                    result_directions[start_idx:start_idx + n_rays_this_source] = source_dirs
-                    start_idx += n_rays_this_source
-            return result_directions
-        else:
-            # Single source - align all directions with the main direction
-            main_dir = main_dirs[0]
-        
-            # Create rotation matrix to align [0, 1, 0] with main_dir
-            up = np.array([0, 1, 0])
-            if np.abs(np.dot(main_dir, up)) > 0.99:
-                up = np.array([1, 0, 0])
-        
-            v = np.cross(up, main_dir)
-            c = np.dot(up, main_dir)
-            s = np.linalg.norm(v)
-        
-            if s > 1e-10:
-                v = v / s
-                vx, vy, vz = v
-            
-                R = np.array([
-                    [c + vx*vx*(1-c), vx*vy*(1-c) - vz*s, vx*vz*(1-c) + vy*s],
-                    [vy*vx*(1-c) + vz*s, c + vy*vy*(1-c), vy*vz*(1-c) - vx*s],
-                    [vz*vx*(1-c) - vy*s, vz*vy*(1-c) + vx*s, c + vz*vz*(1-c)]
-                ])
-            
-                directions = directions @ R.T
             return directions
