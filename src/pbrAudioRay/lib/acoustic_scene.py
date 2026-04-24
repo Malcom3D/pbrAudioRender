@@ -152,8 +152,10 @@ class AcousticScene:
                 min_freq, max_freq = self.freq_bands[idx]
                 alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
 
+            print('_compute_rayleigh_damping: alpha', alpha.shape, alpha)
+            print('_compute_rayleigh_damping: beta', beta.shape, beta)
+
             omega = 2 * np.pi * np.unique(self.freq_bands)[:-1]
-            print('_compute_rayleigh_damping: ', omega.shape, omega)
 
             # Calculate derived properties from input parameters.
             # Bulk modulus (for fluids and isotropic solids)
