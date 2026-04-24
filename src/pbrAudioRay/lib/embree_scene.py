@@ -70,6 +70,7 @@ class EmbreeScene:
         """
         config = self.entity_manager.get('config')
         config_objs = config.objects
+        num_objs = len(config_objs)
 
         # get the AcousticDomain mesh
         ac_mesh = _acoustic_domain_mesh(config)
@@ -92,14 +93,19 @@ class EmbreeScene:
                     out_radius = mesh.metadata['radius']
                 self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
             task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
+            num_objs += 1
         
         # Add source mesh (obj_id = -2)
         if source_mesh is not None:
             task_scene += [self._add_mesh_to_scene(scene, source_mesh, -2, "source")]
+            num_objs += 1
         
         # Add output mesh (obj_id = -3)
         if output_mesh is not None:
             task_scene += [self._add_mesh_to_scene(scene, output_mesh, -3, "output")]
+            num_objs += 1
+
+        self.acoustic_scene.set_num_objs(num_objs)
 
         # Get all acoustic objects mesh
         task_mesh = []
