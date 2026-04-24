@@ -95,7 +95,6 @@ class WavePropagator:
         for bands_idx in range(n_bands):
             # Init  RayData storage
             ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
-            print('ray_data.add_data: ', 'recursion_idx: ', self.recursion_idx, 'n_rays: ', source_pos.shape[0], 'origins: ', source_pos, 'directions: ', directions, 'energies: ', energies, 'phases: ', phases)
             ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions, energies=energies, phases=phases)
             _ = self.entity_manager.register('ray_datas', ray_data)
             task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
