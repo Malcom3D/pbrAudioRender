@@ -87,7 +87,7 @@ class WavePropagator:
             source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
 
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
-        directions = directions[:source_pos.shape[0]]
+#        directions = directions[:source_pos.shape[0]]
 
         # First fast rays propagation without frequency bands
         print('self.ray_tracer.compute: ', n_src, source_pos.shape, directions.shape)
@@ -153,70 +153,136 @@ class WavePropagator:
                     break
         return points
 
-    def _generate_isotropic_directions(self, n_dirs: int, src: np.ndarray, dst: np.ndarray, seed: int = 1) -> np.ndarray:
+    def _generate_isotropic_directions(self, n_dirs: int, source_pos: np.ndarray, dest_pos: np.ndarray, seed: int = 1) -> np.ndarray:
         """
-        Generate n_dirs isotropic directions using vectorised rejection sampling,
-        plus one direct direction toward dst.
-
-        Parameters
-        ----------
+        Evenly distribute rays on 4π steradian from source(s) to destination.
+    
+        Parameters:
+        -----------
+        source_pos : numpy.ndarray
+            Source position(s) as shape (3,) for single source or (n_sources, 3) for multiple sources
+        dest_pos : numpy.ndarray
+            Destination position as shape (3,)
         n_dirs : int
-            Number of isotropic directions to generate.
-        src : np.ndarray
-            Source position (3,).
-        dst : np.ndarray
-            Destination position (3,).
-        seed : int, optional
-            Random seed for reproducibility.
-
-        Returns
-        -------
-        directions : np.ndarray
-            Array of shape (n_dirs + 1, 3) with the direct direction last.
+            Number of final directions
+        
+        Returns:
+        --------
+        numpy.ndarray
+            Direction vectors of shape (n_dirs, 3)
         """
-        rng = np.random.default_rng(seed)
+        # Ensure source_pos is at least 2D
+        if source_pos.ndim == 1:
+            source_pos = source_pos.reshape(1, -1)
+    
+        n_sources = source_pos.shape[0]
+    
+        # Calculate main direction from each source to destination
+        main_dirs = dest_pos - source_pos  # shape (n_sources, 3)
+    
+        # Normalize main directions
+        main_dirs_norm = np.linalg.norm(main_dirs, axis=1, keepdims=True)
+        main_dirs = main_dirs / main_dirs_norm
+    
+        # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
+        directions = np.zeros((n_dirs, 3))
+    
+        # Golden ratio
+        phi = np.pi * (3. - np.sqrt(5.))
+    
+        for i in range(n_dirs):
+            y = 1 - (i / float(n_dirs - 1)) * 2  # y goes from 1 to -1
+            radius = np.sqrt(1 - y * y)
+        
+            theta = phi * i
+        
+            x = np.cos(theta) * radius
+            z = np.sin(theta) * radius
+        
+            directions[i] = [x, y, z]
+    
+        # If we have multiple sources, we need to distribute rays among them
+        if n_sources > 1:
+            # Distribute rays evenly among sources
+            rays_per_source = n_dirs // n_sources
+            remainder = n_dirs % n_sources
+        
+            result_directions = np.zeros((n_dirs, 3))
+            start_idx = 0
+        
+            for source_idx in range(n_sources):
+                # Calculate how many rays for this source
+                if source_idx < remainder:
+                    n_rays_this_source_source = rays_per_source + 1
+                else:
+                    n_rays_this_source = rays_per_source
+            
+                if n_rays_this_source > 0:
+                    # Generate directions for this source
+                    source_dirs = np.zeros((n_rays_this_source, 3))
+                
+                    # Use Fibonacci sphere for this subset
+                    phi_source = np.pi * (3. - np.sqrt(5.))
+                    for i in range(n_rays_this_source):
+                        y = 1 - (i / float(n_rays_this_source - 1)) * 2
+                        radius = np.sqrt(1 - y * y)
+                        theta = phi_source * i
+                        x = np.cos(theta) * radius
+                        z = np.sin(theta) * radius
+                        source_dirs[i] = [x, y, z]
 
-        # Direct direction
-        direct_vec = dst - src
-        norm = np.linalg.norm(direct_vec)
-        if norm < 1e-12:
-            direct_dir = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+                    # Create rotation matrix to align with main direction
+                    main_dir = main_dirs[source_idx]
+
+                    # Find rotation axis and angle
+                    up = np.array([0, 1, 0])
+                    if np.abs(np.dot(main_dir, up)) > 0.99:
+                        up = np.array([1, 0, 0])
+                
+                    # Calculate rotation matrix
+                    v = np.cross(up, main_dir)
+                    c = np.dot(up, main_dir)
+                    s = np.linalg.norm(v)
+                
+                    if s > 1e-10:
+                        v = v / s
+                        vx, vy, vz = v
+                    
+                        # Rodrigues' rotation formula
+                        R = np.array([
+                            [c + vx*vx*(1-c), vx*vy*(1-c) - vz*s, vx*vz*(1-c) + vy*s],
+                            [vy*vx*(1-c) + vz*s, c + vy*vy*(1-c), vy*vz*(1-c) - vx*s],
+                            [vz*vx*(1-c) - vy*s, vz*vy*(1-c) + vx*s, c + vz*vz*(1-c)]
+                        ])
+                    
+                        # Apply rotation
+                        source_dirs = source_dirs @ R.T
+                
+                    result_directions[start_idx:start_idx + n_rays_this_source] = source_dirs
+                    start_idx += n_rays_this_source
+            return result_directions
         else:
-            direct_dir = (direct_vec / norm).astype(np.float32)
-
-        # Estimate required samples (acceptance probability π/4 ≈ 0.785)
-        batch_factor = 1.5
-        accepted_u1 = []
-        accepted_u2 = []
-        accepted_s = []
-        needed = n_dirs
-
-        while needed > 0:
-            batch_size = int(needed * batch_factor)
-            # Generate uniform numbers in [-1, 1]
-            u1 = rng.uniform(-1.0, 1.0, size=batch_size).astype(np.float32)
-            u2 = rng.uniform(-1.0, 1.0, size=batch_size).astype(np.float32)
-            s = u1 * u1 + u2 * u2
-            mask = s < 1.0
-            # Keep accepted values
-            accepted_u1.append(u1[mask])
-            accepted_u2.append(u2[mask])
-            accepted_s.append(s[mask])
-            needed -= mask.sum()
-
-        # Concatenate all batches
-        u1_all = np.concatenate(accepted_u1)[:n_dirs]
-        u2_all = np.concatenate(accepted_u2)[:n_dirs]
-        s_all = np.concatenate(accepted_s)[:n_dirs]
-
-        # Compute directions using Marsaglia's method
-        sqrt_term = np.sqrt(1.0 - s_all)
-        x = 2.0 * u1_all * sqrt_term
-        y = 2.0 * u2_all * sqrt_term
-        z = 1.0 - 2.0 * s_all
-
-        # Stack into (n_dirs, 3) array
-        isotropic = np.column_stack((x, y, z)).astype(np.float32)
-
-        # Append direct direction
-        return np.vstack((isotropic[direct_dir.shape[0]:], direct_dir))
+            # Single source - align all directions with the main direction
+            main_dir = main_dirs[0]
+        
+            # Create rotation matrix to align [0, 1, 0] with main_dir
+            up = np.array([0, 1, 0])
+            if np.abs(np.dot(main_dir, up)) > 0.99:
+                up = np.array([1, 0, 0])
+        
+            v = np.cross(up, main_dir)
+            c = np.dot(up, main_dir)
+            s = np.linalg.norm(v)
+        
+            if s > 1e-10:
+                v = v / s
+                vx, vy, vz = v
+            
+                R = np.array([
+                    [c + vx*vx*(1-c), vx*vy*(1-c) - vz*s, vx*vz*(1-c) + vy*s],
+                    [vy*vx*(1-c) + vz*s, c + vy*vy*(1-c), vy*vz*(1-c) - vx*s],
+                    [vz*vx*(1-c) - vy*s, vz*vy*(1-c) + vx*s, c + vz*vz*(1-c)]
+                ])
+            
+                directions = directions @ R.T
+            return directions
