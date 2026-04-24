@@ -51,19 +51,19 @@ class RayData:
         if not np.any(self.recursions == recursion_idx):
             self.recursions = np.append(self.recursions, np.full((n_rays,1), [recursion_idx], dtype=np.float32))
 
-        if not origins == None and origins.shape[0] == n_rays and not np.any(self.origins[self.recursions == recursion_idx] == origins):
+        if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and not np.any(self.origins[self.recursions == recursion_idx] == origins):
             self.origins = np.append(self.origins, origins, axis=0).astype(np.float32)
 
-        if not directions == None and directions.shape[0] == n_rays and not np.any(self.directions[self.recursions == recursion_idx] == directions):
+        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and not np.any(self.directions[self.recursions == recursion_idx] == directions):
             self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
 
-        if not hits_coords == None and hits_coords.shape[0] == n_rays and not np.any(self.hits_coords[self.recursions == recursion_idx] == hits_coords):
+        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and not np.any(self.hits_coords[self.recursions == recursion_idx] == hits_coords):
             self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
 
-        if not energies == None and energies.shape[0] == n_rays and not np.any(self.energies[self.recursions == recursion_idx] == energies):
+        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and not np.any(self.energies[self.recursions == recursion_idx] == energies):
             self.energies = np.append(self.energies, energies, axis=0).astype(np.float32)
 
-        if not phases == None and phases.shape[0] == n_rays and not np.any(self.phases[self.recursions == recursion_idx] == phases):
+        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not np.any(self.phases[self.recursions == recursion_idx] == phases):
             self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
 
 
