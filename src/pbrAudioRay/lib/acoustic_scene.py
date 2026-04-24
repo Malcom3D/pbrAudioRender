@@ -62,6 +62,7 @@ class AcousticScene:
         self.aso_radius[idx] = radius if not radius == None else np.nan
 
     def add_mesh_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray):
+
         # register obj_idx
         self.objs_idx[self.num_objs] = obj_idx
 
@@ -83,9 +84,9 @@ class AcousticScene:
             self.ac_sound_speed = sound_speed
             self.ac_density = density
 
-            # Compute acoustic domain attenuation coefficients and phases and save as main medium info
+            # Compute acoustic domain attenuation coefficients and phases and save as medium info
             coeffs, phases = self._compute_acoustic_domain_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence)
-            self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,1), phases.reshape(n_bands,1)]
+            self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,), phases.reshape(n_bands,)]
             self.ac_attenuation = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Add AcousticDomain AcousticShader data to material info
@@ -114,7 +115,8 @@ class AcousticScene:
             for idx in range(n_bands):
                 min_freq, max_freq = self.freq_bands[idx]
                 coeffs, phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
-                self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
+                print('obj_idx >= 0: ', coeffs.shape, coeffs, phases, phases.shape)
+                self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,), phases.reshape(n_bands,)]
 
             # Get Object AcousticProperties
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
@@ -152,10 +154,9 @@ class AcousticScene:
                 min_freq, max_freq = self.freq_bands[idx]
                 alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
 
-            print('_compute_rayleigh_damping: alpha', alpha.shape, alpha)
-            print('_compute_rayleigh_damping: beta', beta.shape, beta)
-
-            omega = 2 * np.pi * np.unique(self.freq_bands)[:-1]
+            freqs = np.unique(self.freq_bands)[:-1]
+            omega = 2 * np.pi * freqs
+            omega = omega.reshape(freqs.shape[0],1)
 
             # Calculate derived properties from input parameters.
             # Bulk modulus (for fluids and isotropic solids)
