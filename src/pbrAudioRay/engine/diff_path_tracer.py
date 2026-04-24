@@ -58,12 +58,13 @@ class DiffPathTracer:
             next_positions = np.array([])
             next_directions = np.array([])
 
-        self.interface = InterfaceManager(self.entity_manager, ray_data)
+        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
 
         # Get scene data
         mesh_info = self.acoustic_scene.mesh_info
         scene_info = self.acoustic_scene.scene_info
 
+        # get objects material properties array
         sound_speed = self.acoustic_scene.sound_speed
         density = self.acoustic_scene.density
         absorption = self.acoustic_scene.absorption
@@ -76,6 +77,9 @@ class DiffPathTracer:
 
         source_medium = self.acoustic_scene.aso_medium[0]
         output_medium = self.acoustic_scene.aso_medium[1]
+
+        recursions = self.ray_data.recursions
+        origins = self.ray_data.origins[recursions == np.unique(recursions)[-1]]
 
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
@@ -107,23 +111,44 @@ class DiffPathTracer:
 
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
-        print('hit_points: ', hit_points)
 
-        # Compute 
+        # Compute traveled path length
+        dists = hit_points - origins
+
+        # Get main medium properties
+        ac_sound_speed = self.acoustic_scene.ac_sound_speed
+        ac_density = self.acoustic_scene.ac_density
+        ac_absorption = self.acoustic_scene.ac_absorption[bands_idx]
+
+        # Compute energy attenuation and phase shift after traveled path using exponential decay
+        # E = E0 * exp(-alpha * distance)
+        # where alpha is in nepers/m
+        initial_energy = self.ray_data.energies[np.unique(recursions)[-1]]
+        attenuation = np.exp(-ac_absorption[0] * dists)
+        energies = initial_energy * attenuation
+
+        # Calculate phase shift
+        # Phase = beta * distance (in radians)
+        initial_phase = self.ray_data.phases[np.unique(recursions)[-1]]
+        phase_shift = ac_absorption[1] * path_length
+        final_phase = initial_phase + phase_shift
+    
+        # Wrap phase to [-π, π] range for better numerical representation
+        final_phase = np.mod(final_phase + np.pi, 2 * np.pi) - np.pi
+
+        # Get material properties
+        abs_coeffs, abs_phases = absorption[valid_prim_id][:,:,bands_idx]
+        refl_coeffs, refl_phases = reflection[valid_prim_id][:,:,bands_idx]
+        refr_coeffs, refr_phases = refraction[valid_prim_id][:,:,bands_idx]
+        scat_coeffs, scat_phases = scattering[valid_prim_id][:,:,bands_idx]
+
         # Get object index from scene info
-        hit_obj_idx = scene_info[prim_id]
+        hit_obj_idx = scene_info[valid_prim_id]
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
         hit_output = hit_obj_idx[output_mask]
         hit_objects = hit_obj_idx[intersect_mask]
-        self._store_output_hit(hit_point, prim_id)
  
-        # Get material properties
-        absorption = absorption[intersect_mask][:,:,bands_idx]
-        reflection = reflection[intersect_mask][:,:,bands_idx]
-        refraction = refraction[intersect_mask][:,:,bands_idx]
-        scattering = scattering[intersect_mask][:,:,bands_idx]
-
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
 
@@ -133,6 +158,7 @@ class DiffPathTracer:
         # Add small epsilon to avoid division by zero
         normals = np.maximum(normals, 1e-12)
 
+        
         # Compute interaction with InterfaceManager
         if self.max_interactions == 0:
             self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx, source_medium)

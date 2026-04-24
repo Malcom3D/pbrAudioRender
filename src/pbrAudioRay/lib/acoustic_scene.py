@@ -18,6 +18,7 @@
 
 import numpy as np
 import numba as nb
+from ..core.entity_manager import EntityManager
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
@@ -61,31 +62,101 @@ class AcousticScene:
         self.scene_info = np.append(self.scene_info, np.full((triangle_count,), obj_idx, dtype=np.int32))
         self.mesh_info = np.append(self.mesh_info, vertices[faces], axis=0)
 
+        sound_speed = obj_config.acoustic_shader.sound_speed
+        density = obj_config.acoustic_shader.density
+        self.sound_speed = np.append(self.sound_speed, np.full((triangle_count,), sound_speed, dtype=np.float32))
+        self.density = np.append(self.density, np.full((triangle_count,), density, dtype=np.float32))
+
         # Get Material Info
         if obj_idx >= -1:
-            sound_speed = obj_config.acoustic_shader.sound_speed
-            self.sound_speed = np.append(self.sound_speed, np.full((triangle_count,), sound_speed, dtype=np.float32))
-            density = obj_config.acoustic_shader.density
-            self.density = np.append(self.density, np.full((triangle_count,), density, dtype=np.float32))
+            self.ac_sound_speed = obj_config.acoustic_shader.sound_speed
+            self.ac_density = obj_config.acoustic_shader.density
+
+            # get acoustic domain absorption coefficients and phases and save as main medium info
+            temperature = obj_config.acoustic_shader.temperature
+            impedence = obj_config.acoustic_shader.impedence
+            coeffs, phases = _compute_acoustic_coefficients(sound_speed, density, temperature, impedence, np.unique(self.freq_bands)[:-1])
+            self.ac_absorption = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
+
+            # Complete array with null value
+            coeffs = [1 for _ in range(len(self.freq_bands))]
+            phases = [0 for _ in range(len(self.freq_bands))]
+            self.absorption = np.append(self.absorption, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.refraction = np.append(self.refraction, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.reflection = np.append(self.reflection, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
+            self.scattering = np.append(self.scattering, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
         if obj_idx >= 0:
             # Get Object AcousticShader
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
+            phases = phases.tolist() if not phases == None else [0 for _ in range(len(self.freq_bands))]
             self.absorption = np.append(self.absorption, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.refraction.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
+            phases = phases.tolist() if not phases == None else [0 for _ in range(len(self.freq_bands))]
             self.refraction = np.append(self.refraction, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.reflection.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
+            phases = phases.tolist() if not phases == None else [0 for _ in range(len(self.freq_bands))]
             self.reflection = np.append(self.reflection, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.scattering.get_bands_avg(self.freq_bands)
             coeffs = coeffs.tolist()
-            phases = phases.tolist() if not phases == None else [None for _ in range(len(self.freq_bands))]
+            phases = phases.tolist() if not phases == None else [0 for _ in range(len(self.freq_bands))]
             self.scattering = np.append(self.scattering, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
+
+    def _compute_acoustic_coefficients(c: float, rho: float, T: float, Z: float, freqs: np.ndarray):
+        """
+        Compute absorption coefficient and phase shift coefficient for air.
+    
+        Parameters:
+        -----------
+        c : float
+            Speed of sound in air (m/s)
+        rho : float
+            Density of of air (kg/m³)
+        T : float
+            Temperature in °C
+        Z : float
+            Characteristic impedance of air (rayls)
+        freqs : array
+            Frequency (Hz) - bands frequency
+        Returns:
+        --------
+        alpha : array
+            Absorption coefficient (nepers/m)
+        beta : array
+            Phase shift coefficient (rad/m)
+        """
+
+        # Convert temperature to Kelvin
+        T_K = T + 273.15
+
+        # Compute Angular frequency
+        omega = 2 * np.pi * freqs
+
+        # Stokes-Kirchhoff formula for sound absorption
+        # Constants for air
+        mu = 1.846e-5  # Dynamic viscosity (Pa·s) at 20°C
+        kappa = 0.0262  # Thermal conductivity (W/m·K) at 20°C
+        Cp = 1005  # Specific heat at constant pressure (J/kg·K)
+        Cv = 718  # Specific heat at constant volume (J/kg·K)
+        gamma_specific = Cp / Cv  # Ratio of specific heats
+
+        
+        # Viscous contribution
+        alpha_visc = (omega**2 * mu) / (2 * rho * c**3)
+        
+        # Thermal contribution
+        alpha_therm = (omega**2 * kappa * (gamma_specific - 1)) / (2 * rho * c**3 * Cp)
+        
+        # Total absorption coefficient
+        alpha = alpha_visc + alpha_therm
+        
+        # Phase shift coefficient
+        beta = omega / c
+
+        return alpha, beta

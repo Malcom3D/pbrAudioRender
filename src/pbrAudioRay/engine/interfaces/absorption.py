@@ -23,12 +23,18 @@ from dask import delayed, compute
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
+from ..core.entity_manager import EntityManager
 from ...lib.acoustic_shader import AcousticShader
 from ...lib.ray_data import RayData
 
 @dataclass
 class AbsorptionInterface:
-    acoustic_rays: Any
+    entity_manager: EntityManager
+    acoustic_scene: Any
+
+    def __post_init__(self):
+        config = self.entity_manager.get('config')
+        ac_shader = config.acoustic_domain.acoustic_shader
 
     @delayed
     def compute(self, hit_points: np.ndarray, absorption: np.ndarray, hit_objects: np.ndarray, angle_factors: np.ndarray):
