@@ -85,9 +85,9 @@ class WavePropagator:
         directions = directions[:source_pos.shape[0]]
 
         if source_pos.ndim == 1:
-            source_pos = np.array([source_pos.reshape(1,3).tolist() for _ in range(n_dirs)]).reshape(n_dirs,3)
+            source_pos = np.array([source_pos.reshape(1,3).tolist() for _ in range(n_dirs)], dtype=np.float32).reshape(n_dirs,3)
         else:
-            source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)]).reshape(n_dirs,3)
+            source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
 
 
         # First fast rays propagation without frequency bands
