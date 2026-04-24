@@ -69,6 +69,7 @@ class WavePropagator:
         output_pos = acoustic_scene.aso_pos[1]
 
         # Diffuse source
+        n_points = 0
         for source in self.config.sources:
             if source.idx == self.source_idx:
                 if source.type == 'SPERE' and source.size > 0:
@@ -79,14 +80,15 @@ class WavePropagator:
         n_src = source_pos.shape[0]
         source_ndim = int(n_rays / n_src)
         n_dirs = source_ndim * n_src
-        print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape, source_pos)
-        source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)]).reshape(n_dirs,3)
-        print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape)
-        source_pos = np.full((n_dirs,3), [source_pos], dtype=np.float32)
-        print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape)
 
-        directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
-        directions = np.array(directions, dtype=np.float32)
+        directions = self._generate_isotropic_directions(n_dirs - n_points, source_pos, output_pos)
+        directions = directions[:source_pos.shape[0]]
+
+        if source_pos.ndim == 1:
+            source_pos = np.array([source_pos.reshape(1,3).tolist() for _ in range(n_dirs)]).reshape(n_dirs,3)
+        else:
+            source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)]).reshape(n_dirs,3)
+
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
@@ -217,4 +219,4 @@ class WavePropagator:
         isotropic = np.column_stack((x, y, z)).astype(np.float32)
 
         # Append direct direction
-        return np.vstack((isotropic, direct_dir))
+        return np.vstack((isotropic[direct_dir.shape[0]:], direct_dir))
