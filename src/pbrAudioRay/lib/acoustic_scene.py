@@ -68,14 +68,14 @@ class AcousticScene:
         self.density = np.append(self.density, np.full((triangle_count,), density, dtype=np.float32))
 
         # Get Material Info
-        if obj_idx >= -1:
+        if obj_idx == -1:
             self.ac_sound_speed = obj_config.acoustic_shader.sound_speed
             self.ac_density = obj_config.acoustic_shader.density
 
             # get acoustic domain absorption coefficients and phases and save as main medium info
             temperature = obj_config.acoustic_shader.temperature
             impedence = obj_config.acoustic_shader.impedence
-            coeffs, phases = self._compute_acoustic_coefficients(sound_speed, density, temperature, impedence, np.unique(self.freq_bands)[:-1])
+            coeffs, phases = self._compute_acoustic_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence, freqs=np.unique(self.freq_bands)[:-1])
             self.ac_absorption = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Complete array with null value
