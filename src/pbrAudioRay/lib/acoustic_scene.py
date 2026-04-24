@@ -75,7 +75,7 @@ class AcousticScene:
             # get acoustic domain absorption coefficients and phases and save as main medium info
             temperature = obj_config.acoustic_shader.temperature
             impedence = obj_config.acoustic_shader.impedence
-            coeffs, phases = _compute_acoustic_coefficients(sound_speed, density, temperature, impedence, np.unique(self.freq_bands)[:-1])
+            coeffs, phases = self._compute_acoustic_coefficients(sound_speed, density, temperature, impedence, np.unique(self.freq_bands)[:-1])
             self.ac_absorption = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Complete array with null value
