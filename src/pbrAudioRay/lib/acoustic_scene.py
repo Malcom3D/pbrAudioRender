@@ -85,7 +85,6 @@ class AcousticScene:
 
             # Compute acoustic domain attenuation coefficients and phases and save as main medium info
             coeffs, phases = self._compute_acoustic_domain_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence)
-            print('acoustic domain attenuation: ', coeffs.shape, phases.shape)
             self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,1), phases.reshape(n_bands,1)]
             self.ac_attenuation = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
@@ -115,7 +114,6 @@ class AcousticScene:
             for idx in range(n_bands):
                 min_freq, max_freq = self.freq_bands[idx]
                 coeffs, phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
-                print('acoustic object attenuation: ', coeffs, phases)
                 self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             # Get Object AcousticProperties
@@ -154,6 +152,7 @@ class AcousticScene:
                 min_freq, max_freq = self.freq_bands[idx]
                 alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
 
+            print('_compute_rayleigh_damping: ', alpha.shape, beta.shape)
             omega = 2 * np.pi * np.unique(self.freq_bands)[:-1]
 
             # Calculate derived properties from input parameters.
