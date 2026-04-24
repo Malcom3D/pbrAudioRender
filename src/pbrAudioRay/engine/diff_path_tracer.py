@@ -113,7 +113,7 @@ class DiffPathTracer:
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Compute traveled path length
-        dists = hit_points - origins
+        path_length = hit_points - origins
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
@@ -124,7 +124,7 @@ class DiffPathTracer:
         # E = E0 * exp(-alpha * distance)
         # where alpha is in nepers/m
         initial_energy = self.ray_data.energies[np.unique(recursions)[-1]]
-        attenuation = np.exp(-ac_absorption[0] * dists)
+        attenuation = np.exp(-ac_absorption[0] * path_length)
         rays_energies = initial_energy * attenuation
 
         # Calculate phase shift
@@ -134,7 +134,7 @@ class DiffPathTracer:
         rays_phase = initial_phase + phase_shift
     
         # Wrap phase to [-π, π] range for better numerical representation
-        rays_phase = np.mod(final_phase + np.pi, 2 * np.pi) - np.pi
+        rays_phase = np.mod(rays_phase + np.pi, 2 * np.pi) - np.pi
 
         # Get material properties
         abs_coeffs, abs_phases = absorption[valid_prim_id][:,:,bands_idx]
