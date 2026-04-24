@@ -78,9 +78,10 @@ class WavePropagator:
 
         n_src = source_pos.shape[0]
         source_ndim = int(n_rays / n_src)
-        source_pos = np.full((source_ndim,3), [source_pos.tolist()], dtype=np.float32)
-
         n_dirs = source_ndim * n_src
+        source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)]).reshape(n_dirs,3)
+        source_pos = np.full((n_dirs,3), [source_pos], dtype=np.float32)
+
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         directions = np.array(directions, dtype=np.float32)
 
