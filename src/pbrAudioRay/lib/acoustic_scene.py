@@ -115,7 +115,7 @@ class AcousticScene:
             for idx in range(n_bands):
                 min_freq, max_freq = self.freq_bands[idx]
                 coeffs, phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
-                print('acoustic object attenuation: ', coeffs.shape, phases.shape)
+                print('acoustic object attenuation: ', coeffs, phases)
                 self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
             # Get Object AcousticProperties
