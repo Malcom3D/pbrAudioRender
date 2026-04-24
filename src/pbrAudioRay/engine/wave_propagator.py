@@ -79,7 +79,7 @@ class WavePropagator:
         n_src = source_pos.shape[0]
         source_ndim = int(n_rays / n_src)
         n_dirs = source_ndim * n_src
-        print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape)
+        print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape, source_pos)
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)]).reshape(n_dirs,3)
         print('source_pos: ', n_src, source_ndim, n_dirs, source_pos.shape)
         source_pos = np.full((n_dirs,3), [source_pos], dtype=np.float32)

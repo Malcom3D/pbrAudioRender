@@ -144,7 +144,6 @@ class AcousticScene:
             """
             Calculate medium attenuation coefficient and phase shift for acoustic objects.
             Works for gases, fluids, and solids using a simplified common method.
-
             """
             # Compute Rayleigh damping coefficient α (mass proportional) and Rayleigh damping coefficient β (stiffness proportional)
             n_bands = len(self.freq_bands)
