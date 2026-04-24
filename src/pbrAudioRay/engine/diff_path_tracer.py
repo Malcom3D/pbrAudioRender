@@ -125,22 +125,27 @@ class DiffPathTracer:
         # where alpha is in nepers/m
         initial_energy = self.ray_data.energies[np.unique(recursions)[-1]]
         attenuation = np.exp(-ac_absorption[0] * dists)
-        energies = initial_energy * attenuation
+        rays_energies = initial_energy * attenuation
 
         # Calculate phase shift
         # Phase = beta * distance (in radians)
         initial_phase = self.ray_data.phases[np.unique(recursions)[-1]]
         phase_shift = ac_absorption[1] * path_length
-        final_phase = initial_phase + phase_shift
+        rays_phase = initial_phase + phase_shift
     
         # Wrap phase to [-π, π] range for better numerical representation
-        final_phase = np.mod(final_phase + np.pi, 2 * np.pi) - np.pi
+        rays_phase = np.mod(final_phase + np.pi, 2 * np.pi) - np.pi
 
         # Get material properties
         abs_coeffs, abs_phases = absorption[valid_prim_id][:,:,bands_idx]
         refl_coeffs, refl_phases = reflection[valid_prim_id][:,:,bands_idx]
         refr_coeffs, refr_phases = refraction[valid_prim_id][:,:,bands_idx]
         scat_coeffs, scat_phases = scattering[valid_prim_id][:,:,bands_idx]
+
+
+        ##################################################################################################################
+        # Compute intersection absorption and phase shift
+        ##################################################################################################################
 
         # Get object index from scene info
         hit_obj_idx = scene_info[valid_prim_id]
