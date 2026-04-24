@@ -90,6 +90,7 @@ class WavePropagator:
         directions = directions[:source_pos.shape[0]]
 
         # First fast rays propagation without frequency bands
+        print('self.ray_tracer.compute: ', n_src, source_pos.shape, directions.shape)
         hits = self.ray_tracer.compute(source_pos, directions)
 
         # Compute Paths for band_idx
