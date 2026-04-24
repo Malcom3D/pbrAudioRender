@@ -86,7 +86,7 @@ class AcousticScene:
             # Compute acoustic domain attenuation coefficients and phases and save as main medium info
             coeffs, phases = self._compute_acoustic_domain_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence)
             print('acoustic domain attenuation: ', coeffs.shape, phases.shape)
-            self.objs_medium[self.num_objs] = [coeffs, phases]
+            self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,1), phases.reshape(n_bands,1)]
             self.ac_attenuation = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Add AcousticDomain AcousticShader data to material info
@@ -173,7 +173,7 @@ class AcousticScene:
             alpha_attenuation = (alpha / (2 * c)) + (beta * omega**2 / (2 * c))
 
             # For fluids and gases add a simple viscous term
-            if not self.is_solid:
+            if not is_solid:
                 # Simplified viscous attenuation (Stokes' law approximation)
                 # Assuming dynamic viscosity ≈ 1.8e-5 Pa·s for air, 1e-3 Pa·s for water
                 viscosity = 1.8e-5 if rho < 100 else 1e-3  # rough approximation
