@@ -153,6 +153,7 @@ class AcousticScene:
                 alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
 
             omega = 2 * np.pi * np.unique(self.freq_bands)[:-1]
+            print('_compute_rayleigh_damping: ', omega.shape, omega)
 
             # Calculate derived properties from input parameters.
             # Bulk modulus (for fluids and isotropic solids)
@@ -185,7 +186,6 @@ class AcousticScene:
             # Compute phase shift (in rads/m)
             phase_shift = omega / c
 
-            print('_compute_rayleigh_damping: ', alpha_attenuation.shape, phase_shift.shape)
             return alpha_attenuation, phase_shift
 
     def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float):
