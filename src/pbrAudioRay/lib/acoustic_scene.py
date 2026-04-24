@@ -51,6 +51,7 @@ class AcousticScene:
         self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
     def set_num_objs(self, num_objs: int):
+        n_bands = len(self.freq_bands)
         self.objs_idx = np.zeros((num_objs,1), dtype=np.int32)
         self.objs_medium = np.zeros((num_objs,2,n_bands), dtype=np.float32)
 
