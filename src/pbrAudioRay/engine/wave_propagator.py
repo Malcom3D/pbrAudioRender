@@ -213,7 +213,7 @@ class WavePropagator:
             for source_idx in range(n_sources):
                 # Calculate how many rays for this source
                 if source_idx < remainder:
-                    n_rays_this_source_source = rays_per_source + 1
+                    n_rays_this_source = rays_per_source + 1
                 else:
                     n_rays_this_source = rays_per_source
             
