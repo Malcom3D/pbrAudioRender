@@ -189,7 +189,7 @@ class AcousticScene:
 
             return alpha_attenuation, phase_shift
 
-    def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float, freqs: np.ndarray):
+    def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float):
         """
         Compute absorption coefficient and phase shift coefficient for air.
     
