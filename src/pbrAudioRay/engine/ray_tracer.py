@@ -21,8 +21,6 @@ import numba as nb
 from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-
 @dataclass
 class RayTracer:
     scene: Any # embreex.rtcore_scene.EmbreeScene
