@@ -169,7 +169,7 @@ class AcousticScene:
             is_solid = G > 0.1 * E
 
             # Compute attenuation coefficient α_att (in Np/m) using Rayleigh damping model: α_att = (α / (2*c)) + (β * ω² / (2*c))
-            alpha_attenuation = (alpha / (2 * c)) + \ (beta * omega**2 / (2 * c))
+            alpha_attenuation = (alpha / (2 * c)) + (beta * omega**2 / (2 * c))
 
             # For fluids and gases add a simple viscous term
             if not self.is_solid:
