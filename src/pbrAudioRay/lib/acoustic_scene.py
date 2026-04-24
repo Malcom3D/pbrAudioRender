@@ -108,7 +108,7 @@ class AcousticScene:
             phases = phases.tolist() if not phases == None else [0 for _ in range(len(self.freq_bands))]
             self.scattering = np.append(self.scattering, np.full((triangle_count,2,n_bands), [coeffs, phases], dtype=np.float32))
 
-    def _compute_acoustic_coefficients(c: float, rho: float, T: float, Z: float, freqs: np.ndarray):
+    def _compute_acoustic_coefficients(self, c: float, rho: float, T: float, Z: float, freqs: np.ndarray):
         """
         Compute absorption coefficient and phase shift coefficient for air.
     
