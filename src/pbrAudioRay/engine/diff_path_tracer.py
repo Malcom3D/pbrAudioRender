@@ -142,10 +142,8 @@ class DiffPathTracer:
         refr_coeffs, refr_phases = refraction[valid_prim_id][:,:,bands_idx]
         scat_coeffs, scat_phases = scattering[valid_prim_id][:,:,bands_idx]
 
-
-        ##################################################################################################################
         # Compute intersection absorption and phase shift
-        ##################################################################################################################
+        
 
         # Get object index from scene info
         hit_obj_idx = scene_info[valid_prim_id]
