@@ -210,7 +210,7 @@ class DiffPathTracer:
 
         # Register new recursion data in RayData storage
         recursion_idx += 1
-        ray_data.add_data(recursion_idx=recursion_idx, n_rays=new_origins.shape[0], origins=new_origins, new_directions=directions, energies=new_energies, phases=new_phases, energies=new_energies, phases=new_phases) 
+        ray_data.add_data(recursion_idx=recursion_idx, n_rays=new_origins.shape[0], origins=new_origins, new_directions=directions, energies=new_energies, phases=new_phases) 
 
         self.current_interactions += 1
         return new_origins, new_directions, bands_idx, ray_data
