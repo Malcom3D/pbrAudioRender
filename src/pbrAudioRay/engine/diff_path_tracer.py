@@ -93,18 +93,18 @@ class DiffPathTracer:
         
         # Get valid hit data
         valid_geom_ids = geom_ids[valid_hits]
-        valid_prim_id = prim_ids[valid_hits]
+        valid_prim_ids = prim_ids[valid_hits]
 #        valid_hit_coords = hit_coords[valid_hits]
         
         # Initialize arrays for next ray data
         next_positions = []
         next_directions = []
 
-        u = hits["u"][valid_prim_id]
-        v = hits["v"][valid_prim_id]
+        u = hits["u"][valid_prim_ids]
+        v = hits["v"][valid_prim_ids]
         w = 1 - u - v
 
-        triangle = mesh_info[valid_prim_id]
+        triangle = mesh_info[valid_prim_ids]
         a = triangle[:, 0, :]
         b = triangle[:, 1, :]
         c = triangle[:, 2, :] 
@@ -113,31 +113,31 @@ class DiffPathTracer:
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Compute traveled path length
-        path_length = np.sqrt(np.sum((hit_points - origins[valid_prim_id])**2, axis=1))
+        path_length = np.sqrt(np.sum((hit_points - origins[valid_prim_ids])**2, axis=1))
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
         ac_density = self.acoustic_scene.ac_density
-        ac_absorption = self.acoustic_scene.ac_absorption[bands_idx]
+        ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
 
         # Compute energy attenuation and phase shift after traveled path using exponential decay
         # E = E0 * exp(-alpha * distance)
         # where alpha is in nepers/m
         initial_energy = self.ray_data.energies[recursion_idx]
-        attenuation = np.exp(-ac_absorption[0] * path_length)
+        attenuation = np.exp(-ac_attenuation[0] * path_length)
         rays_energies = initial_energy * attenuation
 
         # Calculate phase shift
         # Phase = beta * distance (in radians)
         initial_phase = self.ray_data.phases[recursion_idx]
-        phase_shift = ac_absorption[1] * path_length
+        phase_shift = ac_attenuation[1] * path_length
         rays_phases = (initial_phase + phase_shift) % (2 * np.pi)
     
         # Wrap phase to [-π, π] range for better numerical representation
         rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
 
         # filter rays_energies and rays_phases for output and objects hits
-        hit_obj_idx = scene_info[valid_prim_id]
+        hit_obj_idx = scene_info[valid_prim_ids]
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
 
