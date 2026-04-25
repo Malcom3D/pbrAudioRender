@@ -81,11 +81,7 @@ class DiffPathTracer:
 
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
-        try:
-            origins = ray_data.origins[recursions == recursion_idx]
-        except Exception as e:
-            print('Error: ', e)
-            print('ray_data: ', ray_data)
+        origins = ray_data.origins[recursions == recursion_idx]
 
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
@@ -144,8 +140,6 @@ class DiffPathTracer:
         hit_obj_idx = scene_info[valid_prim_id]
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
-
-        print('valid_prim_id', valid_prim_id.shape, 'output_mask', output_mask.shape, 'intersect_mask', intersect_mask.shape)
 
         rays_energies_output = rays_energies
         rays_phases_output = rays_phases
@@ -209,7 +203,6 @@ class DiffPathTracer:
         new_phases = appended_phases[termination_mask]
         new_directions = appended_directions[termination_mask]
         new_origins = hit_points[termination_mask]
-
 
         # Complete recursion data in RayData storage
         ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, output_mask=output_mask, intersect_mask=intersect_mask)
