@@ -94,8 +94,14 @@ class RayData:
             if isinstance(intersect_mask, np.ndarray) and intersect_mask.shape[0] == n_rays and not intersect_mask.shape[0] < self.recursions.shape[0]:
                 self.intersect_mask = np.append(self.intersect_mask, intersect_mask, axis=0).astype(np.bool_)
 
-        except:
-            print('ray_data.add_data: ', self.src_idx, self.out_idx, 'recursion_idx: ', recursion_idx, 'n_rays: ', n_rays, 'origins: ', origins.shape, 'directions: ', directions.shape)
+        except as error:
+            print('ray_data.add_data: error', self.src_idx, self.out_idx, error)
+            for key in kwargs.keys():
+             if isinstance(kwargs[key], np.ndarray):
+                 print(key, len(kwargs[key]))
+             else:
+                 print(key, kwargs[key])
+#            print('ray_data.add_data: ', self.src_idx, self.out_idx, 'recursion_idx: ', recursion_idx, 'n_rays: ', n_rays, 'origins: ', origins.shape, 'directions: ', directions.shape)
 
 
 
