@@ -61,6 +61,9 @@ class RayData:
         if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and origins.shape[0] < self.recursions.shape[0]:
             self.origins = np.append(self.origins, origins, axis=0).astype(np.float32)
         else:
+            print(isinstance(origins, np.ndarray))
+            print(origins.shape[0] == n_rays)
+            print(origins.shape[0] < self.recursions.shape[0])
             print('origins: ', origins.shape, 'self.origins', self.origins)
 
         if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and directions.shape[0] < self.recursions.shape[0]:
