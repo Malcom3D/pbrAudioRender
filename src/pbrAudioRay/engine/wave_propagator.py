@@ -20,7 +20,7 @@ import math
 import numpy as np
 import numba as nb
 from numba import prange
-from dask import delayed
+from dask import delayed, compute
 from typing import List, Tuple
 from dataclasses import dataclass
 
