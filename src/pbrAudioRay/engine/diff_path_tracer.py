@@ -123,13 +123,13 @@ class DiffPathTracer:
         # Compute energy attenuation and phase shift after traveled path using exponential decay
         # E = E0 * exp(-alpha * distance)
         # where alpha is in nepers/m
-        initial_energy = self.ray_data.energies[recursion_idx]
+        initial_energy = ray_data.energies[recursion_idx]
         attenuation = np.exp(-ac_attenuation[0] * path_length)
         rays_energies = initial_energy * attenuation
 
         # Calculate phase shift
         # Phase = beta * distance (in radians)
-        initial_phase = self.ray_data.phases[recursion_idx]
+        initial_phase = ray_data.phases[recursion_idx]
         phase_shift = ac_attenuation[1] * path_length
         rays_phases = (initial_phase + phase_shift) % (2 * np.pi)
     
