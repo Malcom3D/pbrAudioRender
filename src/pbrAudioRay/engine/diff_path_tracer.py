@@ -81,7 +81,11 @@ class DiffPathTracer:
 
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
-        origins = ray_data.origins[recursions == recursion_idx]
+        try:
+            origins = ray_data.origins[recursions == recursion_idx]
+        except Exception as e:
+            print('Error: ', e)
+            print('ray_data: ', ray_data)
 
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
