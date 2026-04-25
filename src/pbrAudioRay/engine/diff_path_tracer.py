@@ -58,7 +58,7 @@ class DiffPathTracer:
             next_positions = np.array([])
             next_directions = np.array([])
 
-        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
+#        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
 
         # Get scene data
         mesh_info = self.acoustic_scene.mesh_info
@@ -67,6 +67,7 @@ class DiffPathTracer:
         # get objects material properties array
         sound_speed = self.acoustic_scene.sound_speed
         density = self.acoustic_scene.density
+        roughness = self.acoustic_scene.roughness
         absorption = self.acoustic_scene.absorption
         refraction = self.acoustic_scene.refraction
         reflection = self.acoustic_scene.reflection
@@ -78,8 +79,9 @@ class DiffPathTracer:
         source_medium = self.acoustic_scene.aso_medium[0]
         output_medium = self.acoustic_scene.aso_medium[1]
 
-        recursions = self.ray_data.recursions
-        origins = self.ray_data.origins[recursions == np.unique(recursions)[-1]]
+        recursions = ray_data.recursions
+        recursion_idx = np.unique(recursions)[-1]
+        origins = ray_data.origins[recursions == recursion_idx]
 
         geom_ids = hits["geomID"]
         prim_ids = hits["primID"]
@@ -89,31 +91,29 @@ class DiffPathTracer:
         if not np.any(valid_hits):
             return np.array([]), np.array([])
         
-        u = hits["u"][valid_hits]
-        v = hits["v"][valid_hits]
-        w = 1 - u - v
-
         # Get valid hit data
         valid_geom_ids = geom_ids[valid_hits]
         valid_prim_ids = prim_ids[valid_hits]
         valid_hit_coords = hit_coords[valid_hits]
         
-        n_hits = len(geom_ids)
-        
         # Initialize arrays for next ray data
         next_positions = []
         next_directions = []
-        
-        triangle = mesh_info[prim_id]
+
+        u = hits["u"][valid_prim_id]
+        v = hits["v"][valid_prim_id]
+        w = 1 - u - v
+
+        triangle = mesh_info[valid_prim_id]
         a = triangle[:, 0, :]
         b = triangle[:, 1, :]
-        c = triangle[:, 2, :]
-
+        c = triangle[:, 2, :] 
+        
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Compute traveled path length
-        path_length = hit_points - origins
+        path_length = np.sqrt(np.sum((hit_points - origins[valid_prim_id])**2, axis=1))
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
@@ -123,117 +123,136 @@ class DiffPathTracer:
         # Compute energy attenuation and phase shift after traveled path using exponential decay
         # E = E0 * exp(-alpha * distance)
         # where alpha is in nepers/m
-        initial_energy = self.ray_data.energies[np.unique(recursions)[-1]]
+        initial_energy = self.ray_data.energies[recursion_idx]
         attenuation = np.exp(-ac_absorption[0] * path_length)
         rays_energies = initial_energy * attenuation
 
         # Calculate phase shift
         # Phase = beta * distance (in radians)
-        initial_phase = self.ray_data.phases[np.unique(recursions)[-1]]
+        initial_phase = self.ray_data.phases[recursion_idx]
         phase_shift = ac_absorption[1] * path_length
-        rays_phase = initial_phase + phase_shift
+        rays_phases = (initial_phase + phase_shift) % (2 * np.pi)
     
         # Wrap phase to [-π, π] range for better numerical representation
-        rays_phase = np.mod(rays_phase + np.pi, 2 * np.pi) - np.pi
+        rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
 
-        # Get material properties
-        abs_coeffs, abs_phases = absorption[valid_prim_id][:,:,bands_idx]
-        refl_coeffs, refl_phases = reflection[valid_prim_id][:,:,bands_idx]
-        refr_coeffs, refr_phases = refraction[valid_prim_id][:,:,bands_idx]
-        scat_coeffs, scat_phases = scattering[valid_prim_id][:,:,bands_idx]
-
-        # Compute intersection absorption and phase shift
-        
-
-        # Get object index from scene info
+        # filter rays_energies and rays_phases for output and objects hits
         hit_obj_idx = scene_info[valid_prim_id]
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
-        hit_output = hit_obj_idx[output_mask]
-        hit_objects = hit_obj_idx[intersect_mask]
- 
+
+        rays_energies_output = rays_energies
+        rays_phases_output = rays_phases
+
+        rays_energies = rays_energies[intersect_mask]
+        rays_phases = rays_phases[intersect_mask]
+
+        # Compute dalay in main medium
+#        sound_c = sound_speed[intersect_mask][:,:,bands_idx]
+        delay = path_length * ac_sound_speed # all path are on the acoustic domain
+
+        # Get material properties
+        abs_coeffs, abs_phases = absorption[intersect_mask][:,:,bands_idx]
+        refl_coeffs, refl_phases = reflection[intersect_mask][:,:,bands_idx]
+        refr_coeffs, refr_phases = refraction[intersect_mask][:,:,bands_idx]
+        scat_coeffs, scat_phases = scattering[intersect_mask][:,:,bands_idx]
+
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
-
-        # Normalize (avoid division by zero)
-        normals = np.linalg.norm(normals, axis=1, keepdims=True)
-
-        # Add small epsilon to avoid division by zero
-        normals = np.maximum(normals, 1e-12)
-
-        
-        # Compute interaction with InterfaceManager
-        if self.max_interactions == 0:
-            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx, source_medium)
-        else:
-            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx)
-
-        # Generate new rays based on material properties
-        next_positions, next_directions = self._generate_scattered_rays(hit_points, normals, absorption, reflection, refraction, scattering, hit_objects)
-
-        # Record computed data to AcoustiRay
-
-        # Convert lists to arrays
-        if next_positions:
-            next_positions = np.vstack(next_positions)
-            next_directions = np.vstack(next_directions)
-        else:
-            next_positions = np.array([])
-            next_directions = np.array([])
-        
-        self.current_interactions += 1
-
-        return next_source_pos, next_directions, bands_idx, ray_data
-
-    def _generate_scattered_rays(self, hit_points: np.ndarray, normals: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Generate scattered rays based on material properties.
-        
-        Args:
-            hit_points: Point of intersection
-            normals: Surface normals at hit points
-            absorption: Absorption coefficients
-            reflection: Reflection coefficients
-            refraction: Refraction coefficients
-            scattering: Scattering coefficients
-            hit_objects: Objects index
             
-        Returns:
-            Tuple of (positions, directions) for new rays
-        """
-        # For now, implement simple reflection
-        # In a complete implementation, you would:
-        # 1. Sample reflection direction based on BRDF
-        # 2. Sample refraction direction using Snell's law
-        # 3. Sample scattering direction
-        # 4. Apply energy conservation
-        
-        # Simple Lambertian reflection for demonstration
-        n_rays = 4  # Generate  4 new rays per hit
-        positions = np.tile(hit_point, (n_rays, 1))
-        
-        # Generate random directions on hemisphere
-        directions = self._sample_hemisphere(normal, n_rays)
+        # Normalize (avoid division by zero)
+        normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
-        # Apply material coefficients to ray energy
-        self._apply_material_coefficients(directions, absorption, reflection, refraction, scattering, obj_idx)
+        # Compute incident angles and reflected directions
+        incident_angles, reflected_directions = self._compute_reflections(directions, normals)
+
+        # Compute scattered direction (random direction in hemisphere)
+        scattered_direction = self._random_hemisphere_direction(normal)
+
+        # Compute intersection absorption energies (no phase shift)
+        angle_factor = np.cos(incident_angle) if incident_angle < np.pi/2 else 1
+        absorbed_energy = rays_energies * abs_coeffs * angle_factor
+
+        # Compute intersection reflection energies and phase shift
+        reflected_energy = rays_energies * refl_coeffs
+        reflected_phase = rays_phases * (1 - refl_phases) % (2 * np.pi)
+
+        # Compute intersection scattering energies and phase shift
+        roughness_factor = 1
+        scattered_energy = rays_energies * scat_coeffs * roughness_factor
+        scattered_phase = rays_phases * (1 - scat_phases) % (2 * np.pi)
+
+        # Energy conservation check
+        total_out = reflected_energy + scattered_energy + absorbed_energy
+        if abs(total_out - ray_energy) > 1e-10:
+            # Normalize to ensure energy conservation
+            scale = ray_energy / total_out
+            reflected_energy *= scale
+            scattered_energy *= scale
+            absorbed_energy *= scale
+
+        # Append directions, energies and phases
+        appended_directions = np.append(reflected_directions, scattered_direction)
+        appended_energies = np.append(reflected_energy, scattered_energy)
+        appended_phases = np.append(reflected_phase, scattered_phase)
         
-        return positions, directions
-    
+        # Filter direction, hit_points and phases on energy termination
+        termination_energy = 0
+        termination_mask = appended_energies > termination_energy
+        new_energies = appended_energies[termination_mask]
+        new_phases = appended_phases[termination_mask]
+        new_directions = appended_directions[termination_mask]
+        new_origins = hit_points[termination_mask]
+
+
+        # Complete recursion data in RayData storage
+        ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, output_mask=output_mask, intersect_mask=intersect_mask)
+
+        # Register new recursion data in RayData storage
+        recursion_idx += 1
+        ray_data.add_data(recursion_idx=recursion_idx, n_rays=new_origins.shape[0], origins=new_origins, new_directions=directions, energies=new_energies, phases=new_phases, energies=new_energies, phases=new_phases) 
+
+        self.current_interactions += 1
+        return new_origins, new_directions, bands_idx, ray_data
+
+
+#        # Compute interaction with InterfaceManager
+#        if self.max_interactions == 0:
+#            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx, source_medium)
+#        else:
+#            self.interface.compute(self.acoustic_rays, hit_points, normals, absorption, reflection, refraction, scattering, hit_objects, bands_idx)
+#
+#        # Generate new rays based on material properties
+#        next_positions, next_directions = self._generate_scattered_rays(hit_points, normals, absorption, reflection, refraction, scattering, hit_objects)
+#
+#        # Record computed data to AcoustiRay
+#
+#        # Convert lists to arrays
+#        if next_positions:
+#            next_positions = np.vstack(next_positions)
+#            next_directions = np.vstack(next_directions)
+#        else:
+#            next_positions = np.array([])
+#            next_directions = np.array([])
+        
+
+
     @staticmethod
 #    @nb.njit(fastmath=True)
-    def _sample_hemisphere(normal: np.ndarray, n_samples: int) -> np.ndarray:
+    def _random_hemisphere_directions(normals: np.ndarray) -> np.ndarray:
         """
-        Sample directions on a hemisphere oriented along the normal.
+        Generate random directions on hemispheres oriented along the normals.
         
         Args:
-            normal: Surface normal
+            normals: Surface normal
             n_samples: Number of samples to generate
             
         Returns:
             Array of sampled directions
         """
+        n_samples = max(normals.shape[0], 1)
         directions = np.random.uniform(-1,1,(n_samples,3))
+        directions /= np.linalg.norm(directions)
 
         while not np.all(directions[:, 0]**2 + directions[:, 1]**2 + directions[:, 2]**2 < 1):
             directions = np.random.uniform(-1,1,(n_samples,3))
@@ -241,81 +260,34 @@ class DiffPathTracer:
             # Project onto hemisphere oriented along normal
             directions /= np.linalg.norm(directions)
             
-            # Flip if pointing away from normal
-            if np.dot(dir_vec, normal) < 0:
-                dir_vec = -dir_vec
-            
-            directions[i] = dir_vec
+        # Flip if pointing away from normal
+        if not np.any(np.sum(directions * normal, axis=1) < 0):
+            mask = np.sum(directions * normals, axis=1) < 0
+            directions[mask] = -directions[mask]
         
         return directions
 
-    def _apply_material_coefficients(self, directions: np.ndarray, absorption: np.ndarray, reflection: np.ndarray, refraction: np.ndarray, scattering: np.ndarray, obj_idx: int):
+    def _compute_reflections(self, directions: np.ndarray, normals: np.ndarray):
         """
-        Apply material coefficients to ray directions and energies.
-        
-        Args:
-            directions: Ray directions
-            absorption: Absorption coefficients
-            reflection: Reflection coefficients
-            refraction: Refraction coefficients
-            scattering: Scattering coefficients
-            obj_idx: Object index
-        """
-        # This would update the acoustic_rays data structure
-        # For now, just a placeholder
-        pass
-    
-    def _store_output_hit(self, hit_point: np.ndarray, prim_id: int):
-        """
-        Store hit information for impulse response calculation.
-        
-        Args:
-            hit_point: Point where ray hit output
-            prim_id: Primitive ID of hit
-        """
-        # Store hit information in acoustic_rays
-        # This would include:
-        # - Path length
-        # - Energy at each frequency band
-        # - Phase information
-        # - Interaction history
-        
-        # For now, just increment counter
-        self.ray_count += 1
+        Compute reflected angles for rays intersecting with surfaces.
 
-    def _compute_incident_angles(ray_directions, intersection_points, normals):
-        """
-        Compute incident angles for rays intersecting with surfaces.
-    
         Parameters:
         -----------
-        ray_directions : numpy.ndarray
+        directions : numpy.ndarray
             Direction vectors of rays, shape (n_rays, 3)
-        intersection_points : numpy.ndarray
-            Points of intersection, shape (n_rays, 3)
         normals : numpy.ndarray
             Surface normals at intersection points, shape (n_rays, 3)
-    
+
         Returns:
         --------
         incident_angles : numpy.ndarray
             Incident angles in radians, shape (n_rays,)
+        reflected_direction : numpy.ndarray
+            Reflected directions, shape (n_rays, 3)
         """
-        # Normalize the ray direction vectors
-        ray_directions_normalized = ray_directions / np.linalg.norm(ray_directions, axis=1, keepdims=True)
-    
-        # Normalize the normals
-        normals_normalized = normals / np.linalg.norm(normals, axis=1, keepdims=True)
-    
-        # Compute the dot product between ray direction and normal
-        # Note: We use the negative of ray direction since incident angle is measured
-        # between the incoming ray and the surface normal
-        dot_products = np.sum(-ray_directions_normalized * normals_normalized, axis=1)
-    
-        # Clamp dot products to [-1, 1] to avoid numerical issues
-        dot_products = np.clip(dot_products, -1.0, 1.0)
-    
-        # Compute incident angles (arccos of dot product)
-        incident_angles = np.arccos(dot_products)
-    
-        return incident_angles
+        # Compute reflected direction
+        dot = np.sum(directions * normals, axis=1)
+        incident_angles = np.arccos(-dot)
+        reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
+
+        return incident_angles, reflected_direction
