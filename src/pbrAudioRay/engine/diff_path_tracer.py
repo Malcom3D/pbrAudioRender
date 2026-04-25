@@ -93,7 +93,7 @@ class DiffPathTracer:
         
         # Get valid hit data
         valid_geom_ids = geom_ids[valid_hits]
-        valid_prim_ids = prim_ids[valid_hits]
+        valid_prim_id = prim_ids[valid_hits]
 #        valid_hit_coords = hit_coords[valid_hits]
         
         # Initialize arrays for next ray data
