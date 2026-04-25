@@ -58,45 +58,40 @@ class RayData:
             self.recursions = np.append(self.recursions, np.full((n_rays,1), [recursion_idx], dtype=np.int32))
 
 #        try:
-        if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and origins.shape[0] < self.recursions.shape[0]:
+        if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays:
             self.origins = np.append(self.origins, origins, axis=0).astype(np.float32)
-        else:
-            print(isinstance(origins, np.ndarray))
-            print(origins.shape[0] == n_rays)
-            print(origins.shape[0] < self.recursions.shape[0])
-            print('origins: ', origins.shape, 'self.origins', self.origins)
 
-        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and directions.shape[0] < self.recursions.shape[0]:
+        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays:
             self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
 
-        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and hits_coords.shape[0] < self.recursions.shape[0]:
+        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays:
             self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
 
-        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and energies.shape[0] < self.recursions.shape[0]:
+        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays:
             self.energies = np.append(self.energies, energies, axis=0).astype(np.float32)
 
-        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not phases.shape[0] < self.recursions.shape[0]:
+        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays:
             self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
 
-        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and not hits_coords.shape[0] < self.recursions.shape[0]:
+        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays:
             self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
 
-        if isinstance(path_length, np.ndarray) and path_length.shape[0] == n_rays and not path_length.shape[0] < self.recursions.shape[0]:
+        if isinstance(path_length, np.ndarray) and path_length.shape[0] == n_rays:
             self.path_length = np.append(self.path_length, path_length, axis=0).astype(np.float32)
 
-        if isinstance(delay, np.ndarray) and delay.shape[0] == n_rays and not delay.shape[0] < self.recursions.shape[0]:
+        if isinstance(delay, np.ndarray) and delay.shape[0] == n_rays:
             self.delay = np.append(self.delay, delay, axis=0).astype(np.float32)
 
-        if isinstance(rays_energies_output, np.ndarray) and rays_energies_output.shape[0] == n_rays and not rays_energies_output.shape[0] < self.recursions.shape[0]:
+        if isinstance(rays_energies_output, np.ndarray) and rays_energies_output.shape[0] == n_rays:
             self.rays_energies_output = np.append(self.rays_energies_output, rays_energies_output, axis=0).astype(np.float32)
 
-        if isinstance(rays_phases_output, np.ndarray) and rays_phases_output.shape[0] == n_rays and not rays_phases_output.shape[0] < self.recursions.shape[0]:
+        if isinstance(rays_phases_output, np.ndarray) and rays_phases_output.shape[0] == n_rays:
             self.rays_phases_output = np.append(self.rays_phases_output, rays_phases_output, axis=0).astype(np.float32)
 
-        if isinstance(output_mask, np.ndarray) and output_mask.shape[0] == n_rays and not output_mask.shape[0] < self.recursions.shape[0]:
+        if isinstance(output_mask, np.ndarray) and output_mask.shape[0] == n_rays:
             self.output_mask = np.append(self.output_mask, output_mask, axis=0).astype(np.bool_)
 
-        if isinstance(intersect_mask, np.ndarray) and intersect_mask.shape[0] == n_rays and not intersect_mask.shape[0] < self.recursions.shape[0]:
+        if isinstance(intersect_mask, np.ndarray) and intersect_mask.shape[0] == n_rays:
             self.intersect_mask = np.append(self.intersect_mask, intersect_mask, axis=0).astype(np.bool_)
 
 #        except Exception as error:
