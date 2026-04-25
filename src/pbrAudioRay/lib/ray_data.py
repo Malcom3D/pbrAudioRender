@@ -34,6 +34,11 @@ class RayData:
     path_length: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     energies: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     phases: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
+    output_mask: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.bool_))
+    intersect_mask: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.bool_))
+    rays_energies_output: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
+    rays_phases_output: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
+    delay: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     medium_absorption_coeffs: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     medium_absorption_phases: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     absorption_coeffs: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
@@ -46,7 +51,8 @@ class RayData:
     scattering_phases: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
 
     # keyword-only function with mandatory recursion_idx and n_rays
-    def add_data(self, *, recursion_idx: int, n_rays: int, origins: np.ndarray = None, directions: np.ndarray = None, hits_coords: np.ndarray = None, path_length: np.ndarray = None, energies: np.ndarray = None, phases: np.ndarray = None, medium_absorption_coeffs: np.ndarray = None, medium_absorption_phases: np.ndarray = None, absorption_coeffs: np.ndarray = None, absorption_phases: np.ndarray = None, reflection_coeffs: np.ndarray = None, reflection_phases: np.ndarray = None, refraction_coeffs: np.ndarray = None, refraction_phases: np.ndarray = None, scattering_coeffs: np.ndarray = None, scattering_phases: np.ndarray = None):
+    def add_data(self, *, recursion_idx: int, n_rays: int, origins: np.ndarray = None, directions: np.ndarray = None, hits_coords: np.ndarray = None, path_length: np.ndarray = None, energies: np.ndarray = None, phases: np.ndarray = None, medium_absorption_coeffs: np.ndarray = None, medium_absorption_phases: np.ndarray = None, absorption_coeffs: np.ndarray = None, absorption_phases: np.ndarray = None, reflection_coeffs: np.ndarray = None, reflection_phases: np.ndarray = None, refraction_coeffs: np.ndarray = None, refraction_phases: np.ndarray = None, scattering_coeffs: np.ndarray = None, scattering_phases: np.ndarray = None, output_mask: np.ndarray, intersect_mask: np.ndarray, rays_energies_output: np.ndarray, rays_phases_output: np.ndarray):
+
         # Check if recursion_idx is already present
         if not np.any(self.recursions == recursion_idx):
             self.recursions = np.append(self.recursions, np.full((n_rays,1), [recursion_idx], dtype=np.int32))
@@ -54,20 +60,42 @@ class RayData:
         try:
             if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and origins.shape[0] < self.recursions.shape[0]:
                 self.origins = np.append(self.origins, origins, axis=0).astype(np.float32)
+
+            if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and directions.shape[0] < self.recursions.shape[0]:
+                self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
+
+            if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and hits_coords.shape[0] < self.recursions.shape[0]:
+                self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
+
+            if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and energies.shape[0] < self.recursions.shape[0]:
+                self.energies = np.append(self.energies, energies, axis=0).astype(np.float32)
+
+            if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not phases.shape[0] < self.recursions.shape[0]:
+                self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
+
+            if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and not hits_coords.shape[0] < self.recursions.shape[0]:
+                self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
+
+            if isinstance(path_length, np.ndarray) and path_length.shape[0] == n_rays and not path_length.shape[0] < self.recursions.shape[0]:
+                self.path_length = np.append(self.path_length, path_length, axis=0).astype(np.float32)
+
+            if isinstance(delay, np.ndarray) and delay.shape[0] == n_rays and not delay.shape[0] < self.recursions.shape[0]:
+                self.delay = np.append(self.delay, delay, axis=0).astype(np.float32)
+
+            if isinstance(rays_energies_output, np.ndarray) and rays_energies_output.shape[0] == n_rays and not rays_energies_output.shape[0] < self.recursions.shape[0]:
+                self.rays_energies_output = np.append(self.rays_energies_output, rays_energies_output, axis=0).astype(np.float32)
+
+            if isinstance(rays_phases_output, np.ndarray) and rays_phases_output.shape[0] == n_rays and not rays_phases_output.shape[0] < self.recursions.shape[0]:
+                self.rays_phases_output = np.append(self.rays_phases_output, rays_phases_output, axis=0).astype(np.float32)
+
+            if isinstance(output_mask, np.ndarray) and output_mask.shape[0] == n_rays and not output_mask.shape[0] < self.recursions.shape[0]:
+                self.output_mask = np.append(self.output_mask, output_mask, axis=0).astype(np.bool_)
+
+            if isinstance(intersect_mask, np.ndarray) and intersect_mask.shape[0] == n_rays and not intersect_mask.shape[0] < self.recursions.shape[0]:
+                self.intersect_mask = np.append(self.intersect_mask, intersect_mask, axis=0).astype(np.bool_)
+
         except:
             print('ray_data.add_data: ', self.src_idx, self.out_idx, 'recursion_idx: ', recursion_idx, 'n_rays: ', n_rays, 'origins: ', origins.shape, 'directions: ', directions.shape)
-
-        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and directions.shape[0] < self.recursions.shape[0]:
-            self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
-
-        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and hits_coords.shape[0] < self.recursions.shape[0]:
-            self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
-
-        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and energies.shape[0] < self.recursions.shape[0]:
-            self.energies = np.append(self.energies, energies, axis=0).astype(np.float32)
-
-        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not phases.shape[0] < self.recursions.shape[0]:
-            self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
 
 
 
