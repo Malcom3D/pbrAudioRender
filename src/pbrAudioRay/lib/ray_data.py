@@ -27,7 +27,7 @@ class RayData:
     out_idx: int
     bands_idx: int
     interactions: int = None
-    recursions: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
+    recursions: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.int32))
     origins: np.ndarray = field(default_factory=lambda: np.zeros((0,3), dtype=np.float32))
     directions: np.ndarray = field(default_factory=lambda: np.zeros((0,3), dtype=np.float32))
     hits_coords: np.ndarray = field(default_factory=lambda: np.zeros((0,3), dtype=np.float32))
@@ -49,24 +49,24 @@ class RayData:
     def add_data(self, *, recursion_idx: int, n_rays: int, origins: np.ndarray = None, directions: np.ndarray = None, hits_coords: np.ndarray = None, path_length: np.ndarray = None, energies: np.ndarray = None, phases: np.ndarray = None, medium_absorption_coeffs: np.ndarray = None, medium_absorption_phases: np.ndarray = None, absorption_coeffs: np.ndarray = None, absorption_phases: np.ndarray = None, reflection_coeffs: np.ndarray = None, reflection_phases: np.ndarray = None, refraction_coeffs: np.ndarray = None, refraction_phases: np.ndarray = None, scattering_coeffs: np.ndarray = None, scattering_phases: np.ndarray = None):
         # Check if recursion_idx is already present
         if not np.any(self.recursions == recursion_idx):
-            self.recursions = np.append(self.recursions, np.full((n_rays,1), [recursion_idx], dtype=np.float32))
+            self.recursions = np.append(self.recursions, np.full((n_rays,1), [recursion_idx], dtype=np.int32))
 
         try:
-            if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and not np.any(self.origins[self.recursions == recursion_idx] == origins):
+            if isinstance(origins, np.ndarray) and origins.shape[0] == n_rays and origins.shape[0] < self.recursions.shape[0]:
                 self.origins = np.append(self.origins, origins, axis=0).astype(np.float32)
         except:
             print('ray_data.add_data: ', self.src_idx, self.out_idx, 'recursion_idx: ', recursion_idx, 'n_rays: ', n_rays, 'origins: ', origins.shape, 'directions: ', directions.shape)
 
-        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and not np.any(self.directions[self.recursions == recursion_idx] == directions):
+        if isinstance(directions, np.ndarray) and directions.shape[0] == n_rays and directions.shape[0] < self.recursions.shape[0]:
             self.directions = np.append(self.directions, directions, axis=0).astype(np.float32)
 
-        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and not np.any(self.hits_coords[self.recursions == recursion_idx] == hits_coords):
+        if isinstance(hits_coords, np.ndarray) and hits_coords.shape[0] == n_rays and hits_coords.shape[0] < self.recursions.shape[0]:
             self.hits_coords = np.append(self.hits_coords, hits_coords, axis=0).astype(np.float32)
 
-        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and not np.any(self.energies[self.recursions == recursion_idx] == energies):
+        if isinstance(energies, np.ndarray) and energies.shape[0] == n_rays and energies.shape[0] < self.recursions.shape[0]:
             self.energies = np.append(self.energies, energies, axis=0).astype(np.float32)
 
-        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not np.any(self.phases[self.recursions == recursion_idx] == phases):
+        if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays and not phases.shape[0] < self.recursions.shape[0]:
             self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
 
 
