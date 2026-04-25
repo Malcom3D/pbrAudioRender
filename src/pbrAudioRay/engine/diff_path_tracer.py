@@ -145,6 +145,8 @@ class DiffPathTracer:
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
 
+        print('valid_prim_id', valid_prim_id.shape, 'output_mask', output_mask.shape, 'intersect_mask', intersect_mask.shape)
+
         rays_energies_output = rays_energies
         rays_phases_output = rays_phases
 
