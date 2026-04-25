@@ -152,10 +152,10 @@ class DiffPathTracer:
         delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Get material properties
-        abs_coeffs, abs_phases = absorption[intersect_mask][:,:,bands_idx]
-        refl_coeffs, refl_phases = reflection[intersect_mask][:,:,bands_idx]
-        refr_coeffs, refr_phases = refraction[intersect_mask][:,:,bands_idx]
-        scat_coeffs, scat_phases = scattering[intersect_mask][:,:,bands_idx]
+        abs_coeffs, abs_phases = absorption[:,:,bands_idx][intersect_mask]
+        refl_coeffs, refl_phases = reflection[:,:,bands_idx][intersect_mask]
+        refr_coeffs, refr_phases = refraction[:,:,bands_idx][intersect_mask]
+        scat_coeffs, scat_phases = scattering[:,:,bands_idx][intersect_mask]
 
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
