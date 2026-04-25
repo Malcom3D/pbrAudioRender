@@ -93,7 +93,7 @@ class AcousticScene:
             # Add AcousticDomain AcousticShader data to material info
             self.sound_speed = np.append(self.sound_speed, np.full((triangle_count,), sound_speed, dtype=np.float32))
             self.density = np.append(self.density, np.full((triangle_count,), density, dtype=np.float32))
-            self.roughness = np.append(self.roughness, np.full((triangle_count,), [-1], , dtype=np.float32))
+            self.roughness = np.append(self.roughness, np.full((triangle_count,), [-1], dtype=np.float32))
 
             # Complete material info array with null value
             coeffs = [1 for _ in range(len(self.freq_bands))]
