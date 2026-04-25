@@ -64,6 +64,8 @@ class AcousticEngine:
         tasks = [self._add_solvers(combo) for combo in combos]
         compute(*tasks)
 
+        print('AcousticEngine: configuration loaded...')
+
     @delayed
     def _add_source(self, config):
         source_map = {
