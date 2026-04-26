@@ -109,14 +109,18 @@ class DiffPathTracer:
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
-        # Compute traveled path length
-#        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
-        path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
-
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
         ac_density = self.acoustic_scene.ac_density
         ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
+
+        # Compute traveled path length
+#        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
+        path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
+
+        # Compute dalay in main medium
+#        sound_c = sound_speed[intersect_mask][:,:,bands_idx]
+        delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Compute energy attenuation and phase shift after traveled path using exponential decay
         # E = E0 * exp(-alpha * distance)
@@ -137,18 +141,16 @@ class DiffPathTracer:
         # filter rays_energies and rays_phases for output and objects hits
 #        hit_obj_idx = scene_info[prim_ids]
         hit_obj_idx = self.acoustic_scene.get_scene_info(mask=prim_ids)
-        output_mask = (hit_obj_idx == -3)
-        intersect_mask = (hit_obj_idx >= 0)
+#        output_mask = hit_obj_idx == -3
+        intersect_mask = hit_obj_idx >= 0
 
         rays_energies_output = rays_energies
         rays_phases_output = rays_phases
 
+        rays_energies = rays_energies[prim_ids]
         rays_energies = rays_energies[intersect_mask]
+        rays_phases = rays_phases[prim_ids]
         rays_phases = rays_phases[intersect_mask]
-
-        # Compute dalay in main medium
-#        sound_c = sound_speed[intersect_mask][:,:,bands_idx]
-        delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Get material properties
         abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
@@ -206,7 +208,7 @@ class DiffPathTracer:
         new_origins = appended_origins[termination_mask]
 
         # Complete recursion data in RayData storage
-        ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, output_mask=output_mask, intersect_mask=intersect_mask)
+        ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, hit_obj_idx=hit_obj_idx)
 
         # Register new recursion data in RayData storage
         recursion_idx += 1
