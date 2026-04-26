@@ -191,9 +191,9 @@ class DiffPathTracer:
             absorbed_energy *= scale
 
         # Append directions, energies and phases
-        appended_directions = np.append(reflected_directions, scattered_directions)
-        appended_energies = np.append(reflected_energy, scattered_energy)
-        appended_phases = np.append(reflected_phase, scattered_phase)
+        appended_directions = np.append(reflected_directions, scattered_directions, axis=0)
+        appended_energies = np.append(reflected_energy, scattered_energy, axis=0)
+        appended_phases = np.append(reflected_phase, scattered_phase, axis=0)
         
         # Filter direction, hit_points and phases on energy termination
         termination_energy = 1e-6
