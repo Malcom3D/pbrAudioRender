@@ -79,27 +79,27 @@ class AcousticScene:
             return self.objs_medium_coeffs[mask], self.objs_medium_phases[mask]
 
     def get_absorption(self, mask: np.ndarray, bands_idx: int = None):
-        print('self.absorption_coeffs', self.absorption_coeffs.shape, 'mask', mask.shape, 'self.absorption_coeffs[mask]', self.absorption_coeffs[mask].shape)
+#        print('self.absorption_coeffs', self.absorption_coeffs.shape, 'mask', mask.shape, 'self.absorption_coeffs[mask]', self.absorption_coeffs[mask].shape)
         if isinstance(bands_idx, int):
-            return self.absorption_coeffs[mask][bands_idx], self.absorption_phases[mask][bands_idx]
+            return self.absorption_coeffs[mask][0][bands_idx], self.absorption_phases[mask][0][bands_idx]
         else:
             return self.absorption_coeffs[mask], self.absorption_phases[mask]
 
     def get_refraction(self, mask: np.ndarray, bands_idx: int = None):
         if isinstance(bands_idx, int):
-            return self.refraction_coeffs[mask][bands_idx], self.refraction_phases[mask][bands_idx]
+            return self.refraction_coeffs[mask][0][bands_idx], self.refraction_phases[mask][0][bands_idx]
         else:
             return self.refraction_coeffs[mask], self.refraction_phases[mask]
 
     def get_reflection(self, mask: np.ndarray, bands_idx: int = None):
         if isinstance(bands_idx, int):
-            return self.reflection_coeffs[mask][bands_idx], self.reflection_phases[mask][bands_idx]
+            return self.reflection_coeffs[mask][0][bands_idx], self.reflection_phases[mask][0][bands_idx]
         else:
             return self.reflection_coeffs[mask], self.reflection_phases[mask]
 
     def get_scattering(self, mask: np.ndarray, bands_idx: int = None):
         if isinstance(bands_idx, int):
-            return self.scattering_coeffs[mask][bands_idx], self.scattering_phases[mask][bands_idx]
+            return self.scattering_coeffs[mask][0][bands_idx], self.scattering_phases[mask][0][bands_idx]
         else:
             return self.scattering_coeffs[mask], self.scattering_phases[mask]
 
