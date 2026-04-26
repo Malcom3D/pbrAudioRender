@@ -155,7 +155,7 @@ class DiffPathTracer:
         refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
         scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
-        # Compute triangle normal using np.cross with broadcasting
+        # Compute triangle normals using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
             
         # Normalize (avoid division by zero)
@@ -242,7 +242,7 @@ class DiffPathTracer:
         Generate random directions on hemispheres oriented along the normals.
         
         Args:
-            normals: Surface normal
+            normals: Surface normals
             n_samples: Number of samples to generate
             
         Returns:
@@ -255,11 +255,11 @@ class DiffPathTracer:
         while not np.all(directions[:, 0]**2 + directions[:, 1]**2 + directions[:, 2]**2 < 1):
             directions = np.random.uniform(-1,1,(n_samples,3))
 
-            # Project onto hemisphere oriented along normal
+            # Project onto hemisphere oriented along normals
             directions /= np.linalg.norm(directions)
             
-        # Flip if pointing away from normal
-        if not np.any(np.sum(directions * normal, axis=1) < 0):
+        # Flip if pointing away from normals
+        if not np.any(np.sum(directions * normals, axis=1) < 0):
             mask = np.sum(directions * normals, axis=1) < 0
             directions[mask] = -directions[mask]
         
