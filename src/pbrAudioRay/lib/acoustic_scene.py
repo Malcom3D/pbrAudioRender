@@ -79,6 +79,8 @@ class AcousticScene:
             return self.objs_medium_coeffs[mask], self.objs_medium_phases[mask]
 
     def get_absorption(self, mask: np.ndarray, bands_idx: int = None):
+        print('self.absorption_coeffs', self.absorption_coeffs)
+        print('self.absorption_coeffs', self.absorption_coeffs.shape, 'mask', mask.shape)
         if isinstance(bands_idx, int):
             return self.absorption_coeffs[mask][bands_idx], self.absorption_phases[mask][bands_idx]
         else:
