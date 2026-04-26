@@ -162,7 +162,7 @@ class DiffPathTracer:
         normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
         # Compute incident angles and reflected directions
-        ray_data.directions[recursion_idx]
+        directions = ray_data.directions[recursion_idx]
         incident_angles, reflected_directions = self._compute_reflections(directions, normals)
 
         # Compute scattered direction (random direction in hemisphere)
