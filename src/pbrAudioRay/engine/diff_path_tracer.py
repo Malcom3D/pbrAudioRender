@@ -62,23 +62,6 @@ class DiffPathTracer:
 
 #        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
 
-        # Get scene data
-#        mesh_info = self.acoustic_scene.mesh_info
-#        scene_info = self.acoustic_scene.scene_info
-#
-#        # get objects material properties array
-#        sound_speed = self.acoustic_scene.sound_speed
-#        density = self.acoustic_scene.density
-#        roughness = self.acoustic_scene.roughness
-#        absorption_coeffs = self.acoustic_scene.absorption_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-#        absorption_phases = self.acoustic_scene.absorption_phases.reshape(mesh_info.shape[0], self.n_bands)
-#        refraction_coeffs = self.acoustic_scene.refraction_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-#        refraction_phases = self.acoustic_scene.refraction_phases.reshape(mesh_info.shape[0], self.n_bands)
-#        reflection_coeffs = self.acoustic_scene.reflection_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-#        reflection_phases = self.acoustic_scene.reflection_phases.reshape(mesh_info.shape[0], self.n_bands)
-#        scattering_coeffs = self.acoustic_scene.scattering_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-#        scattering_phases = self.acoustic_scene.scattering_phases.reshape(mesh_info.shape[0], self.n_bands)
-
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
 
@@ -100,7 +83,6 @@ class DiffPathTracer:
         v = hits["v"][prim_ids]
         w = 1 - u - v
 
-#        triangle = mesh_info[prim_ids]
         triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
         a = triangle[:, 0, :]
         b = triangle[:, 1, :]
@@ -115,11 +97,9 @@ class DiffPathTracer:
         ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
 
         # Compute traveled path length
-#        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
         path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
 
         # Compute dalay in main medium
-#        sound_c = sound_speed[intersect_mask][:,:,bands_idx]
         delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Compute energy attenuation and phase shift after traveled path using exponential decay
@@ -139,8 +119,9 @@ class DiffPathTracer:
         rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
 
         # filter rays_energies and rays_phases for output and objects hits
-#        hit_obj_idx = scene_info[prim_ids]
         hit_obj_idx = self.acoustic_scene.get_scene_info(mask=prim_ids)
+        hit_obj_idx = hit_obj_idx.reshape(-1,1)
+
 #        output_mask = hit_obj_idx == -3
         intersect_mask = hit_obj_idx >= 0
 
