@@ -183,9 +183,9 @@ class DiffPathTracer:
 
         # Energy conservation check
         total_out = reflected_energy + scattered_energy + absorbed_energy
-        if abs(total_out - rays_energy) > 1e-10:
+        if abs(total_out - rays_energies) > 1e-10:
             # Normalize to ensure energy conservation
-            scale = rays_energy / total_out
+            scale = rays_energies / total_out
             reflected_energy *= scale
             scattered_energy *= scale
             absorbed_energy *= scale
