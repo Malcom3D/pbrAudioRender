@@ -156,7 +156,10 @@ class DiffPathTracer:
         delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Get material properties
-#        print('absorption.shape', absorption.shape, 'bands_idx', bands_idx, 'intersect_mask', intersect_mask.shape)
+        print('absorption_coeffs', absorption_coeffs)
+        print('absorption_coeffs[valid_prim_ids]', absorption_coeffs[valid_prim_ids])
+        print('absorption_coeffs.shape', absorption_coeffs.shape, 'bands_idx', bands_idx, 'valid_prim_ids', valid_prim_ids.shape)
+        print('absorption_coeffs[valid_prim_ids]', absorption_coeffs[valid_prim_ids].shape)
         abs_coeffs = absorption_coeffs[valid_prim_ids][bands_idx]
         abs_phases = absorption_phases[valid_prim_ids][bands_idx]
         refl_coeffs = reflection_coeffs[valid_prim_ids][bands_idx]
