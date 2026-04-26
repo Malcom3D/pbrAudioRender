@@ -110,7 +110,8 @@ class DiffPathTracer:
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Compute traveled path length
-        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
+#        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
+        path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1))
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
