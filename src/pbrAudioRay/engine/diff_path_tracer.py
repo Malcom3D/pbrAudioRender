@@ -44,7 +44,7 @@ class DiffPathTracer:
         self.ray_count = 0
         self.current_interactions = 0
 
-#    @delayed
+    @delayed
     def compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
         """
         Process ray hits and generate new rays for next bounce.
