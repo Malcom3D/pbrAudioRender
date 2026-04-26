@@ -38,6 +38,8 @@ class DiffPathTracer:
         config = self.entity_manager.get('config')
         self.max_interactions = config.wave_propagation.max_interactions
 
+        self.n_bands = len(self.entity_manager.get('frequency_bands').get_bands())
+
         # Initialize counters
         self.ray_count = 0
         self.current_interactions = 0
@@ -68,14 +70,14 @@ class DiffPathTracer:
         sound_speed = self.acoustic_scene.sound_speed
         density = self.acoustic_scene.density
         roughness = self.acoustic_scene.roughness
-        absorption_coeffs = self.acoustic_scene.absorption_coeffs
-        absorption_phases = self.acoustic_scene.absorption_phases
-        refraction_coeffs = self.acoustic_scene.refraction_coeffs
-        refraction_phases = self.acoustic_scene.refraction_phases
-        reflection_coeffs = self.acoustic_scene.reflection_coeffs
-        reflection_phases = self.acoustic_scene.reflection_phases
-        scattering_coeffs = self.acoustic_scene.scattering_coeffs
-        scattering_phases = self.acoustic_scene.scattering_phases
+        absorption_coeffs = self.acoustic_scene.absorption_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+        absorption_phases = self.acoustic_scene.absorption_phases.reshape(mesh_info.shape[0], self.n_bands)
+        refraction_coeffs = self.acoustic_scene.refraction_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+        refraction_phases = self.acoustic_scene.refraction_phases.reshape(mesh_info.shape[0], self.n_bands)
+        reflection_coeffs = self.acoustic_scene.reflection_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+        reflection_phases = self.acoustic_scene.reflection_phases.reshape(mesh_info.shape[0], self.n_bands)
+        scattering_coeffs = self.acoustic_scene.scattering_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+        scattering_phases = self.acoustic_scene.scattering_phases.reshape(mesh_info.shape[0], self.n_bands)
 
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
