@@ -63,21 +63,21 @@ class DiffPathTracer:
 #        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
 
         # Get scene data
-        mesh_info = self.acoustic_scene.mesh_info
-        scene_info = self.acoustic_scene.scene_info
-
-        # get objects material properties array
-        sound_speed = self.acoustic_scene.sound_speed
-        density = self.acoustic_scene.density
-        roughness = self.acoustic_scene.roughness
-        absorption_coeffs = self.acoustic_scene.absorption_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-        absorption_phases = self.acoustic_scene.absorption_phases.reshape(mesh_info.shape[0], self.n_bands)
-        refraction_coeffs = self.acoustic_scene.refraction_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-        refraction_phases = self.acoustic_scene.refraction_phases.reshape(mesh_info.shape[0], self.n_bands)
-        reflection_coeffs = self.acoustic_scene.reflection_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-        reflection_phases = self.acoustic_scene.reflection_phases.reshape(mesh_info.shape[0], self.n_bands)
-        scattering_coeffs = self.acoustic_scene.scattering_coeffs.reshape(mesh_info.shape[0], self.n_bands)
-        scattering_phases = self.acoustic_scene.scattering_phases.reshape(mesh_info.shape[0], self.n_bands)
+#        mesh_info = self.acoustic_scene.mesh_info
+#        scene_info = self.acoustic_scene.scene_info
+#
+#        # get objects material properties array
+#        sound_speed = self.acoustic_scene.sound_speed
+#        density = self.acoustic_scene.density
+#        roughness = self.acoustic_scene.roughness
+#        absorption_coeffs = self.acoustic_scene.absorption_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+#        absorption_phases = self.acoustic_scene.absorption_phases.reshape(mesh_info.shape[0], self.n_bands)
+#        refraction_coeffs = self.acoustic_scene.refraction_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+#        refraction_phases = self.acoustic_scene.refraction_phases.reshape(mesh_info.shape[0], self.n_bands)
+#        reflection_coeffs = self.acoustic_scene.reflection_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+#        reflection_phases = self.acoustic_scene.reflection_phases.reshape(mesh_info.shape[0], self.n_bands)
+#        scattering_coeffs = self.acoustic_scene.scattering_coeffs.reshape(mesh_info.shape[0], self.n_bands)
+#        scattering_phases = self.acoustic_scene.scattering_phases.reshape(mesh_info.shape[0], self.n_bands)
 
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
@@ -89,28 +89,19 @@ class DiffPathTracer:
         recursion_idx = np.unique(recursions)[-1]
         origins = ray_data.origins[recursions == recursion_idx]
 
-        geom_ids = hits["geomID"]
-        prim_ids = hits["primID"]
+        geom_ids = hits["geomID"] >= 0
+        prim_ids = hits["primID"][geom_ids]
 
-        # Filter rays that hit something
-        valid_hits = geom_ids >= 0
-        if not np.any(valid_hits):
-            return np.array([]), np.array([])
-        
-        # Get valid hit data
-        valid_geom_ids = geom_ids[valid_hits]
-        valid_prim_ids = prim_ids[valid_hits]
-#        valid_hit_coords = hit_coords[valid_hits]
-        
         # Initialize arrays for next ray data
         next_positions = []
         next_directions = []
 
-        u = hits["u"][valid_prim_ids]
-        v = hits["v"][valid_prim_ids]
+        u = hits["u"][prim_ids]
+        v = hits["v"][prim_ids]
         w = 1 - u - v
 
-        triangle = mesh_info[valid_prim_ids]
+#        triangle = mesh_info[prim_ids]
+        triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
         a = triangle[:, 0, :]
         b = triangle[:, 1, :]
         c = triangle[:, 2, :] 
@@ -119,7 +110,7 @@ class DiffPathTracer:
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Compute traveled path length
-        path_length = np.sqrt(np.sum((hit_points - origins[valid_prim_ids])**2, axis=1))
+        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1))
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
@@ -143,7 +134,8 @@ class DiffPathTracer:
         rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
 
         # filter rays_energies and rays_phases for output and objects hits
-        hit_obj_idx = scene_info[valid_prim_ids]
+#        hit_obj_idx = scene_info[prim_ids]
+        hit_obj_idx = self.acoustic_scene.get_scene_info(mask=prim_ids)
         output_mask = (hit_obj_idx == -3)
         intersect_mask = (hit_obj_idx >= 0)
 
@@ -158,18 +150,10 @@ class DiffPathTracer:
         delay = path_length * ac_sound_speed # all path are on the acoustic domain
 
         # Get material properties
-        print('absorption_coeffs', absorption_coeffs)
-        print('absorption_coeffs[valid_prim_ids]', absorption_coeffs[valid_prim_ids])
-        print('absorption_coeffs.shape', absorption_coeffs.shape, 'bands_idx', bands_idx, 'valid_prim_ids', valid_prim_ids.shape)
-        print('absorption_coeffs[valid_prim_ids]', absorption_coeffs[valid_prim_ids].shape)
-        abs_coeffs = absorption_coeffs[valid_prim_ids][bands_idx]
-        abs_phases = absorption_phases[valid_prim_ids][bands_idx]
-        refl_coeffs = reflection_coeffs[valid_prim_ids][bands_idx]
-        refl_phases = reflection_phases[valid_prim_ids][bands_idx]
-        refr_coeffs = refraction_coeffs[valid_prim_ids][bands_idx]
-        refr_phases = refraction_phases[valid_prim_ids][bands_idx]
-        scat_coeffs = scattering_coeffs[valid_prim_ids][bands_idx]
-        scat_phases = scattering_phases[valid_prim_ids][bands_idx]
+        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
+        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
+        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
+        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
@@ -192,7 +176,7 @@ class DiffPathTracer:
         reflected_phase = rays_phases + refl_phases % (2 * np.pi)
 
         # Compute intersection scattering energies and phase shift
-        roughness_factor = roughness[valid_prim_ids][bands_idx]
+        roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids, bands_idx=bands_idx)
         scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_direction.shape[0]
         scattered_phase = rays_phases + scat_phases % (2 * np.pi)
 

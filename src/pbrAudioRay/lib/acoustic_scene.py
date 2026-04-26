@@ -57,6 +57,51 @@ class AcousticScene:
         self.aso_medium = np.zeros(num_aso, dtype=np.int32)
         self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
+    def get_mesh_info(self, mask: np.ndarray):
+        return self.mesh_info[mask]
+
+    def get_scene_info(self, mask: np.ndarray):
+        return self.scene_info[mask]
+
+    def get_sound_speed(self, mask: np.ndarray):
+        return self.sound_speed[mask]
+
+    def get_density(self, mask: np.ndarray):
+        return self.density[mask]
+
+    def get_roughness(self, mask: np.ndarray):
+        return self.roughness[mask]
+
+    def get_objs_medium(self, mask: np.ndarray, bands_idx: int = None):
+        if isinstance(bands_idx, None):
+            return self.objs_medium_coeffs[mask], self.objs_medium_phases[mask]
+        elif isinstance(bands_idx, int):
+            return self.objs_medium_coeffs[mask][bands_idx], self.objs_medium_phases[mask][bands_idx]
+
+    def get_absorption(self, mask: np.ndarray, bands_idx: int = None):
+        if isinstance(bands_idx, None):
+            return self.absorption_coeffs[mask], self.absorption_phases[mask]
+        elif isinstance(bands_idx, int):
+            return self.absorption_coeffs[mask][bands_idx], self.absorption_phases[mask][bands_idx]
+
+    def get_refraction(self, mask: np.ndarray, bands_idx: int = None):
+        if isinstance(bands_idx, None):
+            return self.refraction_coeffs[mask], self.refraction_phases[mask]
+        elif isinstance(bands_idx, int):
+            return self.refraction_coeffs[mask][bands_idx], self.refraction_phases[mask][bands_idx]
+
+    def get_reflection(self, mask: np.ndarray, bands_idx: int = None):
+        if isinstance(bands_idx, None):
+            return self.reflection_coeffs[mask], self.reflection_phases[mask]
+        elif isinstance(bands_idx, int):
+            return self.reflection_coeffs[mask][bands_idx], self.reflection_phases[mask][bands_idx]
+
+    def get_scattering(self, mask: np.ndarray, bands_idx: int = None):
+        if isinstance(bands_idx, None):
+            return self.scattering_coeffs[mask], self.scattering_phases[mask]
+        elif isinstance(bands_idx, int):
+            return self.scattering_coeffs[mask][bands_idx], self.scattering_phases[mask][bands_idx]
+
     def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
         idx = 0 if aso_id == -2 else 1
         self.aso_pos[idx] = position.tolist()
