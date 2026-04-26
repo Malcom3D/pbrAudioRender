@@ -190,7 +190,8 @@ class DiffPathTracer:
             scattered_energy *= scale
             absorbed_energy *= scale
 
-        # Append directions, energies and phases
+        # Append hit_points for origins, directions, energies and phases
+        appended_origins = np.append(hit_points, hit_points, axis=0)
         appended_directions = np.append(reflected_directions, scattered_directions, axis=0)
         appended_energies = np.append(reflected_energy, scattered_energy, axis=0)
         appended_phases = np.append(reflected_phase, scattered_phase, axis=0)
@@ -201,7 +202,7 @@ class DiffPathTracer:
         new_energies = appended_energies[termination_mask]
         new_phases = appended_phases[termination_mask]
         new_directions = appended_directions[termination_mask]
-        new_origins = hit_points[termination_mask]
+        new_origins = appended_origins[termination_mask]
 
         # Complete recursion data in RayData storage
         ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, output_mask=output_mask, intersect_mask=intersect_mask)
