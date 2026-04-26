@@ -177,7 +177,7 @@ class DiffPathTracer:
         reflected_phase = rays_phases + refl_phases % (2 * np.pi)
 
         # Compute intersection scattering energies and phase shift
-        roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids, bands_idx=bands_idx)
+        roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
         scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_directions.shape[0]
         scattered_phase = rays_phases + scat_phases % (2 * np.pi)
 
