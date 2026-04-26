@@ -205,7 +205,7 @@ class DiffPathTracer:
         # Filter direction, hit_points and phases on energy termination
         termination_energy = 1e-6
         termination_mask = appended_energies > termination_energy
-        print('termination_mask', termination_mask.shape, appended_energies.shape, appended_phases.shape, appended_directions.shape, appended_origins.shape)
+        print('termination_mask', termination_mask, appended_energies, appended_phases, appended_directions, appended_origins)
         new_energies = appended_energies[termination_mask]
         new_phases = appended_phases[termination_mask]
         new_directions = appended_directions[termination_mask]
