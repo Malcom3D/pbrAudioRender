@@ -153,10 +153,10 @@ class DiffPathTracer:
 
         # Get material properties
         print('absorption.shape', absorption.shape, 'bands_idx', bands_idx, 'intersect_mask', intersect_mask.shape)
-        abs_coeffs, abs_phases = absorption[:,:,bands_idx][valid_prim_ids]
-        refl_coeffs, refl_phases = reflection[:,:,bands_idx][valid_prim_ids]
-        refr_coeffs, refr_phases = refraction[:,:,bands_idx][valid_prim_ids]
-        scat_coeffs, scat_phases = scattering[:,:,bands_idx][valid_prim_ids]
+        abs_coeffs, abs_phases = absorption[valid_prim_ids,:,bands_idx]
+        refl_coeffs, refl_phases = reflection[valid_prim_ids,:,bands_idx]
+        refr_coeffs, refr_phases = refraction[valid_prim_ids,:,bands_idx]
+        scat_coeffs, scat_phases = scattering[valid_prim_ids,:,bands_idx]
 
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)

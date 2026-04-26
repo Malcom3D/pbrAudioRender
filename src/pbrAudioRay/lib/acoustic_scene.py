@@ -35,6 +35,7 @@ class AcousticScene:
         n_bands = len(self.freq_bands)
         self.mesh_info = np.zeros((0,3,3), dtype=np.float32)
         self.scene_info = np.array([], dtype=np.int32)
+        self.objs_medium = np.zeros((0,2,n_bands), dtype=np.float32)
 
         # Init store for acoustiic material info
         self.sound_speed = np.zeros((0,1), dtype=np.float32)
@@ -51,11 +52,6 @@ class AcousticScene:
         self.aso_medium = np.zeros(num_aso, dtype=np.int32)
         self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
-    def set_num_objs(self, num_objs: int):
-        n_bands = len(self.freq_bands)
-        self.objs_idx = np.zeros((num_objs,1), dtype=np.int32)
-        self.objs_medium = np.zeros((num_objs,2,n_bands), dtype=np.float32)
-
     def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
         idx = 0 if aso_id == -2 else 1
         self.aso_pos[idx] = position.tolist()
@@ -63,9 +59,6 @@ class AcousticScene:
         self.aso_radius[idx] = radius if not radius == None else np.nan
 
     def add_mesh_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray):
-
-        # register obj_idx
-        self.objs_idx[self.num_objs] = obj_idx
 
         n_bands = len(self.freq_bands)
         # Get triangle count
@@ -87,7 +80,7 @@ class AcousticScene:
 
             # Compute acoustic domain attenuation coefficients and phases and save as medium info
             coeffs, phases = self._compute_acoustic_domain_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence)
-            self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,), phases.reshape(n_bands,)]
+            self.objs_medium = np.append(triangle_count,2,n_bands), [coeffs.reshape(n_bands,), phases.reshape(n_bands,)], dtype=np.float32))
             self.ac_attenuation = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Add AcousticDomain AcousticShader data to material info
@@ -117,10 +110,8 @@ class AcousticScene:
             young_modulus = obj_config.acoustic_shader.young_modulus
             poisson_ratio = obj_config.acoustic_shader.poisson_ratio
             damping = obj_config.acoustic_shader.damping
-            for idx in range(n_bands):
-                min_freq, max_freq = self.freq_bands[idx]
-                coeffs, phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
-                self.objs_medium[self.num_objs] = [coeffs.reshape(n_bands,), phases.reshape(n_bands,)]
+            bands_coeffs, bands_phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
+            self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs.reshape(n_bands,), phases.reshape(n_bands,)], dtype=np.float32))
 
             # Get Object AcousticProperties
             coeffs, phases = obj_config.acoustic_shader.acoustic_properties.absorption.get_bands_avg(self.freq_bands)
