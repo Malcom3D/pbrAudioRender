@@ -144,6 +144,9 @@ class DiffPathTracer:
 #        output_mask = hit_obj_idx == -3
         intersect_mask = hit_obj_idx >= 0
 
+        rays_energies = rays_energies.reshape(-1,1)
+        rays_energies = rays_energies.reshape(-1,1)
+
         rays_energies_output = rays_energies
         rays_phases_output = rays_phases
 
