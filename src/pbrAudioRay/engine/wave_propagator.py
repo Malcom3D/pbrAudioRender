@@ -101,7 +101,7 @@ class WavePropagator:
             ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
             ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions, energies=energies, phases=phases)
             _ = self.entity_manager.register('ray_datas', ray_data)
-            task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
+            task_tracer += [delayed(self.diff_path_tracer.compute)(hits, bands_idx, ray_data)]
         tracer_results = compute(*task_tracer)
 
         print('WavePropagator: paths for band computed', self.combo)
@@ -115,7 +115,8 @@ class WavePropagator:
     def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int, ray_data: RayData):
         print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(source_pos, directions)
-        next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
+        results = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
+        next_source_pos, next_directions, bands_idx, ray_data = results
 
         print(f"WavePropagator: {self.recursion_idx} compute_loop started", self.combo)
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
