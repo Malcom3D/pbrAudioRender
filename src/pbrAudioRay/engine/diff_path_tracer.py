@@ -166,7 +166,7 @@ class DiffPathTracer:
         incident_angles, reflected_directions = self._compute_reflections(directions, normals)
 
         # Compute scattered directions (random direction in hemisphere)
-        scattered_directions = self._random_hemisphere_direction(normal)
+        scattered_directions = self._random_hemisphere_directions(normals)
 
         # Compute intersection absorption energies (no phase shift)
         angle_factor = np.cos(incident_angle) if incident_angle < np.pi/2 else 1
