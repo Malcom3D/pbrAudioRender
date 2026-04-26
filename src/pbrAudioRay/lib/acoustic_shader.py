@@ -70,10 +70,10 @@ class AcousticCoefficients:
             - avg_phases: 1D array of average phases for each band (or None)
         """
         n_bands = len(freq_bands)
-        avg_coeffs = np.zeros(n_bands, dtype=np.float32)
+        avg_coeffs = np.zeros((0,n_bands), dtype=np.float32)
         
         if self.phases is not None:
-            avg_phases = np.zeros(n_bands, dtype=np.float32)
+            avg_phases = np.zeros(0,n_bands), dtype=np.float32)
         else:
             avg_phases = None
         
@@ -126,8 +126,8 @@ class AcousticCoefficients:
                 coeff_sum += coeff_interp_func(freq)
                 phase_sum += phase_interp_func(freq)
             
-            avg_coeffs[i] = coeff_sum / num_points
-            avg_phases[i] = phase_sum / num_points
+            avg_coeffs[0][i] = coeff_sum / num_points
+            avg_phases[0][i] = phase_sum / num_points
         
         return avg_coeffs, avg_phases
 
@@ -148,7 +148,7 @@ class AcousticCoefficients:
                 freq = low_freq + t * (high_freq - low_freq)
                 coeff_sum += coeff_interp_func(freq)
             
-            avg_coeffs[i] = coeff_sum / num_points
+            avg_coeffs[0][i] = coeff_sum / num_points
         
         return avg_coeffs
 
