@@ -105,7 +105,7 @@ class EmbreeScene:
             task_scene += [self._add_mesh_to_scene(scene, output_mesh, -3, "output")]
             num_objs += 1
 
-        self.acoustic_scene.set_num_objs(num_objs)
+#        self.acoustic_scene.set_num_objs(num_objs)
 
         # Get all acoustic objects mesh
         task_mesh = []
