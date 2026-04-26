@@ -112,7 +112,7 @@ class WavePropagator:
                 if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
                     self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
 
-    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int):
+    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int, ray_data: RayData):
         print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(source_pos, directions)
         next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
