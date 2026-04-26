@@ -165,8 +165,8 @@ class DiffPathTracer:
         directions = ray_data.directions[recursion_idx]
         incident_angles, reflected_directions = self._compute_reflections(directions, normals)
 
-        # Compute scattered direction (random direction in hemisphere)
-        scattered_direction = self._random_hemisphere_direction(normal)
+        # Compute scattered directions (random direction in hemisphere)
+        scattered_directions = self._random_hemisphere_direction(normal)
 
         # Compute intersection absorption energies (no phase shift)
         angle_factor = np.cos(incident_angle) if incident_angle < np.pi/2 else 1
@@ -178,7 +178,7 @@ class DiffPathTracer:
 
         # Compute intersection scattering energies and phase shift
         roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids, bands_idx=bands_idx)
-        scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_direction.shape[0]
+        scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_directions.shape[0]
         scattered_phase = rays_phases + scat_phases % (2 * np.pi)
 
         # Energy conservation check
@@ -191,7 +191,7 @@ class DiffPathTracer:
             absorbed_energy *= scale
 
         # Append directions, energies and phases
-        appended_directions = np.append(reflected_directions, scattered_direction)
+        appended_directions = np.append(reflected_directions, scattered_directions)
         appended_energies = np.append(reflected_energy, scattered_energy)
         appended_phases = np.append(reflected_phase, scattered_phase)
         
@@ -280,12 +280,12 @@ class DiffPathTracer:
         --------
         incident_angles : numpy.ndarray
             Incident angles in radians, shape (n_rays,)
-        reflected_direction : numpy.ndarray
+        reflected_directions : numpy.ndarray
             Reflected directions, shape (n_rays, 3)
         """
-        # Compute reflected direction
+        # Compute reflected directions
         dot = np.sum(directions * normals, axis=1)
         incident_angles = np.arccos(-dot)
         reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
 
-        return incident_angles, reflected_direction
+        return incident_angles, reflected_directions
