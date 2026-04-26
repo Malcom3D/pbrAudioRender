@@ -80,7 +80,7 @@ class AcousticScene:
 
             # Compute acoustic domain attenuation coefficients and phases and save as medium info
             coeffs, phases = self._compute_acoustic_domain_coefficients(c=sound_speed, rho=density, T=temperature, Z=impedence)
-            self.objs_medium = np.append(triangle_count,2,n_bands), [coeffs.reshape(n_bands,), phases.reshape(n_bands,)], dtype=np.float32))
+            self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs.reshape(n_bands,), phases.reshape(n_bands,)], dtype=np.float32))
             self.ac_attenuation = np.append(np.vstack(coeffs), np.vstack(phases), axis=1).astype(np.float32)
 
             # Add AcousticDomain AcousticShader data to material info
