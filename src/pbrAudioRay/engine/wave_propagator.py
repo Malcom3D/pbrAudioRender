@@ -183,7 +183,7 @@ class WavePropagator:
     
         # Normalize main directions
         main_dirs_norm = np.linalg.norm(main_dirs, axis=1, keepdims=True)
-        main_dirs = main_dirs / np.max(main_dirs_norm, 1e-10)
+        main_dirs = main_dirs / max(main_dirs_norm, 1e-10)
     
         # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
         directions = np.zeros((n_dirs, 3), dtype=np.float32)
