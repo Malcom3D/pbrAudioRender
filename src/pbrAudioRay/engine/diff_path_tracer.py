@@ -170,12 +170,15 @@ class DiffPathTracer:
 
         # Energy conservation check
         total_out = reflected_energy + scattered_energy + absorbed_energy
-        if abs(total_out - rays_energies) > 1e-10:
-            # Normalize to ensure energy conservation
-            scale = rays_energies / total_out
-            reflected_energy *= scale
-            scattered_energy *= scale
-            absorbed_energy *= scale
+        delta_energies = abs(total_out - rays_energies)
+        delta_mask = delta_energies  > 1e-10
+        if not np.all(delta_mask):
+            total_out[~delta_mask] = rays_energies[~delta_mask] + 1e-10
+        # Normalize to ensure energy conservation
+        scale = rays_energies / total_out
+        reflected_energy *= scale
+        scattered_energy *= scale
+        absorbed_energy *= scale
 
         # Append hit_points for origins, directions, energies and phases
         appended_origins = np.append(hit_points, hit_points, axis=0)
