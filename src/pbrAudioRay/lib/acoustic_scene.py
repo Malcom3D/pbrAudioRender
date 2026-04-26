@@ -110,7 +110,7 @@ class AcousticScene:
             young_modulus = obj_config.acoustic_shader.young_modulus
             poisson_ratio = obj_config.acoustic_shader.poisson_ratio
             damping = obj_config.acoustic_shader.damping
-            bands_coeffs, bands_phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
+            coeffs, phases = self._compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
             self.objs_medium = np.append(self.objs_medium, np.full((triangle_count,2,n_bands), [coeffs.reshape(n_bands,), phases.reshape(n_bands,)], dtype=np.float32))
 
             # Get Object AcousticProperties
