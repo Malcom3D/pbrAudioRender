@@ -34,8 +34,7 @@ class RayData:
     path_length: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     energies: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     phases: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
-    output_mask: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.bool_))
-    intersect_mask: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.bool_))
+    hit_obj_idx: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.int32))
     rays_energies_output: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     rays_phases_output: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
     delay: np.ndarray = field(default_factory=lambda: np.zeros((0,1), dtype=np.float32))
@@ -78,11 +77,8 @@ class RayData:
         if isinstance(phases, np.ndarray) and phases.shape[0] == n_rays:
             self.phases = np.append(self.phases, phases, axis=0).astype(np.float32)
 
-        if isinstance(output_mask, np.ndarray) and output_mask.shape[0] == n_rays:
-            self.output_mask = np.append(self.output_mask, output_mask, axis=0).astype(np.bool_)
-
-        if isinstance(intersect_mask, np.ndarray) and intersect_mask.shape[0] == n_rays:
-            self.intersect_mask = np.append(self.intersect_mask, intersect_mask, axis=0).astype(np.bool_)
+        if isinstance(hit_obj_idx, np.ndarray) and hit_obj_idx.shape[0] == n_rays:
+            self.hit_obj_idx = np.append(self.hit_obj_idx, hit_obj_idx, axis=0).astype(np.int32)
 
         if isinstance(rays_energies_output, np.ndarray) and rays_energies_output.shape[0] == n_rays:
             self.rays_energies_output = np.append(self.rays_energies_output, rays_energies_output, axis=0).astype(np.float32)
