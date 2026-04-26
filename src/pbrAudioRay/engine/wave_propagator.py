@@ -51,7 +51,7 @@ class WavePropagator:
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
         embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        print('Embreex: scene loading complete...')
+        print('Embreex: scene loading complete...', self.combo)
         scene = embree_scene.scene
         acoustic_scene = embree_scene.acoustic_scene
 
@@ -90,7 +90,7 @@ class WavePropagator:
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
-        print('WavePropagator: first fast rays propagation ended')
+        print('WavePropagator: first fast rays propagation ended', self.combo)
 
         # Compute Paths for band_idx
         task_tracer = []
@@ -104,8 +104,8 @@ class WavePropagator:
             task_tracer += [self.diff_path_tracer.compute(hits, bands_idx, ray_data)]
         tracer_results = compute(*task_tracer)
 
-        print('WavePropagator: paths for band computed')
-        print('WavePropagator: compute_loop started')
+        print('WavePropagator: paths for band computed', self.combo)
+        print('WavePropagator: compute_loop started', self.combo)
 
         for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
             if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
@@ -121,7 +121,7 @@ class WavePropagator:
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
                 self.compute_loop(next_source_pos, next_directions, bands_idx)
 
-        print('WavePropagator: compute_loop end')
+        print('WavePropagator: compute_loop end', self.combo)
 
     @staticmethod
     def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
