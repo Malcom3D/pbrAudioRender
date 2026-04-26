@@ -116,7 +116,9 @@ class WavePropagator:
         print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(source_pos, directions)
         results = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
-        next_source_pos, next_directions, bands_idx, ray_data = results.compute()
+        hits_results = results.compute()
+        print('hits_results', hits_results)
+        next_source_pos, next_directions, bands_idx, ray_data = hits_results
 
         print(f"WavePropagator: {self.recursion_idx} compute_loop started", self.combo)
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
