@@ -105,23 +105,24 @@ class WavePropagator:
         tracer_results = compute(*task_tracer)
 
         print('WavePropagator: paths for band computed', self.combo)
-        print('WavePropagator: compute_loop started', self.combo)
 
+        self.recursion_idx += 1
         for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
             if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
                 if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
-                    self.recursion_idx += 1
                     self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
 
     def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int):
+        print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(source_pos, directions)
         next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
 
+        print(f"WavePropagator: {self.recursion_idx} compute_loop started", self.combo)
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
                 self.compute_loop(next_source_pos, next_directions, bands_idx)
 
-        print('WavePropagator: compute_loop end', self.combo)
+        print(f"WavePropagator: compute_loop end", self.combo)
 
     @staticmethod
     def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
@@ -182,7 +183,7 @@ class WavePropagator:
     
         # Normalize main directions
         main_dirs_norm = np.linalg.norm(main_dirs, axis=1, keepdims=True)
-        main_dirs = main_dirs / main_dirs_norm
+        main_dirs = main_dirs / np.max(main_dirs_norm, 1e-10)
     
         # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
         directions = np.zeros((n_dirs, 3), dtype=np.float32)

@@ -184,7 +184,7 @@ class DiffPathTracer:
 
         # Compute intersection scattering energies and phase shift
         roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
-        scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_directions.shape[0]
+        scattered_energy = rays_energies * scat_coeffs * roughness_factor / np.max(scattered_directions.shape[0], 1e-10)
         scattered_phase = rays_phases + scat_phases % (2 * np.pi)
 
         # Energy conservation check
@@ -205,11 +205,10 @@ class DiffPathTracer:
         # Filter direction, hit_points and phases on energy termination
         termination_energy = 1e-6
         termination_mask = appended_energies > termination_energy
-        print('termination_mask', termination_mask, appended_energies, appended_phases, appended_directions, appended_origins)
         new_energies = appended_energies[termination_mask]
         new_phases = appended_phases[termination_mask]
-        new_directions = appended_directions[termination_mask]
-        new_origins = appended_origins[termination_mask]
+        new_directions = appended_directions[termination_mask.reshape(-1,)]
+        new_origins = appended_origins[termination_mask.reshape(-1,)]
 
         # Complete recursion data in RayData storage
         ray_data.add_data(recursion_idx=recursion_idx, n_rays=hit_points.shape[0], hits_coords=hit_points, path_length=path_length, delay=delay, rays_energies_output=rays_energies_output, rays_phases_output=rays_phases_output, hit_obj_idx=hit_obj_idx)
