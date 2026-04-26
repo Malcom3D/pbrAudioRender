@@ -68,10 +68,14 @@ class DiffPathTracer:
         sound_speed = self.acoustic_scene.sound_speed
         density = self.acoustic_scene.density
         roughness = self.acoustic_scene.roughness
-        absorption = self.acoustic_scene.absorption
-        refraction = self.acoustic_scene.refraction
-        reflection = self.acoustic_scene.reflection
-        scattering = self.acoustic_scene.scattering
+        absorption_coeffs = self.acoustic_scene.absorption_coeffs
+        absorption_phases = self.acoustic_scene.absorption_phases
+        refraction_coeffs = self.acoustic_scene.refraction_coeffs
+        refraction_phases = self.acoustic_scene.refraction_phases
+        reflection_coeffs = self.acoustic_scene.reflection_coeffs
+        reflection_phases = self.acoustic_scene.reflection_phases
+        scattering_coeffs = self.acoustic_scene.scattering_coeffs
+        scattering_phases = self.acoustic_scene.scattering_phases
 
         source_pos = self.acoustic_scene.aso_pos[0]
         output_pos = self.acoustic_scene.aso_pos[1]
@@ -153,10 +157,14 @@ class DiffPathTracer:
 
         # Get material properties
         print('absorption.shape', absorption.shape, 'bands_idx', bands_idx, 'intersect_mask', intersect_mask.shape)
-        abs_coeffs, abs_phases = absorption[valid_prim_ids,:,bands_idx]
-        refl_coeffs, refl_phases = reflection[valid_prim_ids,:,bands_idx]
-        refr_coeffs, refr_phases = refraction[valid_prim_ids,:,bands_idx]
-        scat_coeffs, scat_phases = scattering[valid_prim_ids,:,bands_idx]
+        abs_coeffs = absorption_coeffs[valid_prim_ids][bands_idx]
+        abs_phases = absorption_phases[valid_prim_ids][bands_idx]
+        refl_coeffs = reflection_coeffs[valid_prim_ids][bands_idx]
+        refl_phases = reflection_phases[valid_prim_ids][bands_idx]
+        refr_coeffs = refraction_coeffs[valid_prim_ids][bands_idx]
+        refr_phases = refraction_phases[valid_prim_ids][bands_idx]
+        scat_coeffs = scattering_coeffs[valid_prim_ids][bands_idx]
+        scat_phases = scattering_phases[valid_prim_ids][bands_idx]
 
         # Compute triangle normal using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
@@ -176,12 +184,12 @@ class DiffPathTracer:
 
         # Compute intersection reflection energies and phase shift
         reflected_energy = rays_energies * refl_coeffs
-        reflected_phase = rays_phases * (1 - refl_phases) % (2 * np.pi)
+        reflected_phase = rays_phases + refl_phases % (2 * np.pi)
 
         # Compute intersection scattering energies and phase shift
-        roughness_factor = 1
-        scattered_energy = rays_energies * scat_coeffs * roughness_factor
-        scattered_phase = rays_phases * (1 - scat_phases) % (2 * np.pi)
+        roughness_factor = roughness[valid_prim_ids][bands_idx]
+        scattered_energy = rays_energies * scat_coeffs * roughness_factor / scattered_direction.shape[0]
+        scattered_phase = rays_phases + scat_phases % (2 * np.pi)
 
         # Energy conservation check
         total_out = reflected_energy + scattered_energy + absorbed_energy
@@ -198,7 +206,7 @@ class DiffPathTracer:
         appended_phases = np.append(reflected_phase, scattered_phase)
         
         # Filter direction, hit_points and phases on energy termination
-        termination_energy = 0
+        termination_energy = 1e-6
         termination_mask = appended_energies > termination_energy
         new_energies = appended_energies[termination_mask]
         new_phases = appended_phases[termination_mask]
