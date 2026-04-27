@@ -124,7 +124,8 @@ class DiffPathTracer:
         hit_obj_idx = self.acoustic_scene.get_scene_info(mask=prim_ids)
         hit_obj_idx = hit_obj_idx.reshape(-1,1)
 
-#        output_mask = hit_obj_idx == -3
+        output_mask = hit_obj_idx == -3
+        print('output_mask', output_mask, output_mask.shape)
         intersect_mask = hit_obj_idx >= 0
 
         rays_energies = rays_energies.reshape(-1,1)
