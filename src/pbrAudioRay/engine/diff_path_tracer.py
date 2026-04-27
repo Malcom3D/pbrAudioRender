@@ -23,7 +23,7 @@ from typing import Tuple, Optional, List, Any, Dict
 from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
-from .interface import InterfaceManager
+#from .interface import InterfaceManager
 
 @dataclass
 class DiffPathTracer:
