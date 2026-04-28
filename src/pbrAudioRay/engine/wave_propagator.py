@@ -94,6 +94,7 @@ class WavePropagator:
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
+        print('WavePropagator: sources: ', source_pos.shape)
         if source_pos.ndim == 1:
             source_pos = source_pos.reshape(1,-1)
         n_src = source_pos.shape[0]
@@ -102,6 +103,7 @@ class WavePropagator:
 
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
+        print('WavePropagator: sources, directions: ', source_pos.shape, directions.shape)
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
