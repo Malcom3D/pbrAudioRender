@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
 import math
 import numpy as np
 import numba as nb
@@ -34,6 +35,7 @@ from ..lib.embree_scene import EmbreeScene
 from ..lib.ray_data import RayData
 from ..lib.simd_math import generate_all_directions_batch
 
+
 @dataclass
 class WavePropagator:
     """Wave propagator using SIMD and parallel processing"""
@@ -43,6 +45,8 @@ class WavePropagator:
     def __post_init__(self):
         self.source_idx, self.output_idx = self.combo
         self.config = self.entity_manager.get('config')
+        max_interactions = self.config.wave_propagation.max_interactions
+        sys.setrecursionlimit(max_interactions)
 
         # Get frequency bands
         self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
