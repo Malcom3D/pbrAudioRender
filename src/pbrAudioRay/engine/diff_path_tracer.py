@@ -46,7 +46,7 @@ class DiffPathTracer:
 
     @delayed
     def parallel_compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
-        self.compute(hits, bands_idx, ray_data)
+        return self.compute(hits, bands_idx, ray_data)
 
     def compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
         """
