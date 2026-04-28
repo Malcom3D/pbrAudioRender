@@ -45,6 +45,9 @@ class DiffPathTracer:
         self.current_interactions = 0
 
     @delayed
+    def parallel_compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
+        self.compute(hits, bands_idx, ray_data)
+
     def compute(self, hits: Dict, bands_idx: int, ray_data: Any) -> Tuple[np.ndarray, np.ndarray, int, Any]:
         """
         Process ray hits and generate new rays for next bounce.
