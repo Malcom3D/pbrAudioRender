@@ -74,7 +74,7 @@ class WavePropagator:
         # Load output positions
         for output_config in self.config.outputs:
             if output_config.idx == self.output_idx:
-                output_positions, _ == _load_pose(output_config)
+                output_positions, _ = _load_pose(output_config)
                 if output_config.static:
                     output_pos = output_positions
                 else:
