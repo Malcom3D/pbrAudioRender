@@ -97,7 +97,7 @@ class DiffPathTracer:
         ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
 
         # Compute traveled path length
-        path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
+        path_length = np.sqrt(np.sum((hit_points - origins[prim_ids])**2, axis=1)).reshape(-1,1)
 
         # Compute dalay in main medium
         delay = path_length * ac_sound_speed # all path are on the acoustic domain

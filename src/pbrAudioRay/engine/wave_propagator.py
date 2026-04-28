@@ -105,6 +105,7 @@ class WavePropagator:
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
         print('WavePropagator: sources, directions: ', source_pos.shape, directions.shape)
         print('WavePropagator: sources, directions: ', np.unique(source_pos).shape, np.unique(directions).shape)
+        print('WavePropagator: directions: ', directions)
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
