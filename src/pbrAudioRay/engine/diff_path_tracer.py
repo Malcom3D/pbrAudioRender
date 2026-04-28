@@ -71,6 +71,7 @@ class DiffPathTracer:
         prim_ids = hits["primID"][geom_ids]
         if prim_ids.shape[0] == 0:
             return None, None, None, None
+        print('DiffPathTracer: primID:', prim_ids.shape, prim_ids)
 
         u = hits["u"][prim_ids]
         v = hits["v"][prim_ids]
