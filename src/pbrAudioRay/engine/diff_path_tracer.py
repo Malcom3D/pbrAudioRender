@@ -71,7 +71,7 @@ class DiffPathTracer:
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
         origins = ray_data.origins[recursions == recursion_idx]
-        print(DiffPathTracer: origins:', origins)
+        print('DiffPathTracer: origins:', origins)
 
         geom_ids = hits["geomID"] >= 0
         prim_ids = hits["primID"][geom_ids]
@@ -93,7 +93,7 @@ class DiffPathTracer:
         
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
-        print(DiffPathTracer: hit_points:', hit_points)
+        print('DiffPathTracer: hit_points:', hit_points)
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
