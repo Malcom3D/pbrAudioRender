@@ -85,13 +85,13 @@ class EmbreeScene:
                 # Store mesh information for SIMD processing
                 src_medium = -1
                 if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
-                    src_radius = mesh.metadata['radius']
-                self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
+#                    src_radius = mesh.metadata['radius']
+#                self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
             if ac_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
                 out_medium = -1
                 if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
-                    out_radius = mesh.metadata['radius']
-                self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
+#                    out_radius = mesh.metadata['radius']
+#                self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
             task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
             num_objs += 1
         
@@ -123,13 +123,13 @@ class EmbreeScene:
                     # Store mesh information for SIMD processing
                     src_medium = obj_idx
                     if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
-                        src_radius = mesh.metadata['radius']
-                    self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
+#                        src_radius = mesh.metadata['radius']
+#                    self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
                 if obj_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
                     out_medium = obj_idx
                     if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
-                        out_radius = mesh.metadata['radius']
-                    self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
+#                        out_radius = mesh.metadata['radius']
+#                    self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
 
             task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name, obj_config)]
 

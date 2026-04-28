@@ -51,11 +51,11 @@ class AcousticScene:
         self.scattering_coeffs = np.zeros((0,n_bands), dtype=np.float32)
         self.scattering_phases = np.zeros((0,n_bands), dtype=np.float32)
 
-        # Init ASO store for acoustic source and output
-        num_aso = 2
-        self.aso_pos = np.zeros((num_aso, 3), dtype=np.float32)
-        self.aso_medium = np.zeros(num_aso, dtype=np.int32)
-        self.aso_radius = np.empty(num_aso, dtype=np.float32)
+#        # Init ASO store for acoustic source and output
+#        num_aso = 2
+#        self.aso_pos = np.zeros((num_aso, 3), dtype=np.float32)
+#        self.aso_medium = np.zeros(num_aso, dtype=np.int32)
+#        self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
     def get_mesh_info(self, mask: np.ndarray):
         return self.mesh_info[mask]
@@ -103,11 +103,11 @@ class AcousticScene:
         else:
             return self.scattering_coeffs[mask], self.scattering_phases[mask]
 
-    def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
-        idx = 0 if aso_id == -2 else 1
-        self.aso_pos[idx] = position
-        self.aso_medium[idx] = medium_idx
-        self.aso_radius[idx] = radius if not radius == None else np.nan
+#    def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
+#        idx = 0 if aso_id == -2 else 1
+#        self.aso_pos[idx] = position
+#        self.aso_medium[idx] = medium_idx
+#        self.aso_radius[idx] = radius if not radius == None else np.nan
 
     def add_mesh_info(self, obj_idx: int, obj_config: Any, vertices: np.ndarray, faces: np.ndarray):
 

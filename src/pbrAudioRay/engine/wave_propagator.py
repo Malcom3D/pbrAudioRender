@@ -66,16 +66,30 @@ class WavePropagator:
         # Init DiffPathTracer engine
         self.diff_path_tracer = DiffPathTracer(self.entity_manager, acoustic_scene)
 
-        # compute first sources and directions
-        source_pos = acoustic_scene.aso_pos[0]
-        output_pos = acoustic_scene.aso_pos[1]
+#        # compute first sources and directions
+#        source_pos = acoustic_scene.aso_pos[0]
+#        output_pos = acoustic_scene.aso_pos[1]
 
-        # Diffuse source
-        n_points = 0
-        for source in self.config.sources:
-            if source.idx == self.source_idx:
-                if source.type == 'SPERE' and source.size > 0:
-                    source_size = source.size
+        # Load output positions
+        for output_config in self.config.outputs:
+            if output_config.idx == self.output_idx:
+                output_positions, _ == _load_pose(output_config)
+                if output_config.static:
+                    output_pos = output_positions
+                else:
+                    output_pos = output_positions[frame_idx]
+
+        # Load source positions
+        for source_config in self.config.sources:
+            if source_config.idx == self.source_idx:
+                source_positions, _ = _load_pose(source_config)
+                if source_config.static:
+                    source_pos = source_positions
+                else:
+                    source_pos = source_positions[frame_idx]
+                if source_config.type == 'SPERE' and source_config.size > 0:
+                    source_size = source_config.size
+                    # Diffuse source
                     n_points = int(np.random.uniform(1, 10, size=1))
                     source_pos = self._source_points(n_points, source_pos, source_size)
 
