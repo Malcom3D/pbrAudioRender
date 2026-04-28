@@ -79,17 +79,17 @@ class EmbreeScene:
         scene = rtcs.EmbreeScene(embreeDevice)
 
         # Add acoustic domain mesh (obj_id = -1)
-        src_medium, out_medium = (np.nan for _ in range(2))
+#        src_medium, out_medium = (np.nan for _ in range(2))
         if ac_mesh is not None:
-            if ac_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
-                # Store mesh information for SIMD processing
-                src_medium = -1
-                if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
+#            if ac_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
+#                # Store mesh information for SIMD processing
+#                src_medium = -1
+#                if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
 #                    src_radius = mesh.metadata['radius']
 #                self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
-            if ac_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
-                out_medium = -1
-                if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
+#            if ac_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
+#                out_medium = -1
+#                if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
 #                    out_radius = mesh.metadata['radius']
 #                self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
             task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
@@ -117,17 +117,17 @@ class EmbreeScene:
         meshes_results = compute(*task_mesh)
 
         for obj_mesh, obj_idx, name in meshes_results:
-            # Check if source and output points is inside the mesh and add all acoustic objects with their actual obj_ids
-            if obj_mesh.is_watertight:
-                if obj_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
-                    # Store mesh information for SIMD processing
-                    src_medium = obj_idx
-                    if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
+#            # Check if source and output points is inside the mesh and add all acoustic objects with their actual obj_ids
+#            if obj_mesh.is_watertight:
+#                if obj_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
+#                    # Store mesh information for SIMD processing
+#                    src_medium = obj_idx
+#                    if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):
 #                        src_radius = mesh.metadata['radius']
 #                    self.acoustic_scene.add_aso_info(-2, self.src_pos, src_medium, src_radius)
-                if obj_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
-                    out_medium = obj_idx
-                    if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
+#                if obj_mesh.contains(self.out_pos.reshape(1,3)) and out_medium == np.nan:
+#                    out_medium = obj_idx
+#                    if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
 #                        out_radius = mesh.metadata['radius']
 #                    self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
 
