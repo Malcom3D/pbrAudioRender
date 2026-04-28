@@ -88,7 +88,7 @@ class WavePropagator:
                     source_pos = source_positions
                 else:
                     source_pos = source_positions[frame_idx]
-                if source_config.type == 'SPERE' and source_config.size > 0:
+                if source_config.type == 'SPHERE' and source_config.size > 0:
                     source_size = source_config.size
                     # Diffuse source
                     n_points = int(np.random.uniform(1, 10, size=1))
