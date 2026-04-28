@@ -151,7 +151,7 @@ class WavePropagator:
         print(f"WavePropagator: {self.recursion_idx} compute_loop started", self.combo)
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
-                self.compute_loop(next_source_pos, next_directions, bands_idx)
+                self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
 
         print(f"WavePropagator: compute_loop end", self.combo)
 
