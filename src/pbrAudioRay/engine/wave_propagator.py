@@ -91,8 +91,8 @@ class WavePropagator:
                 if source_config.type == 'SPHERE' and source_config.size > 0:
                     source_size = source_config.size
                     # Diffuse source
-                    n_points = int(np.random.uniform(1, 10, size=1))
-                    source_pos = self._source_points(n_points, source_pos, source_size)
+#                    n_points = int(np.random.uniform(1, 10, size=1))
+#                    source_pos = self._source_points(n_points, source_pos, source_size)
 
         print('WavePropagator: sources: ', source_pos.shape)
         if source_pos.ndim == 1:
