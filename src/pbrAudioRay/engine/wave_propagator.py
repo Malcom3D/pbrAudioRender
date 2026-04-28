@@ -226,15 +226,13 @@ class WavePropagator:
         # Golden ratio
         phi = np.pi * (3. - np.sqrt(5.))
 
-        for i in range(n_sources, n_dirs):
-            y = 1 - (i / float(n_dirs - 1)) * 2  # y goes from 1 to -1
-            radius = np.sqrt(1 - y * y)
-        
-            theta = phi * i
-        
-            x = np.cos(theta) * radius
-            z = np.sin(theta) * radius
-        
-            directions[i] = [x, y, z]
-    
-            return directions
+        num_points = n_dirs - n_sources
+        theta = phi * np.arange(num_points)
+        z = np.linspace(1/num_points-1, 1-1/num_points, num_points)
+        radius = np.sqrt(1 - z * z)
+        y = radius * np.sin(theta)
+        x = radius * np.cos(theta)
+
+        directions[n_sources:n_dirs] = np.array([x,y,z]).reshape(-1,3)
+
+        return directions
