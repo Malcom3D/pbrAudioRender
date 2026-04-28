@@ -65,25 +65,26 @@ class DiffPathTracer:
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
         origins = ray_data.origins[recursions == recursion_idx]
-        print('DiffPathTracer: origins:', origins)
+        print('DiffPathTracer: origins:', origins.shape, origins)
 
         geom_ids = hits["geomID"] >= 0
         prim_ids = hits["primID"][geom_ids]
         if prim_ids.shape[0] == 0:
             return None, None, None, None
 
-        # Initialize arrays for next ray data
-        next_positions = []
-        next_directions = []
-
         u = hits["u"][prim_ids]
         v = hits["v"][prim_ids]
         w = 1 - u - v
 
-        triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
-        a = triangle[:, 0, :]
-        b = triangle[:, 1, :]
-        c = triangle[:, 2, :] 
+#        triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
+#        a = triangle[:, 0, :]
+#        b = triangle[:, 1, :]
+#        c = triangle[:, 2, :] 
+
+        triangle = self.acoustic_scene.get_mesh_info()
+        a = triangle[prim_ids][:, 0, :]
+        b = triangle[prim_ids][:, 1, :]
+        c = triangle[prim_ids][:, 2, :] 
         
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)

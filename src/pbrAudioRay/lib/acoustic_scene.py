@@ -57,7 +57,7 @@ class AcousticScene:
 #        self.aso_medium = np.zeros(num_aso, dtype=np.int32)
 #        self.aso_radius = np.empty(num_aso, dtype=np.float32)
 
-    def get_mesh_info(self, mask: np.ndarray):
+    def get_mesh_info(self, mask: np.ndarray = None):
         return self.mesh_info[mask]
 
     def get_scene_info(self, mask: np.ndarray):
