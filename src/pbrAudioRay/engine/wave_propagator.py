@@ -29,6 +29,7 @@ from ..core.entity_manager import EntityManager
 from ..engine.ray_tracer import RayTracer
 from ..engine.diff_path_tracer import DiffPathTracer
 
+from ..lib.functions import _load_pose
 from ..lib.embree_scene import EmbreeScene
 from ..lib.ray_data import RayData
 from ..lib.simd_math import generate_all_directions_batch
