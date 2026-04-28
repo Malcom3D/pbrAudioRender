@@ -65,13 +65,14 @@ class DiffPathTracer:
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
         origins = ray_data.origins[recursions == recursion_idx]
-        print('DiffPathTracer: origins:', origins.shape, origins)
+#        print('DiffPathTracer: origins:', origins.shape, origins)
+        print('DiffPathTracer: recursion_idx:', recursion_idx)
 
         geom_ids = hits["geomID"] >= 0
         prim_ids = hits["primID"][geom_ids]
         if prim_ids.shape[0] == 0:
             return None, None, None, None
-        print('DiffPathTracer: primID:', prim_ids.shape, prim_ids)
+#        print('DiffPathTracer: primID:', prim_ids.shape, prim_ids)
 
         u = hits["u"][prim_ids]
         v = hits["v"][prim_ids]
@@ -90,7 +91,7 @@ class DiffPathTracer:
         
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
-        print('DiffPathTracer: hit_points:', hit_points)
+#        print('DiffPathTracer: hit_points:', hit_points)
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
@@ -120,13 +121,13 @@ class DiffPathTracer:
         rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
 
         # filter rays_energies and rays_phases for output and objects hits
-        print('DiffPathTracer: prim_ids:', prim_ids.shape, prim_ids)
+#        print('DiffPathTracer: prim_ids:', prim_ids.shape, prim_ids)
         hit_obj_idx = self.acoustic_scene.get_scene_info(mask=prim_ids)
         hit_obj_idx = hit_obj_idx.reshape(-1,1)
-        print('DiffPathTracer: hit_obj_idx', hit_obj_idx.shape, hit_obj_idx)
+#        print('DiffPathTracer: hit_obj_idx', hit_obj_idx.shape, hit_obj_idx)
 
         output_mask = hit_obj_idx == -3
-        print('output_mask', output_mask, output_mask.shape, hit_obj_idx.shape)
+#        print('output_mask', output_mask, output_mask.shape, hit_obj_idx.shape)
         intersect_mask = hit_obj_idx >= 0
 
         rays_energies = rays_energies.reshape(-1,1)
