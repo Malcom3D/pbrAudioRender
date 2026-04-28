@@ -147,7 +147,7 @@ class WavePropagator:
 #        results = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
 #        hits_results = results.compute()
 #        next_source_pos, next_directions, bands_idx, ray_data = hits_results
-       next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
+        next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
 
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
