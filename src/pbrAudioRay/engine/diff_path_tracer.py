@@ -163,6 +163,7 @@ class DiffPathTracer:
         # Compute intersection absorption energies (no phase shift)
         angle_factor = np.cos(incident_angles)
         angle_factor[angle_factor == 0] = 1e-10
+        print('absorbed_energy: ', rays_energies.shape, abs_coeffs.shape, angle_factor.shape)
         absorbed_energy = rays_energies * abs_coeffs * angle_factor
 
         # Compute intersection reflection energies and phase shift
