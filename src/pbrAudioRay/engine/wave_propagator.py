@@ -94,7 +94,7 @@ class WavePropagator:
 #                    n_points = int(np.random.uniform(1, 10, size=1))
 #                    source_pos = self._source_points(n_points, source_pos, source_size)
 
-        print('WavePropagator: sources: ', source_pos.shape)
+#        print('WavePropagator: sources: ', source_pos.shape)
         if source_pos.ndim == 1:
             source_pos = source_pos.reshape(1,-1)
         n_src = source_pos.shape[0]
@@ -103,9 +103,9 @@ class WavePropagator:
 
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
-        print('WavePropagator: sources, directions: ', source_pos.shape, directions.shape)
-        print('WavePropagator: sources, directions: ', np.unique(source_pos).shape, np.unique(directions).shape)
-        print('WavePropagator: directions: ', directions)
+#        print('WavePropagator: sources, directions: ', source_pos.shape, directions.shape)
+#        print('WavePropagator: sources, directions: ', np.unique(source_pos).shape, np.unique(directions).shape)
+#        print('WavePropagator: directions: ', directions)
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
@@ -115,9 +115,9 @@ class WavePropagator:
         v = hits["v"][ray_inter]
         w = 1 - u - v
         mesh_info = acoustic_scene.get_mesh_info()
-        print('WavePropagator: mesh_info ', mesh_info.shape)
+#        print('WavePropagator: mesh_info ', mesh_info.shape)
         inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
-        print('WavePropagator: inters', len(inters))
+#        print('WavePropagator: inters', len(inters))
         
         print('WavePropagator: first fast rays propagation ended', self.combo)
 
@@ -148,7 +148,8 @@ class WavePropagator:
         hits_results = results.compute()
         next_source_pos, next_directions, bands_idx, ray_data = hits_results
 
-        print(f"WavePropagator: {self.recursion_idx} compute_loop started", self.combo)
+        self.recursion_idx += 1
+        print(f"WavePropagator: {self.recursion_idx} compute_loop restarted", self.combo)
         if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
             if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
                 self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
