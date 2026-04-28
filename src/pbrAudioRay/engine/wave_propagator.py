@@ -112,9 +112,10 @@ class WavePropagator:
         u = hits["u"][ray_inter]
         v = hits["v"][ray_inter]
         w = 1 - u - v
-        mesh_info = triangle = acoustic_scene.get_mesh_info()
+        mesh_info = acoustic_scene.get_mesh_info()
+        print('WavePropagator: mesh_info ', mesh_info.shape)
         inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
-        print('WavePropagator: ', inters.shape)
+        print('WavePropagator: inters', inters.shape)
         
         print('WavePropagator: first fast rays propagation ended', self.combo)
 
