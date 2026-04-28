@@ -76,15 +76,16 @@ class DiffPathTracer:
         v = hits["v"][prim_ids]
         w = 1 - u - v
 
-#        triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
-#        a = triangle[:, 0, :]
-#        b = triangle[:, 1, :]
-#        c = triangle[:, 2, :] 
+        triangle = self.acoustic_scene.get_mesh_info(mask=prim_ids)
+        print('DiffPathTracer: triangle:', triangle.shape)
+        a = triangle[:, 0, :]
+        b = triangle[:, 1, :]
+        c = triangle[:, 2, :] 
 
-        triangle = self.acoustic_scene.get_mesh_info()
-        a = triangle[:, 0, :][prim_ids]
-        b = triangle[:, 1, :][prim_ids]
-        c = triangle[:, 2, :][prim_ids]
+#        triangle = self.acoustic_scene.get_mesh_info()
+#        a = triangle[:, 0, :][prim_ids]
+#        b = triangle[:, 1, :][prim_ids]
+#        c = triangle[:, 2, :][prim_ids]
         
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
