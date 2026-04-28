@@ -105,7 +105,7 @@ class AcousticScene:
 
     def add_aso_info(self, aso_id: int, position: np.ndarray, medium_idx: int, src_radius: float = None):
         idx = 0 if aso_id == -2 else 1
-        self.aso_pos[idx] = position.tolist()
+        self.aso_pos[idx] = position
         self.aso_medium[idx] = medium_idx
         self.aso_radius[idx] = radius if not radius == None else np.nan
 
