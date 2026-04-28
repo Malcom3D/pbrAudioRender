@@ -160,7 +160,8 @@ class DiffPathTracer:
         scattered_directions = self._random_hemisphere_directions(normals)
 
         # Compute intersection absorption energies (no phase shift)
-        angle_factor = np.cos(incident_angles) if incident_angles < np.pi/2 else 1
+        angle_factor = np.cos(incident_angles)
+        angle_factor[angle_factor == 0] = 1e-10
         absorbed_energy = rays_energies * abs_coeffs * angle_factor
 
         # Compute intersection reflection energies and phase shift
