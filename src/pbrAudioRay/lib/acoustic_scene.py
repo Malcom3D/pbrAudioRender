@@ -61,6 +61,7 @@ class AcousticScene:
         return self.mesh_info[mask]
 
     def get_scene_info(self, mask: np.ndarray):
+        print('AcousticScene: ', self.scene_info.shape, self.scene_info, mask.shape, mask)
         return self.scene_info[mask]
 
     def get_sound_speed(self, mask: np.ndarray):
