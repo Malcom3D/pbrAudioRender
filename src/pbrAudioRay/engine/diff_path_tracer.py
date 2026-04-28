@@ -62,12 +62,6 @@ class DiffPathTracer:
 
 #        self.interface = InterfaceManager(self.entity_manager, self.acoustic_scene, ray_data)
 
-        source_pos = self.acoustic_scene.aso_pos[0]
-        output_pos = self.acoustic_scene.aso_pos[1]
-
-        source_medium = self.acoustic_scene.aso_medium[0]
-        output_medium = self.acoustic_scene.aso_medium[1]
-
         recursions = ray_data.recursions
         recursion_idx = np.unique(recursions)[-1]
         origins = ray_data.origins[recursions == recursion_idx]
@@ -230,8 +224,6 @@ class DiffPathTracer:
 #        else:
 #            next_positions = np.array([])
 #            next_directions = np.array([])
-        
-
 
     @staticmethod
 #    @nb.njit(fastmath=True)

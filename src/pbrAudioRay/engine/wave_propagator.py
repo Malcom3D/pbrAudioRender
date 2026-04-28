@@ -65,7 +65,7 @@ class WavePropagator:
         self.ray_tracer = RayTracer(scene)
 
         # Init DiffPathTracer engine
-        self.diff_path_tracer = DiffPathTracer(self.entity_manager, acoustic_scene)
+        self.diff_path_tracer = DiffPathTracer(self.entity_manager, acoustic_scen)
 
 #        # compute first sources and directions
 #        source_pos = acoustic_scene.aso_pos[0]
