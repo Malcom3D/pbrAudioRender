@@ -90,7 +90,7 @@ class InterfaceManager:
         b = triangle[prim_ids][:, 1, :]
         c = triangle[prim_ids][:, 2, :]
         
-        hits_obj_idx = acoustic_scene.scene_info[prim_ids]
+        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
         intersect_mask = hits_obj_idx >= 0
 
         # Compute hit point using barycentric coordinates
