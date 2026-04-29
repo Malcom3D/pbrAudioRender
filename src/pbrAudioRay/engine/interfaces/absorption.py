@@ -74,4 +74,7 @@ class AbsorptionInterface:
         angle_factor[angle_factor == 0] = 1e-10
         absorbed_energy = energies * absorption_coeffs * angle_factor
 
+        absorbed_energy = absorbed_energy.reshape(-1,1)
+        phases = phases.reshape(-1,1)
+
         return absorbed_energy, phases
