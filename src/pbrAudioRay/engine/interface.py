@@ -84,19 +84,29 @@ class InterfaceManager:
         v = hits["v"][prim_ids]
         w = 1 - u - v
 
-        origins = ray_data.origins[prim_ids]
+        origins = ray_data.origins[geom_ids]
 
         triangle = self.acoustic_scene.get_mesh_info()
         a = triangle[prim_ids][:, 0, :]
         b = triangle[prim_ids][:, 1, :]
         c = triangle[prim_ids][:, 2, :]
         
-        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
+#        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
+        hits_obj_idx = self.acoustic_scene.scene_info[geom_ids]
         output_mask = hits_obj_idx == -3
         intersect_mask = hits_obj_idx >= 0
 
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
+
+        # Save ray_data origins and hit_points to json for analysis
+        import json
+        data_dict = {}
+        data_dict['origins'] = ray_data.origins.tolist()
+        data_dict['hit_points'] = hit_points.tolist()
+        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
+        with open(filepath, 'w') as f:
+            json.dump(data_dict, f, indent=2)
 
         # Compute triangle normals using np.cross with broadcasting
         normals = np.cross(b-a, c-a)
@@ -105,13 +115,20 @@ class InterfaceManager:
         normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
         # Get materials properties
-        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
-        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
-        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
-        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
+        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=geom_ids, bands_idx=bands_idx)
+        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=geom_ids, bands_idx=bands_idx)
+        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=geom_ids, bands_idx=bands_idx)
+        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=geom_ids, bands_idx=bands_idx)
 
-        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
-        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
+#        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
+#        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
+#        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
+#        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
+
+#        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
+#        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
+        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[geom_ids]
+        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[geom_ids]
         reflected_directions = scattered_directions = None
         incident_angles = 1
 
@@ -124,7 +141,7 @@ class InterfaceManager:
             rays_phases = rays_phases[intersect_mask]
 
         if enable_reflection:
-            directions = ray_data.directions[prim_ids]
+            directions = ray_data.directions[geom_ids]
             reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
@@ -160,15 +177,6 @@ class InterfaceManager:
         new_phases = appended_phases[termination_mask].reshape(-1,1)
         new_directions = appended_directions[termination_mask.reshape(-1,)]
         new_origins = appended_origins[termination_mask.reshape(-1,)]
-
-        # Save ray_data origins and prim_ids to json for analysis
-        import json
-        data_dict = {}
-        data_dict['origins'] = ray_data.origins.tolist()
-        data_dict['prim_ids'] = prim_ids.tolist()
-        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
-        with open(filepath, 'w') as f:
-            json.dump(data_dict, f, indent=2)
 
         # Create new RayData storage
         recursion_idx = ray_data.recursion_idx + 1
