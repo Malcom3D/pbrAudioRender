@@ -79,7 +79,7 @@ class InterfaceManager:
         geom_ids = hits["geomID"] >= 0
         prim_ids = hits["primID"][geom_ids]
         if prim_ids.shape[0] == 0:
-            return None, None, None, None
+            return None
 
         u = hits["u"][prim_ids]
         v = hits["v"][prim_ids]
