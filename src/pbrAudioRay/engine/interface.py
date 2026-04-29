@@ -141,7 +141,7 @@ class InterfaceManager:
 
         if enable_absorption:
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, bands_idx, ray_data)
-            print('absorbed_energy', absorbed_energy.shape)
+            print('absorbed_energy', absorbed_energy.shape, rays_energies.shape, rays_phases.shape, incident_angles.shape)
 
         if enable_scattering:
             roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
