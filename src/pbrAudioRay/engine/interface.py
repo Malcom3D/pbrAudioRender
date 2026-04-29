@@ -25,8 +25,10 @@ from dataclasses import dataclass, field
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
 
-#from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
-from ..engine.interfaces import AbsorptionInterface, ReflectionInterface, ScatteringInterface
+#from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
+from .interfaces.absorption import AbsorptionInterface
+from .interfaces.reflection import ReflectionInterface
+from .interfaces.scattering import ScatteringInterface
 
 @dataclass
 class InterfaceManager:
@@ -117,14 +119,14 @@ class InterfaceManager:
             rays_phases = rays_phases[intersect_mask]
 
         if enable_reflection:
-            reflected_energy, reflected_phases, incident_angles, reflected_directions, normals = self.reflection_interface.compute(a, b, c, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
+            reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(a, b, c, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
 
         if enable_scattering:
             roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
-            scattered_energy, scattered_phases, scattered_directions = self.scattering_interface.compute(normals, roughness_factor)
+            scattered_energy, scattered_phases, scattered_directions = self.scattering_interface.compute(rays_energies, rays_phases, normals, roughness_factor, scat_coeffs, scat_phases)
 
         # Energy conservation check
         total_out = reflected_energy + scattered_energy + absorbed_energy
