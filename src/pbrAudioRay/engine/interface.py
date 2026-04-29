@@ -110,7 +110,7 @@ class InterfaceManager:
 
         rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies
         rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases
-        reflected_directions = scattered_directions = np.zeros((0,3), dtype=np.float32)
+        reflected_directions = scattered_directions = np.zeros((origins.shape[0],3), dtype=np.float32)
         incident_angles = 1
 
         if enable_absorption:
