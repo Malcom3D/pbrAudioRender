@@ -91,8 +91,7 @@ class InterfaceManager:
         b = triangle[prim_ids][:, 1, :]
         c = triangle[prim_ids][:, 2, :]
         
-#        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
-        hits_obj_idx = self.acoustic_scene.scene_info[geom_ids]
+        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
         output_mask = hits_obj_idx == -3
         intersect_mask = hits_obj_idx >= 0
 
