@@ -70,8 +70,7 @@ class InterfaceManager:
         enable_scattering = config.interface.enable_scattering
 
         if self.current_interactions == self.max_interactions:
-            next_positions = np.array([])
-            next_directions = np.array([])
+            return None
 
         bands_idx = ray_data.bands_idx
 
@@ -121,9 +120,9 @@ class InterfaceManager:
 
 #        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
 #        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
-        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[geom_ids]
-        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[geom_ids]
-        reflected_directions = scattered_directions = None
+        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
+        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
+        reflected_directions, scattered_directions = (None for _ in range(2))
         incident_angles = 1
 
         if enable_absorption:
