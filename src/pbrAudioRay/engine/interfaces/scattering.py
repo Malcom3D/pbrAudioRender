@@ -35,7 +35,6 @@ class ScatteringInterface:
         # Compute intersection scattering energies and phase shift
         scattered_energy = energies * scat_coeffs * roughness_factor / max(scattered_directions.shape[0], 1e-10)
         scattered_phase = phases + scat_phases % (2 * np.pi)
-
  
     @staticmethod
 #    @nb.njit(fastmath=True)

@@ -147,7 +147,7 @@ class InterfaceManager:
         appended_origins = np.append(hit_points, hit_points, axis=0).astype(np.float32)
         appended_directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
         appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
-        appended_phases = np.append(reflected_phase, scattered_phase, axis=0).astype(np.float32)
+        appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
         
         # Filter direction, hit_points and phases on energy termination
         termination_energy = 1e-6 # config.termination.energy_threshold
