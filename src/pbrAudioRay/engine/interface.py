@@ -161,6 +161,7 @@ class InterfaceManager:
 
         # Create new RayData storage
         recursion_idx = ray_data.recursion_idx + 1
+        print('InterfaceManager', recursion_idx)
         new_ray_data = RayData(src_idx=ray_data.src_idx, out_idx=ray_data.out_idx, bands_idx=ray_data.bands_idx, recursion_idx=recursion_idx, origins=new_origins, directions=new_directions, energies=new_energies, phases=new_phases)
 
         self.current_interactions += 1

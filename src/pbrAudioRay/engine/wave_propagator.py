@@ -56,14 +56,13 @@ class WavePropagator:
         """Compute impulse response for a single frame"""
         # Get scene data for this frame
         embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        print('Embreex: scene loading complete...', self.combo)
+        #print('Embreex: scene loading complete...', self.combo)
         scene = embree_scene.scene
         acoustic_scene = embree_scene.acoustic_scene
 
         # Generate initial rays data structure
         n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
-        self.recursion_idx = 0
 
         # Init RayTracer engine
         self.ray_tracer = RayTracer(scene)
@@ -113,7 +112,7 @@ class WavePropagator:
 #        mesh_info = acoustic_scene.get_mesh_info()
 #        inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
         
-        print('WavePropagator: first fast rays propagation ended', self.combo)
+        #print('WavePropagator: first fast rays propagation ended', self.combo)
 
         # Compute Paths for band_idx
         task_tracer = []
@@ -126,25 +125,24 @@ class WavePropagator:
             task_tracer += [self.interface.parallel_compute(hits, ray_data)]
         tracer_results = compute(*task_tracer)
 
-        print('WavePropagator: paths for band computed', self.combo)
+        #print('WavePropagator: paths for band computed', self.combo)
 
-        self.recursion_idx += 1
         for ray_data in tracer_results:
             if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
                 if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
                     self.compute_loop(ray_data)
 
     def compute_loop(self, ray_data: RayData):
-        print('WavePropagator: compute_loop ray tracer begin', self.combo)
+        #print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(ray_data.origins, ray_data.directions)
         ray_data = self.interface.compute(hits, ray_data)
 
         if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
             if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
-                print(f"WavePropagator: compute_loop restarted", self.combo)
+                #print(f"WavePropagator: compute_loop restarted", self.combo)
                 self.compute_loop(ray_data)
 
-        print(f"WavePropagator: compute_loop end", self.combo)
+        #print(f"WavePropagator: compute_loop end", self.combo)
 
     @staticmethod
     def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
