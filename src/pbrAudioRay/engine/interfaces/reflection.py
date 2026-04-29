@@ -28,9 +28,8 @@ class ReflectionInterface:
     """Handle rays reflection at objects boundaries"""
     entity_manager: EntityManager
 
-    def compute(self, normals: np.ndarray, energies: np.ndarray, phases: np.ndarray, refl_coeffs: np.ndarray, refl_phases: np.ndarray, ray_data: Any):
+    def compute(self, normals: np.ndarray, directions: np.ndarray, energies: np.ndarray, phases: np.ndarray, refl_coeffs: np.ndarray, refl_phases: np.ndarray, ray_data: Any):
         # Compute incident angles and reflected directions
-        directions = ray_data.directions
         dot = np.sum(directions * normals, axis=1)
         incident_angles = np.arccos(-dot)
         reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
