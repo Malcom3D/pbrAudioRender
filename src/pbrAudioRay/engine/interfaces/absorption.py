@@ -28,8 +28,8 @@ class AbsorptionInterface:
     entity_manager: EntityManager
     acoustic_scene: Any  # AcousticScene
 
-#    def compute_attenuation(self, origins: np,ndarray, hit_points: np.ndarray, medium: np.ndarray, bands_idx: int, ray_data: Any):
-    def compute_attenuation(self, origins: np,ndarray, hit_points: np.ndarray, bands_idx: int, ray_data: Any):
+#    def compute_attenuation(self, origins: np.ndarray, hit_points: np.ndarray, medium: np.ndarray, bands_idx: int, ray_data: Any):
+    def compute_attenuation(self, origins: np.ndarray, hit_points: np.ndarray, bands_idx: int, ray_data: Any):
         """Apply frequency-dependent medium attenuation."""
 
         # Get main medium properties
