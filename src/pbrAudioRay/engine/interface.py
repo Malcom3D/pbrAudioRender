@@ -73,7 +73,6 @@ class InterfaceManager:
             next_positions = np.array([])
             next_directions = np.array([])
 
-        origins = ray_data.origins
         bands_idx = ray_data.bands_idx
 
         geom_ids = hits["geomID"] >= 0
@@ -85,12 +84,15 @@ class InterfaceManager:
         v = hits["v"][prim_ids]
         w = 1 - u - v
 
+        origins = ray_data.origins[prim_ids]
+
         triangle = self.acoustic_scene.get_mesh_info()
         a = triangle[prim_ids][:, 0, :]
         b = triangle[prim_ids][:, 1, :]
         c = triangle[prim_ids][:, 2, :]
         
         hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
+        output_mask = hits_obj_idx == -3
         intersect_mask = hits_obj_idx >= 0
 
         # Compute hit point using barycentric coordinates
@@ -108,17 +110,17 @@ class InterfaceManager:
         refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
         scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
-        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies
-        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases
+        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
+        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
         reflected_directions = scattered_directions = None
         incident_angles = 1
 
         if enable_absorption:
-            rays_energies, rays_phases = self.absorption_interface.compute_attenuation(hit_points, bands_idx, ray_data)
+            rays_energies, rays_phases = self.absorption_interface.compute_attenuation(origins, hit_points, bands_idx, ray_data)
 
-            rays_energies = rays_energies[prim_ids]
+            energies_output = rays_energies[output_mask]
+            phases_output = rays_phases[output_mask]
             rays_energies = rays_energies[intersect_mask]
-            rays_phases = rays_phases[prim_ids]
             rays_phases = rays_phases[intersect_mask]
 
         if enable_reflection:

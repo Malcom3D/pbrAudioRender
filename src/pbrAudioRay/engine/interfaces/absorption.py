@@ -28,17 +28,14 @@ class AbsorptionInterface:
     entity_manager: EntityManager
     acoustic_scene: Any  # AcousticScene
 
-#    def compute_attenuation(self, hit_points: np.ndarray, medium: np.ndarray, bands_idx: int, ray_data: Any):
-    def compute_attenuation(self, hit_points: np.ndarray, bands_idx: int, ray_data: Any):
+#    def compute_attenuation(self, origins: np,ndarray, hit_points: np.ndarray, medium: np.ndarray, bands_idx: int, ray_data: Any):
+    def compute_attenuation(self, origins: np,ndarray, hit_points: np.ndarray, bands_idx: int, ray_data: Any):
         """Apply frequency-dependent medium attenuation."""
 
         # Get main medium properties
         ac_sound_speed = self.acoustic_scene.ac_sound_speed
         ac_density = self.acoustic_scene.ac_density
         ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
-
-        # Get origins
-        origins = ray_data.origins
 
         # Compute traveled path length
         path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
