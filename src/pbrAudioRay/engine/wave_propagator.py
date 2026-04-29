@@ -104,13 +104,6 @@ class WavePropagator:
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
-#        ray_inter = hits["geomID"] >= 0
-#        primID = hits["primID"][ray_inter]
-#        u = hits["u"][ray_inter]
-#        v = hits["v"][ray_inter]
-#        w = 1 - u - v
-#        mesh_info = acoustic_scene.get_mesh_info()
-#        inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
         
         #print('WavePropagator: first fast rays propagation ended', self.combo)
 
@@ -135,12 +128,12 @@ class WavePropagator:
     def compute_loop(self, ray_data: RayData):
         #print('WavePropagator: compute_loop ray tracer begin', self.combo)
         hits = self.ray_tracer.compute(ray_data.origins, ray_data.directions)
-        ray_data = self.interface.compute(hits, ray_data)
+        new_ray_data = self.interface.compute(hits, ray_data)
 
-        if isinstance(ray_data, RayData) and isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
-            if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
+        if isinstance(new_ray_data, RayData) and isinstance(new_ray_data.origins, np.ndarray) and isinstance(new_ray_data.directions, np.ndarray):
+            if not new_ray_data.origins.shape[0] == 0 and not new_ray_data.directions.shape[0] == 0:
                 #print(f"WavePropagator: compute_loop restarted", self.combo)
-                self.compute_loop(ray_data)
+                self.compute_loop(new_ray_data)
 
         #print(f"WavePropagator: compute_loop end", self.combo)
 
