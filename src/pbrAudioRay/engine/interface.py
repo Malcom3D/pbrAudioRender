@@ -119,7 +119,7 @@ class InterfaceManager:
             rays_phases = rays_phases[intersect_mask]
 
         if enable_reflection:
-            reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(a, b, c, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
+            reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
