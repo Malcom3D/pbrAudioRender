@@ -126,7 +126,7 @@ class InterfaceManager:
         incident_angles = 1
 
         if enable_absorption:
-            rays_energies, rays_phases = self.absorption_interface.compute_attenuation(origins=origins, hit_points=hit_points, bands_idx=bands_idx, ray_data=ray_data)
+            rays_energies, rays_phases = self.absorption_interface.compute_attenuation(initial_energy=rays_energies, initial_phase=rays_phases, origins=origins, hit_points=hit_points, bands_idx=bands_idx, ray_data=ray_data)
 
             energies_output = rays_energies[output_mask]
             phases_output = rays_phases[output_mask]
