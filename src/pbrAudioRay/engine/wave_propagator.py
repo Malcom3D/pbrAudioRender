@@ -141,7 +141,7 @@ class WavePropagator:
 
         if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
             if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
-                print(f"WavePropagator: compute_loop restarted", ray_data.origins.shape, ray_data.directions.shape, bands_idx)
+                print(f"WavePropagator: compute_loop restarted", self.combo)
                 self.compute_loop(ray_data)
 
         print(f"WavePropagator: compute_loop end", self.combo)
