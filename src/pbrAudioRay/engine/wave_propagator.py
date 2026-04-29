@@ -105,13 +105,13 @@ class WavePropagator:
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
-        ray_inter = hits["geomID"] >= 0
-        primID = hits["primID"][ray_inter]
-        u = hits["u"][ray_inter]
-        v = hits["v"][ray_inter]
-        w = 1 - u - v
-        mesh_info = acoustic_scene.get_mesh_info()
-        inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
+#        ray_inter = hits["geomID"] >= 0
+#        primID = hits["primID"][ray_inter]
+#        u = hits["u"][ray_inter]
+#        v = hits["v"][ray_inter]
+#        w = 1 - u - v
+#        mesh_info = acoustic_scene.get_mesh_info()
+#        inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
         
         print('WavePropagator: first fast rays propagation ended', self.combo)
 
