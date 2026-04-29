@@ -110,6 +110,9 @@ class InterfaceManager:
 
         rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies
         rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases
+        reflected_directions, scattered_directions = np.array([])
+        incident_angles = 1
+
         if enable_absorption:
             rays_energies, rays_phases = self.absorption_interface.compute_attenuation(hit_points, bands_idx, ray_data)
 
