@@ -114,15 +114,10 @@ class InterfaceManager:
         normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
         # Get materials properties
-        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=geom_ids, bands_idx=bands_idx)
-        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=geom_ids, bands_idx=bands_idx)
-        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=geom_ids, bands_idx=bands_idx)
-        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=geom_ids, bands_idx=bands_idx)
-
-#        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
-#        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
-#        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
-#        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
+        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
+        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
+        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
+        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
 #        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
 #        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
