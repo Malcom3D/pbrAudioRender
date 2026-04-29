@@ -125,6 +125,7 @@ class InterfaceManager:
         reflected_directions, scattered_directions = (None for _ in range(2))
         incident_angles = 1
 
+        print('rays_energies', rays_energies.shape)
         if enable_absorption:
             rays_energies, rays_phases = self.absorption_interface.compute_attenuation(origins=origins, hit_points=hit_points, bands_idx=bands_idx, ray_data=ray_data)
 
@@ -136,9 +137,11 @@ class InterfaceManager:
         if enable_reflection:
             directions = ray_data.directions[geom_ids]
             reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
+            print('reflected_energy', reflected_energy.shape)
 
         if enable_absorption:
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, bands_idx, ray_data)
+            print('absorbed_energy', absorbed_energy.shape)
 
         if enable_scattering:
             roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
