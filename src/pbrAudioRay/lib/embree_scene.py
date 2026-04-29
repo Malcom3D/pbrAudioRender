@@ -185,7 +185,6 @@ class EmbreeScene:
 
          # Get positions and rotations over time
          source_positions, source_rotations = _load_pose(source_config)
-         print('EmbreeScene: ', source_positions, source_rotations)
 
          if source_config.static:
              source_pos = source_positions
@@ -193,8 +192,6 @@ class EmbreeScene:
          else:
              source_pos = source_positions[self.frame_idx]
              source_rot = source_rotations[self.frame_idx]
-
-         print('EmbreeScene: ', source_pos, source_rot)
 
          # Build the source mesh (icosphere) if it's a spherical source
          if source_config.type == 'SPHERE':
