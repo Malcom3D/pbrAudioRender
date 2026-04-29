@@ -161,6 +161,15 @@ class InterfaceManager:
         new_directions = appended_directions[termination_mask.reshape(-1,)]
         new_origins = appended_origins[termination_mask.reshape(-1,)]
 
+        # Save ray_data origins and prim_ids to json for analysis
+        import json
+        data_dict = {}
+        data_dict['origins'] = ray_data.origins.tolist()
+        data_dict['prim_ids'] = prim_ids.tolist()
+        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
+        with open(filepath, 'w') as f:
+            json.dump(data_dict, f, indent=2)
+
         # Create new RayData storage
         recursion_idx = ray_data.recursion_idx + 1
         print('InterfaceManager', recursion_idx, ray_data.bands_idx)
