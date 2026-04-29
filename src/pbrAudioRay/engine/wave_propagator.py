@@ -128,7 +128,7 @@ class WavePropagator:
         #print('WavePropagator: paths for band computed', self.combo)
 
         for ray_data in tracer_results:
-            if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
+            if isinstance(ray_data, RayData) and isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
                 if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
                     self.compute_loop(ray_data)
 
@@ -137,7 +137,7 @@ class WavePropagator:
         hits = self.ray_tracer.compute(ray_data.origins, ray_data.directions)
         ray_data = self.interface.compute(hits, ray_data)
 
-        if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
+        if isinstance(ray_data, RayData) and isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
             if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
                 #print(f"WavePropagator: compute_loop restarted", self.combo)
                 self.compute_loop(ray_data)
