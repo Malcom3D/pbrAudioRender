@@ -108,8 +108,8 @@ class InterfaceManager:
         refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
         scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
-        rays_energies = reflected_energy = scattered_energy = ray_data.energies
-        rays_phases = reflected_phases = scattered_phases = ray_data.phases
+        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies
+        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases
         if enable_absorption:
             rays_energies, rays_phases = self.absorption_interface.compute_attenuation(hit_points, bands_idx, ray_data)
 
