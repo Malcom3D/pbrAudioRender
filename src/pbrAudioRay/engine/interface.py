@@ -168,7 +168,7 @@ class InterfaceManager:
 
     def _check_energy_conservation(self, rays_energies: np.ndarray, absorbed_energy: np.ndarray = None, reflected_energy: np.ndarray = None, scattered_energy: np.ndarray = None):
         # Energy conservation check
-        total_out += rays_energies
+        total_out = rays_energies
         if isinstance(absorbed_energy, np.ndarray):
             total_out += absorbed_energy
         if isinstance(reflected_energy, np.ndarray):
