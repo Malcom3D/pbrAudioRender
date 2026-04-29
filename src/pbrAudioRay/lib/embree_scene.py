@@ -81,7 +81,7 @@ class EmbreeScene:
         # Add acoustic domain mesh (obj_id = -1)
 #        src_medium, out_medium = (np.nan for _ in range(2))
         if ac_mesh is not None:
-#            if ac_mesh.contains(self.src_pos.reshape(1,3)) and src_medium == np.nan:
+#            if ac_mesh.contains(self.src_pos.reshape(-1,3)):
 #                # Store mesh information for SIMD processing
 #                src_medium = -1
 #                if isinstance(source_mesh, trimesh.Trimesh) and hasattr(source_mesh.metadata, 'radius'):

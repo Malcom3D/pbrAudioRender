@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from ..core.entity_manager import EntityManager
 
 from ..engine.ray_tracer import RayTracer
-from ..engine.diff_path_tracer import DiffPathTracer
+from ..engine.interface import InterfaceManager
 
 from ..lib.functions import _load_pose
 from ..lib.embree_scene import EmbreeScene
@@ -68,12 +68,8 @@ class WavePropagator:
         # Init RayTracer engine
         self.ray_tracer = RayTracer(scene)
 
-        # Init DiffPathTracer engine
-        self.diff_path_tracer = DiffPathTracer(self.entity_manager, acoustic_scene)
-
-#        # compute first sources and directions
-#        source_pos = acoustic_scene.aso_pos[0]
-#        output_pos = acoustic_scene.aso_pos[1]
+        # Init InterfaceManager engine
+        self.interface = InterfaceManager(self.entity_manager, acoustic_scene)
 
         # Load output positions
         for output_config in self.config.outputs:
@@ -98,7 +94,6 @@ class WavePropagator:
 #                    n_points = int(np.random.uniform(1, 10, size=1))
 #                    source_pos = self._source_points(n_points, source_pos, source_size)
 
-#        print('WavePropagator: sources: ', source_pos.shape)
         if source_pos.ndim == 1:
             source_pos = source_pos.reshape(1,-1)
         n_src = source_pos.shape[0]
@@ -107,9 +102,6 @@ class WavePropagator:
 
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
-#        print('WavePropagator: sources, directions: ', source_pos.shape, directions.shape)
-#        print('WavePropagator: sources, directions: ', np.unique(source_pos).shape, np.unique(directions).shape)
-#        print('WavePropagator: directions: ', directions)
 
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
@@ -119,9 +111,7 @@ class WavePropagator:
         v = hits["v"][ray_inter]
         w = 1 - u - v
         mesh_info = acoustic_scene.get_mesh_info()
-#        print('WavePropagator: mesh_info ', mesh_info.shape)
         inters = (np.vstack(w) * mesh_info[primID][:, 0, :], + np.vstack(u) * mesh_info[primID][:, 1, :], + np.vstack(v) * mesh_info[primID][:, 2, :])
-#        print('WavePropagator: inters', len(inters))
         
         print('WavePropagator: first fast rays propagation ended', self.combo)
 
@@ -131,32 +121,28 @@ class WavePropagator:
             # Init  RayData storage
             energies = np.full((source_pos.shape[0],1), [1], dtype=np.float32)
             phases = np.full((source_pos.shape[0],1), [0], dtype=np.float32)
-            ray_data = RayData(self.source_idx, self.output_idx, bands_idx)
-            ray_data.add_data(recursion_idx=self.recursion_idx, n_rays=source_pos.shape[0], origins=source_pos, directions=directions, energies=energies, phases=phases)
+            ray_data = RayData(src_idx=self.source_idx, out_idx=self.output_idx, bands_idx=bands_idx, recursion_idx=0, origins=source_pos, directions=directions, energies=energies, phases=phases)
             _ = self.entity_manager.register('ray_datas', ray_data)
-            task_tracer += [self.diff_path_tracer.parallel_compute(hits, bands_idx, ray_data)]
+            task_tracer += [self.interface.parallel_compute(hits, ray_data)]
         tracer_results = compute(*task_tracer)
 
         print('WavePropagator: paths for band computed', self.combo)
 
         self.recursion_idx += 1
-        for next_source_pos, next_directions, bands_idx, ray_data in tracer_results:
-            if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
-                if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
-                    self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
+        for ray_data in tracer_results:
+            if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
+                if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
+                    self.compute_loop(ray_data)
 
-    def compute_loop(self, source_pos: np.ndarray, directions: np.ndarray, bands_idx: int, ray_data: RayData):
+    def compute_loop(self, ray_data: RayData):
         print('WavePropagator: compute_loop ray tracer begin', self.combo)
-        hits = self.ray_tracer.compute(source_pos, directions)
-#        results = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
-#        hits_results = results.compute()
-#        next_source_pos, next_directions, bands_idx, ray_data = hits_results
-        next_source_pos, next_directions, bands_idx, ray_data = self.diff_path_tracer.compute(hits, bands_idx, ray_data)
+        hits = self.ray_tracer.compute(ray_data.origins, ray_data.directions)
+        ray_data = self.interface.compute(hits, ray_data)
 
-        if isinstance(next_source_pos, np.ndarray) and isinstance(next_directions, np.ndarray):
-            if not next_source_pos.shape[0] == 0 and not next_directions.shape[0] == 0:
-                print(f"WavePropagator: compute_loop restarted", next_source_pos.shape, next_directions.shape, bands_idx)
-                self.compute_loop(next_source_pos, next_directions, bands_idx, ray_data)
+        if isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
+            if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
+                print(f"WavePropagator: compute_loop restarted", ray_data.origins.shape, ray_data.directions.shape, bands_idx)
+                self.compute_loop(ray_data)
 
         print(f"WavePropagator: compute_loop end", self.combo)
 
