@@ -92,7 +92,7 @@ def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float,
     Generate frequencies from lowest_frequency to higher_frequency with specified steps per octave
     """
     if bands_per_octave == 0:
-        return [lowest_frequency, higher_frequency]
+        return [lowest_frequency]
 
     frequencies = []
     current_freq = lowest_frequency
