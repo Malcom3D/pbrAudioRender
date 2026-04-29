@@ -66,10 +66,10 @@ class AbsorptionInterface:
 
         return rays_energies, rays_phases
 
-    def compute(self, energies: np.ndarray, phases: np.ndarray, incident_angles: np.ndarray, absorption_coeffs: np.ndarray, absorption_phases: np.ndarray, bands_idx: int, ray_data: Any):
+    def compute(self, energies: np.ndarray, phases: np.ndarray, incident_angles: np.ndarray, absorption_coeffs: np.ndarray, absorption_phases: np.ndarray, ray_data: Any):
         """Apply frequency-dependent intersections absorption."""
 
-        print('absorbed_energy', energies.shape, incident_angles.shape, absorption_coeffs.shape)
+        print('absorbed_energy', energies.shape, incident_angles.shape, absorption_coeffs.shape, absorption_coeffs)
 
         # Compute intersection absorption energies (no phase shift)
         angle_factor = np.cos(incident_angles)
