@@ -52,7 +52,7 @@ class InterfaceManager:
 
     @delayed
     def parallel_compute(self, hits: Dict[str, np.ndarray], ray_data: RayData) -> RayData:
-        return self.compute(hits, bands_idx, ray_data)
+        return self.compute(hits, ray_data)
 
     def compute(self, hits: Dict[str, np.ndarray], ray_data: RayData) -> RayData:
         """
