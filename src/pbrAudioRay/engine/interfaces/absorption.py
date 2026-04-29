@@ -72,7 +72,7 @@ class AbsorptionInterface:
         # Compute intersection absorption energies (no phase shift)
         angle_factor = np.cos(incident_angles)
         angle_factor[angle_factor == 0] = 1e-10
-        absorbed_energy = energies * absorption_coeffs * angle_factor
+        absorbed_energy = energies * absorption_coeffs * angle_factor.reshape(-1,1)
 
         print('absorbed_energy', absorbed_energy.shape, energies.shape, angle_factor.shape)
 
