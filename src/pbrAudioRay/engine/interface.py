@@ -43,7 +43,7 @@ class InterfaceManager:
         self.max_interactions = config.wave_propagation.max_interactions
         self.n_bands = len(self.entity_manager.get('frequency_bands').get_bands())
 
-        self.absorption_interface = AbsorptionInterface(self.entity_manager)
+        self.absorption_interface = AbsorptionInterface(self.entity_manager, self.acoustic_scene)
         self.reflection_interface = ReflectionInterface(self.entity_manager)
         self.scattering_interface = ScatteringInterface(self.entity_manager)
 
