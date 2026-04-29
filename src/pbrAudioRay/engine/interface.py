@@ -183,11 +183,11 @@ class InterfaceManager:
     def _check_energy_conservation(self, rays_energies: np.ndarray, absorbed_energy: np.ndarray = None, reflected_energy: np.ndarray = None, scattered_energy: np.ndarray = None):
         # Energy conservation check
         total_out = rays_energies
-        if isinstance(absorbed_energy, np.ndarray):
+        if isinstance(absorbed_energy, np.ndarray) and not absorbed_energy.shape[0] == 0:
             total_out += absorbed_energy
-        if isinstance(reflected_energy, np.ndarray):
+        if isinstance(reflected_energy, np.ndarray) and not reflected_energy.shape[0] == 0:
             total_out += reflected_energy
-        if isinstance(scattered_energy, np.ndarray):
+        if isinstance(scattered_energy, np.ndarray) and not scattered_energy.shape[0] == 0:
             total_out += scattered_energy
 
         delta_energies = abs(total_out - rays_energies)
@@ -196,11 +196,11 @@ class InterfaceManager:
             total_out[~delta_mask] = rays_energies[~delta_mask] + 1e-10
         # Normalize to ensure energy conservation
         scale = rays_energies / total_out
-        if isinstance(absorbed_energy, np.ndarray):
+        if isinstance(absorbed_energy, np.ndarray) and not absorbed_energy.shape[0] == 0:
             absorbed_energy *= scale
-        if isinstance(reflected_energy, np.ndarray):
+        if isinstance(reflected_energy, np.ndarray) and not reflected_energy.shape[0] == 0:
             reflected_energy *= scale
-        if isinstance(scattered_energy, np.ndarray): 
+        if isinstance(scattered_energy, np.ndarray) and not scattered_energy.shape[0] == 0:
             scattered_energy *= scale
 
         return absorbed_energy, reflected_energy, scattered_energy
