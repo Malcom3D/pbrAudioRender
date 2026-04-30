@@ -132,8 +132,8 @@ class InterfaceManager:
 
             energies_output = rays_energies[output_mask]
             phases_output = rays_phases[output_mask]
-            rays_energies = rays_energies[intersect_mask]
-            rays_phases = rays_phases[intersect_mask]
+            rays_energies, absorbed_energy, reflected_energy, scattered_energy = (rays_energies[intersect_mask] for _ in range(4))
+            rays_phases absorbed_phases, reflected_phases, scattered_phases = (rays_phases[intersect_mask] for _ in range(4))
             directions = directions[intersect_mask]
             normals = normals[intersect_mask]
 
@@ -146,7 +146,7 @@ class InterfaceManager:
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
 
         if enable_scattering:
-            roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)
+            roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)[intersect_mask]
             scattered_energy, scattered_phases, scattered_directions = self.scattering_interface.compute(rays_energies, rays_phases, normals, roughness_factor, scat_coeffs, scat_phases)
 
         absorbed_energy, scattered_energy, reflected_energy = self._check_energy_conservation(rays_energies, absorbed_energy, reflected_energy, scattered_energy)
@@ -188,12 +188,9 @@ class InterfaceManager:
     def _check_energy_conservation(self, rays_energies: np.ndarray, absorbed_energy: np.ndarray = None, reflected_energy: np.ndarray = None, scattered_energy: np.ndarray = None):
         # Energy conservation check
         total_out = rays_energies
-        if isinstance(absorbed_energy, np.ndarray) and not absorbed_energy.shape[0] == 0:
-            total_out += absorbed_energy
-        if isinstance(reflected_energy, np.ndarray) and not reflected_energy.shape[0] == 0:
-            total_out += reflected_energy
-        if isinstance(scattered_energy, np.ndarray) and not scattered_energy.shape[0] == 0:
-            total_out += scattered_energy
+        total_out += absorbed_energy
+        total_out += reflected_energy
+        total_out += scattered_energy
 
         delta_energies = abs(total_out - rays_energies)
         delta_mask = delta_energies > 1e-10
@@ -201,11 +198,8 @@ class InterfaceManager:
             total_out[~delta_mask] = rays_energies[~delta_mask] + 1e-10
         # Normalize to ensure energy conservation
         scale = rays_energies / total_out
-        if isinstance(absorbed_energy, np.ndarray) and not absorbed_energy.shape[0] == 0:
-            absorbed_energy *= scale
-        if isinstance(reflected_energy, np.ndarray) and not reflected_energy.shape[0] == 0:
-            reflected_energy *= scale
-        if isinstance(scattered_energy, np.ndarray) and not scattered_energy.shape[0] == 0:
-            scattered_energy *= scale
+        absorbed_energy *= scale
+        reflected_energy *= scale
+        scattered_energy *= scale
 
         return absorbed_energy, reflected_energy, scattered_energy
