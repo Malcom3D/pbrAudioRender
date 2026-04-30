@@ -133,7 +133,7 @@ class InterfaceManager:
             energies_output = rays_energies[output_mask]
             phases_output = rays_phases[output_mask]
             rays_energies, absorbed_energy, reflected_energy, scattered_energy = (rays_energies[intersect_mask] for _ in range(4))
-            rays_phases absorbed_phases, reflected_phases, scattered_phases = (rays_phases[intersect_mask] for _ in range(4))
+            rays_phases, absorbed_phases, reflected_phases, scattered_phases = (rays_phases[intersect_mask] for _ in range(4))
             directions = directions[intersect_mask]
             normals = normals[intersect_mask]
 
