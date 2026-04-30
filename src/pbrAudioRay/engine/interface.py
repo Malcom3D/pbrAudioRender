@@ -112,8 +112,6 @@ class InterfaceManager:
         # Normalize (avoid division by zero)
         normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
-        # move new origins along normals of 0.001 factor from triangles surface
-        origins = hit_points + (0.001 * normals)
         directions = ray_data.directions
 
         # Get materials properties
@@ -153,19 +151,22 @@ class InterfaceManager:
 
         absorbed_energy, scattered_energy, reflected_energy = self._check_energy_conservation(rays_energies, absorbed_energy, reflected_energy, scattered_energy)
 
+        # move new origins along normals of 0.001 factor from triangles surface
+        new_origins = hit_points + (0.001 * normals)
+
         # Append origins, directions, energies and phases
         if isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = np.append(origins[intersect_mask], origins[intersect_mask], axis=0).astype(np.float32)
+            appended_origins = np.append(new_origins[intersect_mask], new_origins[intersect_mask], axis=0).astype(np.float32)
             appended_directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
             appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
             appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
         elif isinstance(reflected_directions, np.ndarray) and not isinstance(scattered_directions, np.ndarray):
-            appended_origins = origins[intersect_mask]
+            appended_origins = new_origins[intersect_mask]
             appended_directions = reflected_directions
             appended_energies = reflected_energy
             appended_phases = reflected_phases
         elif not isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = origins[intersect_mask]
+            appended_origins = new_origins[intersect_mask]
             appended_directions = scattered_directions
             appended_energies = scattered_energy
             appended_phases = scattered_phases
