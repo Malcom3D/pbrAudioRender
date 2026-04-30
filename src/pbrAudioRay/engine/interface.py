@@ -120,10 +120,10 @@ class InterfaceManager:
         refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
         scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
-#        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
-#        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
-        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[prim_ids] for _ in range(4))
-        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[prim_ids] for _ in range(4))
+        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
+        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
+#        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[prim_ids] for _ in range(4))
+#        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[prim_ids] for _ in range(4))
         reflected_directions, scattered_directions = (None for _ in range(2))
         incident_angles = 1
 
