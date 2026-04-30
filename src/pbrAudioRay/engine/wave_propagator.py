@@ -102,6 +102,15 @@ class WavePropagator:
         directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
         source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
 
+        # Save ray_data origins and hit_points to json for analysis
+        import json
+        data_dict = {}
+        data_dict['origins'] = source_pos.tolist()
+        data_dict['directions'] = directions.tolist()
+        filepath = f"ray_datas/{self.source_idx}_{self.output_idx}.json"
+        with open(filepath, 'w') as f:
+            json.dump(data_dict, f, indent=2)
+
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(source_pos, directions)
         
