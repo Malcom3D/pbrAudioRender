@@ -112,6 +112,8 @@ class InterfaceManager:
         # Normalize (avoid division by zero)
         normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
+        directions = ray_data.directions
+
         # Get materials properties
         abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
         refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
@@ -132,14 +134,15 @@ class InterfaceManager:
             phases_output = rays_phases[output_mask]
             rays_energies = rays_energies[intersect_mask]
             rays_phases = rays_phases[intersect_mask]
+            directions = directions[intersect_mask]
+            normals = normals[intersect_mask]
 
         if enable_reflection:
-            directions = ray_data.directions[geom_ids]
             print(normals.shape, directions.shape, rays_energies.shape, rays_phases.shape, refl_coeffs.shape, refl_phases.shape)
             reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
-            print(rays_energies.shape, rays_phases.shape, incident_angles.shape, abs_coeffs.shape, abs_phases.shape)
+            print(rays_energies.shape, rays_phases.shape, incident_angles.shape)
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
 
         if enable_scattering:
