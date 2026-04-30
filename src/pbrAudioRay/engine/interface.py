@@ -97,14 +97,14 @@ class InterfaceManager:
         # Compute hit point using barycentric coordinates
         hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
-#        # Save ray_data origins and hit_points to json for analysis
-#        import json
-#        data_dict = {}
-#        data_dict['origins'] = ray_data.origins.tolist()
-#        data_dict['hit_points'] = hit_points.tolist()
-#        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
-#        with open(filepath, 'w') as f:
-#            json.dump(data_dict, f, indent=2)
+        # Save ray_data origins and hit_points to json for analysis
+        import json
+        data_dict = {}
+        data_dict['origins'] = ray_data.origins.tolist()
+        data_dict['hit_points'] = hit_points.tolist()
+        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
+        with open(filepath, 'w') as f:
+            json.dump(data_dict, f, indent=2)
 
         # Compute triangle normals using np.cross with broadcasting
         normals = np.cross(b-a, c-a)

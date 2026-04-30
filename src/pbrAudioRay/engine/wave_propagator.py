@@ -60,8 +60,6 @@ class WavePropagator:
         scene = embree_scene.scene
         acoustic_scene = embree_scene.acoustic_scene
 
-        # Generate initial rays data structure
-        n_rays = self.config.system.number_of_rays
         n_bands = len(self.freq_bands)
 
         # Init RayTracer engine
@@ -78,6 +76,7 @@ class WavePropagator:
                     output_pos = output_positions
                 else:
                     output_pos = output_positions[frame_idx]
+                output_pos = output_pos.reshape(-1,3)
 
         # Load source positions
         for source_config in self.config.sources:
@@ -87,32 +86,25 @@ class WavePropagator:
                     source_pos = source_positions
                 else:
                     source_pos = source_positions[frame_idx]
+                source_pos = source_pos.reshape(-1,3)
+
                 if source_config.type == 'SPHERE' and source_config.size > 0:
                     source_size = source_config.size
                     # Diffuse source
 #                    n_points = int(np.random.uniform(1, 10, size=1))
 #                    source_pos = self._source_points(n_points, source_pos, source_size)
 
-        if source_pos.ndim == 1:
-            source_pos = source_pos.reshape(1,-1)
         n_src = source_pos.shape[0]
-        source_ndim = int(n_rays / n_src)
-        n_dirs = source_ndim * n_src
+        n_rays = self.config.system.number_of_rays
 
-        directions = self._generate_isotropic_directions(n_dirs, source_pos, output_pos)
-        source_pos = np.array([source_pos.tolist() for _ in range(source_ndim)], dtype=np.float32).reshape(n_dirs,3)
-
-        # Save ray_data origins and hit_points to json for analysis
-        import json
-        data_dict = {}
-        data_dict['origins'] = source_pos.tolist()
-        data_dict['directions'] = directions.tolist()
-        filepath = f"ray_datas/{self.source_idx}_{self.output_idx}.json"
-        with open(filepath, 'w') as f:
-            json.dump(data_dict, f, indent=2)
+        directions = self._generate_isotropic_directions(n_rays, source_pos, output_pos)
+        origins = np.zeros((0,3), dtype=np.float32)
+        for idx in range(n_src):
+            source_arr = np.full((n_rays,3), source_pos[idx], dtype=np.float32)
+            origins = np.append(origins, source_arr, axis=0)
 
         # First fast rays propagation without frequency bands
-        hits = self.ray_tracer.compute(source_pos, directions)
+        hits = self.ray_tracer.compute(origins, directions)
         
         #print('WavePropagator: first fast rays propagation ended', self.combo)
 
@@ -120,9 +112,9 @@ class WavePropagator:
         task_tracer = []
         for bands_idx in range(n_bands):
             # Init  RayData storage
-            energies = np.full((source_pos.shape[0],1), [1], dtype=np.float32)
-            phases = np.full((source_pos.shape[0],1), [0], dtype=np.float32)
-            ray_data = RayData(src_idx=self.source_idx, out_idx=self.output_idx, bands_idx=bands_idx, recursion_idx=0, origins=source_pos, directions=directions, energies=energies, phases=phases)
+            energies = np.full((origins.shape[0],1), [1], dtype=np.float32)
+            phases = np.full((origins.shape[0],1), [0], dtype=np.float32)
+            ray_data = RayData(src_idx=self.source_idx, out_idx=self.output_idx, bands_idx=bands_idx, recursion_idx=0, origins=origins, directions=directions, energies=energies, phases=phases)
             _ = self.entity_manager.register('ray_datas', ray_data)
             task_tracer += [self.interface.parallel_compute(hits, ray_data)]
         tracer_results = compute(*task_tracer)
@@ -209,21 +201,20 @@ class WavePropagator:
         main_dirs = main_dirs / main_dirs_norm
     
         # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
-        directions = np.zeros((n_dirs, 3), dtype=np.float32)
+        num_points = n_dirs * n_sources
 
-        # Insert main direction
-        directions[:n_sources] = main_dirs
-    
         # Golden ratio
         phi = np.pi * (3. - np.sqrt(5.))
-
-        num_points = n_dirs - n_sources
         theta = phi * np.arange(num_points)
         z = np.linspace(1/num_points-1, 1-1/num_points, num_points)
         radius = np.sqrt(1 - z * z)
         y = radius * np.sin(theta)
         x = radius * np.cos(theta)
 
-        directions[n_sources:n_dirs] = np.array([x,y,z]).reshape(-1,3)
+        directions = np.array(list(zip(x,y,z)), dtype=np.float32)
+
+        for idx in range(n_sources):
+            index = n_dirs * idx
+            directions[index] = main_dirs[idx]
 
         return directions

@@ -75,9 +75,6 @@ class EmbreeScene:
         # get the AcousticDomain mesh
         ac_mesh = _acoustic_domain_mesh(config)
 
-        embreeDevice = rtc.EmbreeDevice()
-        scene = rtcs.EmbreeScene(embreeDevice)
-
         # Add acoustic domain mesh (obj_id = -1)
 #        src_medium, out_medium = (np.nan for _ in range(2))
         if ac_mesh is not None:
@@ -136,6 +133,17 @@ class EmbreeScene:
         # Finalize scene building
         results = compute(*task_scene) 
         
+        # Get mesh_info
+        mesh_info = self.acoustic_scene.mesh_info
+        
+        # Init embree scene
+#        embreeDevice = rtc.EmbreeDevice()
+#        scene = rtcs.EmbreeScene(embreeDevice)
+        scene = rtcs.EmbreeScene()
+
+        # Add meshes to Embree scene
+        embree_meshes = TriangleMesh(scene, mesh_info)
+        
         return scene
 
     @delayed
@@ -162,9 +170,6 @@ class EmbreeScene:
         # Compute face normals if not present
         if mesh.face_normals is None:
             mesh.fix_normals()
-        
-        # Add mesh to Embree scene
-        embree_mesh = TriangleMesh(scene, vertices[faces])
         
         # Store mesh information for SIMD processing
         self.acoustic_scene.add_mesh_info(obj_idx, obj_config, vertices, faces)

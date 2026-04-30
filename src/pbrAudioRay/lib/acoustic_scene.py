@@ -117,7 +117,7 @@ class AcousticScene:
         # Get triangle count
         triangle_count = faces.shape[0]
 
-        self.scene_info = np.append(self.scene_info, np.full((triangle_count,), obj_idx, dtype=np.int32))
+        self.scene_info = np.append(self.scene_info, np.full((triangle_count,), [obj_idx], dtype=np.int32))
         self.mesh_info = np.append(self.mesh_info, vertices[faces], axis=0)
 
         # Get Material Info
