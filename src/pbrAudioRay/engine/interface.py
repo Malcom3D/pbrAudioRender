@@ -152,11 +152,11 @@ class InterfaceManager:
         absorbed_energy, scattered_energy, reflected_energy = self._check_energy_conservation(rays_energies, absorbed_energy, reflected_energy, scattered_energy)
 
         # move new origins along normals of 0.001 factor from triangles surface
-        new_origins = hit_points + (0.001 * normals)
+        new_origins = hit_points[intersect_mask] + (0.001 * normals[intersect_mask])
 
         # Append origins, directions, energies and phases
         if isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = np.append(new_origins[intersect_mask], new_origins[intersect_mask], axis=0).astype(np.float32)
+            appended_origins = np.append(new_origins, new_origins, axis=0).astype(np.float32)
             appended_directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
             appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
             appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
