@@ -89,17 +89,17 @@ class EmbreeScene:
 #                if isinstance(output_mesh, trimesh.Trimesh) and hasattr(output_mesh.metadata, 'radius'):
 #                    out_radius = mesh.metadata['radius']
 #                self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
-            task_scene = [self._add_mesh_to_scene(scene, ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
+            task_scene = [self._add_mesh_to_scene(ac_mesh, -1, "acoustic_domain", config.acoustic_domain)]
             num_objs += 1
         
         # Add source mesh (obj_id = -2)
         if source_mesh is not None:
-            task_scene += [self._add_mesh_to_scene(scene, source_mesh, -2, "source")]
+            task_scene += [self._add_mesh_to_scene(source_mesh, -2, "source")]
             num_objs += 1
         
         # Add output mesh (obj_id = -3)
         if output_mesh is not None:
-            task_scene += [self._add_mesh_to_scene(scene, output_mesh, -3, "output")]
+            task_scene += [self._add_mesh_to_scene(output_mesh, -3, "output")]
             num_objs += 1
 
 #        self.acoustic_scene.set_num_objs(num_objs)
@@ -128,7 +128,7 @@ class EmbreeScene:
 #                        out_radius = mesh.metadata['radius']
 #                    self.acoustic_scene.add_aso_info(-3, self.out_pos, out_medium, out_radius)
 
-            task_scene += [self._add_mesh_to_scene(scene, obj_mesh, obj_idx, name, obj_config)]
+            task_scene += [self._add_mesh_to_scene(obj_mesh, obj_idx, name, obj_config)]
 
         # Finalize scene building
         results = compute(*task_scene) 
@@ -147,12 +147,11 @@ class EmbreeScene:
         return scene
 
     @delayed
-    def _add_mesh_to_scene(self, scene: rtcs.EmbreeScene, mesh: trimesh.Trimesh, obj_idx: int, name: str, obj_config: Any = None):
+    def _add_mesh_to_scene(self, mesh: trimesh.Trimesh, obj_idx: int, name: str, obj_config: Any = None):
         """
         Add a mesh to the Embree scene and store SIMD-friendly data.
         
         Args:
-            scene: Embree scene
             mesh: Trimesh object
             obj_idx: Object identifier
             name: Mesh name for debugging
