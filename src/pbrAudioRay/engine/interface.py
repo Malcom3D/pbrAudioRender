@@ -153,17 +153,17 @@ class InterfaceManager:
 
         # Append hit_points for origins, directions, energies and phases
         if isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = np.append(hit_points, hit_points, axis=0).astype(np.float32)
+            appended_origins = np.append(hit_points[intersect_mask], hit_points[intersect_mask], axis=0).astype(np.float32)
             appended_directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
             appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
             appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
         elif isinstance(reflected_directions, np.ndarray) and not isinstance(scattered_directions, np.ndarray):
-            appended_origins = hit_points
+            appended_origins = hit_points[intersect_mask]
             appended_directions = reflected_directions
             appended_energies = reflected_energy
             appended_phases = reflected_phases
         elif not isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = hit_points
+            appended_origins = hit_points[intersect_mask]
             appended_directions = scattered_directions
             appended_energies = scattered_energy
             appended_phases = scattered_phases
