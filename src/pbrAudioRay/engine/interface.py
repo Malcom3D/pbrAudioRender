@@ -134,7 +134,7 @@ class InterfaceManager:
             rays_phases = rays_phases[intersect_mask]
 
         if enable_reflection:
-            directions = ray_data.directions[intersect_mask]
+            directions = ray_data.directions[geom_ids]
             reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
