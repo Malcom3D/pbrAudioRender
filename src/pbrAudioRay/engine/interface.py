@@ -118,10 +118,10 @@ class InterfaceManager:
         refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
         scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
 
-#        rays_energies = absorbed_energy = reflected_energy = scattered_energy = ray_data.energies[prim_ids]
-#        rays_phases = absorbed_phases = reflected_phases = scattered_phases = ray_data.phases[prim_ids]
-        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
-        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
+#        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
+#        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
+        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[prim_ids] for _ in range(4))
+        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[prim_ids] for _ in range(4))
         reflected_directions, scattered_directions = (None for _ in range(2))
         incident_angles = 1
 
@@ -135,9 +135,11 @@ class InterfaceManager:
 
         if enable_reflection:
             directions = ray_data.directions[geom_ids]
+            print(normals.shape, directions.shape, rays_energies.shape, rays_phases.shape, refl_coeffs.shape, refl_phases.shape)
             reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
 
         if enable_absorption:
+            print(rays_energies.shape, rays_phases.shape, incident_angles.shape, abs_coeffs.shape, abs_phases.shape)
             absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
 
         if enable_scattering:
