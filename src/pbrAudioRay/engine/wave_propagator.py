@@ -103,6 +103,7 @@ class WavePropagator:
             source_arr = np.full((n_rays,3), source_pos[idx], dtype=np.float32)
             origins = np.append(origins, source_arr, axis=0)
 
+        print('origins', origins, 'directions', directions)
         # First fast rays propagation without frequency bands
         hits = self.ray_tracer.compute(origins, directions)
         
