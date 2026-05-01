@@ -163,12 +163,12 @@ class InterfaceManager:
             appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
             appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
         elif isinstance(reflected_directions, np.ndarray) and not isinstance(scattered_directions, np.ndarray):
-            appended_origins = new_origins[intersect_mask]
+            appended_origins = new_origins
             appended_directions = reflected_directions
             appended_energies = reflected_energy
             appended_phases = reflected_phases
         elif not isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = new_origins[intersect_mask]
+            appended_origins = new_origins
             appended_directions = scattered_directions
             appended_energies = scattered_energy
             appended_phases = scattered_phases
