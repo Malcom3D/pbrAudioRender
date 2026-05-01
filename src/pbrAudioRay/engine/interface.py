@@ -102,7 +102,7 @@ class InterfaceManager:
         data_dict = {}
         data_dict['origins'] = ray_data.origins.tolist()
         data_dict['hit_points'] = hit_points.tolist()
-        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx}.json"
+        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx:05}.json"
         with open(filepath, 'w') as f:
             json.dump(data_dict, f, indent=2)
 
