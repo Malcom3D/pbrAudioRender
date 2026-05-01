@@ -301,6 +301,8 @@ class Config:
             poisson_ratio=shader_data.get('poisson_ratio', []),
             density=shader_data.get('density', 1.225),
             damping=shader_data.get('damping', []),
+            friction=shader_data.get('friction', []),
+            roughness=shader_data.get('roughness', []),
             temperature=shader_data.get('temperature', []),
             impedence=shader_data.get('impedence', []),
             low_frequency=shader_data.get('low_frequency', 1.0),
