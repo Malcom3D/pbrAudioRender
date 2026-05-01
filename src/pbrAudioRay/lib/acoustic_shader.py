@@ -72,10 +72,11 @@ class AcousticCoefficients:
         n_bands = len(freq_bands)
         avg_coeffs = np.zeros((1,n_bands), dtype=np.float32)
         
-        if self.phases is not None:
-            avg_phases = np.zeros((1,n_bands), dtype=np.float32)
-        else:
-            avg_phases = 0
+#        if self.phases is not None:
+#            avg_phases = np.zeros((1,n_bands), dtype=np.float32)
+#        else:
+#            avg_phases = 0
+        avg_phases = np.zeros((1,n_bands), dtype=np.float32)
         
         # Use SIMD-optimized averaging
         if self.phases is not None:
