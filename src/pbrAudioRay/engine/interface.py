@@ -74,11 +74,13 @@ class InterfaceManager:
 
         bands_idx = ray_data.bands_idx
 
+        print('hits', hits)
         geom_ids = hits["geomID"] >= 0
         prim_ids = hits["primID"][geom_ids]
         if prim_ids.shape[0] == 0:
             return None
 
+        print('prim_ids', prim_ids)
         u = hits["u"][prim_ids]
         v = hits["v"][prim_ids]
         w = 1 - u - v
