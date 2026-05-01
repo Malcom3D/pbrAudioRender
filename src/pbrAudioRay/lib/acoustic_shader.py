@@ -75,7 +75,7 @@ class AcousticCoefficients:
         if self.phases is not None:
             avg_phases = np.zeros((1,n_bands), dtype=np.float32)
         else:
-            avg_phases = None
+            avg_phases = 0
         
         # Use SIMD-optimized averaging
         if self.phases is not None:
