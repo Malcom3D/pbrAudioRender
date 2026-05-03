@@ -115,7 +115,6 @@ class AcousticCoefficients:
         """
         for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
-            print('low_freq, high_freq', low_freq, high_freq)
             
             # Compute averages using Simpson's rule for better accuracy
             coeff_sum = 0.0
@@ -131,6 +130,7 @@ class AcousticCoefficients:
             avg_coeffs[0][i] = coeff_sum / num_points
             avg_phases[0][i] = phase_sum / num_points
         
+        print('low_freq, high_freq', low_freq, high_freq, avg_coeffs, avg_phases)
         return avg_coeffs, avg_phases
 
     @staticmethod
@@ -141,7 +141,6 @@ class AcousticCoefficients:
         """
         for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
-            print('low_freq, high_freq', low_freq, high_freq)
             
             # Compute average using Simpson's rule for better accuracy
             coeff_sum = 0.0
@@ -153,6 +152,7 @@ class AcousticCoefficients:
             
             avg_coeffs[0][i] = coeff_sum / num_points
         
+        print('low_freq, high_freq', low_freq, high_freq, avg_coeffs)
         return avg_coeffs
 
 
