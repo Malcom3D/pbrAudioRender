@@ -124,13 +124,12 @@ class AcousticCoefficients:
                 t = j / (num_points - 1) if num_points > 1 else 0
                 freq = low_freq + t * (high_freq - low_freq)
                 
-                coeff_sum += coeff_interp_func(freq)
+                coeff_sum += coeff_interp_func(freq) if coeff_interp_func(freq) >= 0 else 0
                 phase_sum += phase_interp_func(freq)
             
             avg_coeffs[0][i] = coeff_sum / num_points
             avg_phases[0][i] = phase_sum / num_points
         
-        print('low_freq, high_freq', low_freq, high_freq, avg_coeffs, avg_phases)
         return avg_coeffs, avg_phases
 
     @staticmethod
@@ -148,11 +147,10 @@ class AcousticCoefficients:
             for j in range(num_points):
                 t = j / (num_points - 1) if num_points > 1 else 0
                 freq = low_freq + t * (high_freq - low_freq)
-                coeff_sum += coeff_interp_func(freq)
+                coeff_sum += coeff_interp_func(freq) if coeff_interp_func(freq) >= 0 else 0
             
             avg_coeffs[0][i] = coeff_sum / num_points
         
-        print('low_freq, high_freq', low_freq, high_freq, avg_coeffs)
         return avg_coeffs
 
 
