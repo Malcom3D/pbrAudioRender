@@ -1,4 +1,4 @@
-#EmbreeX_script-0.0.11
+#EmbreeX_script-0.0.12
 import time
 import numpy as np
 import trimesh
@@ -17,10 +17,11 @@ from pbrAudioRay.core.entity_manager import EntityManager
 from pbrAudioRay.core.acoustic_engine import AcousticEngine
 
 from pbrAudioRay.lib.frequency_bands import FrequencyBands
+from pbrAudioRay.lib.functions import _compute_rayleigh_damping
 
 np.set_printoptions(precision=18, floatmode='fixed', threshold=np.inf)
 
-def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_energies, output_phases, output_delay, output_origins, output_directions):
+def loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations):
     n_bands = len(frequency_bands)
     t1 = time.time()
     res = scene.run(origins, directions, output=1)
@@ -46,8 +47,11 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     with open(filepath, 'w') as f:
         json.dump(data_dict, f, indent=2)
 
-    # Filter origins and directions
+    # Filter origins, origins_idx, origins_bands, destinations and directions
     origins = origins[ray_inter]
+    origins_idx = origins_idx[ray_inter]
+    origins_bands = origins_bands[ray_inter]
+    destinations = destinations[ray_inter]
     directions = directions[ray_inter]
 
     # Compute traveled path length
@@ -88,11 +92,12 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     delay = delay[ray_inter]
 
     # Compute medium attenuation
+    origins_bands_idx = np.arange(origins_bands.T.shape[0])
     attenuation = np.exp(-medium_alpha * path_length)
-    energies = energies * attenuation
+    energies = energies * attenuation[origins_bands_idx,origins_bands]
 
     # Compute phase shift
-    phase_shift = medium_beta * path_length
+    phase_shift = path_length * medium_beta[origins_bands_idx,origins_bands]
     phases = (phases + phase_shift) % (2 * np.pi)
 
     # Compute delay
@@ -105,11 +110,14 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     intersect_obj_idx = hits_obj_idx[intersect_mask]
 
     # Get output data
-    output_mask = hits_obj_idx == -3
+    output_mask = hits_obj_idx <= -3
+    output_source = np.append(output_source, origins_idx[output_mask], axis=0).astype(np.int32)
+    output_bands = np.append(output_bands, origins_bands[output_mask], axis=0).astype(np.int32)
     output_energies = np.append(output_energies, energies[output_mask], axis=0).astype(np.float32)
     output_phases = np.append(output_phases, phases[output_mask], axis=0).astype(np.float32)
     output_delay = np.append(output_delay, delay[output_mask], axis=0).astype(np.float32)
     output_origins = np.append(output_origins, origins[output_mask], axis=0).astype(np.float32)
+    output_destinations = np.append(output_destinations, destinations[output_mask], axis=0).astype(np.float32)
     output_directions = np.append(output_directions, directions[output_mask], axis=0).astype(np.float32)
     
     print('output:', np.count_nonzero(output_mask), output_directions.shape, output_origins.shape)
@@ -120,14 +128,16 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     delay = delay[intersect_mask]
 
     # Get material property of intersected objects
-    abs_coeffs = abs_coeffs_info[primID][intersect_mask]
-    abs_phases = abs_phases_info[primID][intersect_mask]
-    refl_coeffs = refl_coeffs_info[primID][intersect_mask]
-    refl_phases = refl_phases_info[primID][intersect_mask]
-    refr_coeffs = refr_coeffs_info[primID][intersect_mask]
-    refr_phases = refr_phases_info[primID][intersect_mask]
-    scat_coeffs = scat_coeffs_info[primID][intersect_mask]
-    scat_phases = scat_phases_info[primID][intersect_mask]
+    abs_coeffs = abs_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    print('abs_coeffs: ', abs_coeffs.shape, abs_coeffs)
+    print('origins_bands: ', origins_bands.shape, origins_bands[0])
+    abs_phases = abs_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refl_coeffs = refl_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refl_phases = refl_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refr_coeffs = refr_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refr_phases = refr_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    scat_coeffs = scat_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    scat_phases = scat_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
     roughness_factor = roughness_info[primID][intersect_mask]
 
     # Compute triangle normals using np.cross with broadcasting
@@ -137,12 +147,18 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     normals /= np.linalg.norm(normals, axis=1, keepdims=True)
 
     # Filter directions, normals, energies, phases
+    origins = origins[intersect_mask]
+    origins_idx = origins_idx[intersect_mask]
+    origins_bands = origins_bands[intersect_mask]
+    destinations = destinations[intersect_mask]
     normals = normals[intersect_mask]
-    directions = directions[ray_inter][intersect_mask]
+#    directions = directions[ray_inter][intersect_mask]
+    directions = directions[intersect_mask]
     energies = energies[intersect_mask]
     phases = phases[intersect_mask]
 
     # Compute reflection directions
+    print('########DEBUG: ', directions.shape, normals.shape)
     dot = np.sum(directions * normals, axis=1)
     incident_angles = np.arccos(-dot)
     reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
@@ -152,20 +168,19 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     # Compute absorption
     angle_factor = np.cos(incident_angles)
     angle_factor[angle_factor == 0] = 1e-16
-    print('angle_factor', np.max(angle_factor), np.min(angle_factor))
+    #print('angle_factor', angle_factor.shape)
     absorbed_energies = energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
-    print('absorbed_energies', np.max(absorbed_energies), np.min(absorbed_energies))
 
     # Compute reflection absorption
     reflected_energies = energies * refl_coeffs.reshape(-1,1)
     reflected_phase = - (phases + refl_phases.reshape(-1,1)) % (2 * np.pi)
-    print('reflected_energies', np.max(reflected_energies), np.min(reflected_energies))
+    #print('reflected_energies', np.max(reflected_energies), np.min(reflected_energies))
 
     # Compute scattering absorption
     scattered_directions = _random_hemisphere_directions(normals)
     scattered_energies = energies * scat_coeffs * roughness_factor / max(scattered_directions.shape[0], 1e-16)
     scattered_phase = phases + scat_phases.reshape(-1,1) % (2 * np.pi)
-    print('scattered_energies', np.max(scattered_energies), np.min(scattered_phase))
+    #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phase))
 
     # Energy conservation check
     total_out = energies + absorbed_energies + reflected_energies + scattered_energies
@@ -184,8 +199,11 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     origins = inters + 0.001 * normals
     origins = origins.astype(np.float32)
 
-    # Create new origins, directions, energies, phases
+    # Create new origins, origins_idx, origins_bands, directions, energies, phases
     origins = np.append(origins, origins, axis=0).astype(np.float32)
+    origins_idx = np.append(origins_idx, origins_idx, axis=0).astype(np.int32)
+    origins_bands = np.append(origins_bands, origins_bands, axis=0).astype(np.int32)
+    destinations = np.append(destinations, destinations, axis=0).astype(np.float32)
     directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
     energies = np.append(reflected_energies, scattered_energies, axis=0).astype(np.float32)
     phases = np.append(reflected_phase, scattered_phase, axis=0).astype(np.float32)
@@ -194,8 +212,11 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
     # Filter direction, origins, phases, energy and delay on termination
     termination_energy = 1e-16 # config.termination.energy_threshold
     termination_mask = energies > termination_energy
+    destinations = destinations[termination_mask.reshape(-1,)]
     directions = directions[termination_mask.reshape(-1,)]
     origins = origins[termination_mask.reshape(-1,)]
+    origins_idx = origins_idx[termination_mask].reshape(-1,1)
+    origins_bands = origins_bands[termination_mask].reshape(-1,1)
     energies = energies[termination_mask].reshape(-1,1)
     phases = phases[termination_mask].reshape(-1,1)
     delay = delay[termination_mask].reshape(-1,1)
@@ -239,7 +260,7 @@ def loop(origins, directions, energies, phases, delay, mesh_info, scene_info, re
 
         return
 
-    loop(origins, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_energies, output_phases, output_delay, output_origins, output_directions)
+    loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations)
 
 def compute_and_save_ir(output_energies, output_phases, output_delay, output_origins, output_directions):
     # Sort output by delay
@@ -258,7 +279,7 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
     # Determine max IR length
     ir_length = int(np.ceil(np.max(delay_samples))) + 10
 
-    print('ir_length', ir_length)
+#    print('ir_length', ir_length)
 
     for out_config in config.outputs: 
         if out_config.name == 'Camera':
@@ -267,17 +288,17 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
 
     n_channels = (ambisonic_order + 1) ** 2
     
-    print('n_channels', n_channels)
+#    print('n_channels', n_channels)
 
     # Initialize IR buffer
     ambisonic_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
 
-    print('ambisonic_ir', ambisonic_ir.shape)
+#    print('ambisonic_ir', ambisonic_ir.shape)
 
     # Compute complex amplitudes
     complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
 
-    print('complex_amplitudes', complex_amplitudes.shape)
+#    print('complex_amplitudes', complex_amplitudes.shape)
 
     # Convert Cartesian to spherical coordinates
     x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
@@ -286,8 +307,8 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
     theta = np.arctan2(y, x)  # Azimuth
     phi = np.arcsin(z)  # Elevation (assuming unit vectors)
 
-    print('theta', theta.shape)
-    print('phi', phi.shape)
+#    print('theta', theta.shape)
+#    print('phi', phi.shape)
 
     # Compute spherical harmonics coefficients
     if ambisonic_order >= 0:
@@ -297,7 +318,7 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
         for i in range(len(delay_samples)):
             sample_idx = delay_samples[i]
             ambisonic_ir[0, sample_idx] += np.real(complex_amplitudes[i] * Y_00)
-        print('W channel (omnidirectional)', np.count_nonzero(ambisonic_ir[0]), np.max(ambisonic_ir[0]), np.min(ambisonic_ir[0]))
+#        print('W channel (omnidirectional)', np.count_nonzero(ambisonic_ir[0]), np.max(ambisonic_ir[0]), np.min(ambisonic_ir[0]))
 
     if ambisonic_order >= 1:
         # Order 1: X, Y, Z channels
@@ -312,9 +333,9 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
             ambisonic_ir[1, sample_idx] += np.real(complex_amplitudes[i] * Y_1n1[i])
             ambisonic_ir[2, sample_idx] += np.real(complex_amplitudes[i] * Y_10[i])
             ambisonic_ir[3, sample_idx] += np.real(complex_amplitudes[i] * Y_11[i])
-        print('X channel (Order 1)', np.count_nonzero(ambisonic_ir[1]))
-        print('Y channel (Order 1)', np.count_nonzero(ambisonic_ir[2]))
-        print('Z channel (Order 1)', np.count_nonzero(ambisonic_ir[3]))
+#        print('X channel (Order 1)', np.count_nonzero(ambisonic_ir[1]))
+#        print('Y channel (Order 1)', np.count_nonzero(ambisonic_ir[2]))
+#        print('Z channel (Order 1)', np.count_nonzero(ambisonic_ir[3]))
 
     if ambisonic_order >= 2:
         # Order 2: Additional 5 channels
@@ -341,11 +362,11 @@ def compute_and_save_ir(output_energies, output_phases, output_delay, output_ori
             ambisonic_ir[6, sample_idx] += np.real(complex_amplitudes[i] * Y_20[i])
             ambisonic_ir[7, sample_idx] += np.real(complex_amplitudes[i] * Y_21[i])
             ambisonic_ir[8, sample_idx] += np.real(complex_amplitudes[i] * Y_22[i])
-        print('R channel (Order 2)', np.count_nonzero(ambisonic_ir[4]))
-        print('S channel (Order 2)', np.count_nonzero(ambisonic_ir[5]))
-        print('T channel (Order 2)', np.count_nonzero(ambisonic_ir[6]))
-        print('U channel (Order 2)', np.count_nonzero(ambisonic_ir[7]))
-        print('V channel (Order 2)', np.count_nonzero(ambisonic_ir[8]))
+#        print('R channel (Order 2)', np.count_nonzero(ambisonic_ir[4]))
+#        print('S channel (Order 2)', np.count_nonzero(ambisonic_ir[5]))
+#        print('T channel (Order 2)', np.count_nonzero(ambisonic_ir[6]))
+#        print('U channel (Order 2)', np.count_nonzero(ambisonic_ir[7]))
+#        print('V channel (Order 2)', np.count_nonzero(ambisonic_ir[8]))
 
     # Apply windowing to smooth the IR (optional)
     window = np.hanning(ir_length)
@@ -585,11 +606,18 @@ n_bands = len(frequency_bands.get_bands())
 n_objs = len(config.objects)
 
 recursion_idx = 0
+destinations = np.zeros((0,3), dtype=np.float32)
+origins = np.zeros((0,3), dtype=np.float32)
+origins_idx = np.zeros((0,1), dtype=np.int32)
+origins_bands = np.zeros((0,1), dtype=np.int32)
 output_energies = np.zeros((0,1), dtype=np.float32)
 output_phases = np.zeros((0,1), dtype=np.float32)
 output_delay = np.zeros((0,1), dtype=np.float32)
+output_bands = np.zeros((0,1), dtype=np.float32)
+output_source = np.zeros((0,1), dtype=np.float32)
 output_origins = np.zeros((0,3), dtype=np.float32)
 output_directions = np.zeros((0,3), dtype=np.float32)
+output_destinations = np.zeros((0,3), dtype=np.float32)
 mesh_info = np.zeros((0,3,3), dtype=np.float32)
 scene_info = np.zeros((0,1), dtype=np.float32)
 medium_info_alpha = np.zeros((n_objs,n_bands), dtype=np.float32)
@@ -649,47 +677,69 @@ scat_phases = np.full((1,n_bands), [0], dtype=np.float32)
 scat_coeffs_info = np.append(scat_coeffs_info, np.full((vertices[faces].shape[0],n_bands), scat_coeffs, dtype=np.float32), axis=0)
 scat_phases_info = np.append(scat_phases_info, np.full((vertices[faces].shape[0],n_bands), scat_phases, dtype=np.float32), axis=0)
 
+n_rays = config.system.number_of_rays
+num_points = n_rays * n_bands
+
 # Output data and mesh
-pose = np.load('data/pose/Camera.npz')
-output_pos = pose[pose.files[0]].reshape(-1,3)
+out_idx = 0
 for out_config in config.outputs:
-    if out_config.name == 'Camera':
-        if hasattr(out_config, 'size') and not out_config.size == 0:
-            mesh = trimesh.creation.icosphere(subdivisions=2, radius=out_config.size)
-            mesh.apply_transform([[1, 0, 0, output_pos[0][0]],[0, 1, 0, output_pos[0][1]],[0, 0, 1, output_pos[0][2]],[0, 0, 0, 1]])
-            vertices = mesh.vertices.astype(np.float32)
-            faces = mesh.faces.astype(np.int32)
-            mesh_info = np.append(mesh_info, mesh.vertices[mesh.faces], axis=0)
-            scene_info = np.append(scene_info, np.full((mesh.vertices[mesh.faces].shape[0],), [-3], dtype=np.int32))
+    out_idx += -1
+    pose = np.load('data/pose/Camera.npz')
+    output_pos = pose[pose.files[0]].reshape(-1,3)
+    output_arr = np.full((num_points,3), [output_pos], dtype=np.float32)
+    destinations = np.append(destinations, output_arr, axis=0)
+    if out_config.size == 0:
+        out_config.size = 0.1
+    mesh = trimesh.creation.icosphere(subdivisions=2, radius=out_config.size)
+    mesh.apply_transform([[1, 0, 0, output_pos[0][0]],[0, 1, 0, output_pos[0][1]],[0, 0, 1, output_pos[0][2]],[0, 0, 0, 1]])
+    vertices = mesh.vertices.astype(np.float32)
+    faces = mesh.faces.astype(np.int32)
+    mesh_info = np.append(mesh_info, mesh.vertices[mesh.faces], axis=0)
+    scene_info = np.append(scene_info, np.full((mesh.vertices[mesh.faces].shape[0],), [out_idx], dtype=np.int32))
 
-            # Fill objects shader properties info with null values
-            roughness = 0
-            roughness_info = np.append(roughness_info, np.full((vertices[faces].shape[0],1), [roughness], dtype=np.float32), axis=0) 
-            # Get material properties absorption
-            abs_coeffs = np.full((1,n_bands), [1], dtype=np.float32)
-            abs_phases = np.full((1,n_bands), [0], dtype=np.float32)
-            abs_coeffs_info = np.append(abs_coeffs_info, np.full((vertices[faces].shape[0],n_bands), abs_coeffs, dtype=np.float32), axis=0) 
-            abs_phases_info = np.append(abs_phases_info, np.full((vertices[faces].shape[0],n_bands), abs_phases, dtype=np.float32), axis=0) 
-            # Get material properties reflecrtion
-            refl_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
-            refl_phases = np.full((1,n_bands), [0], dtype=np.float32)
-            refl_coeffs_info = np.append(refl_coeffs_info, np.full((vertices[faces].shape[0],n_bands), refl_coeffs, dtype=np.float32), axis=0) 
-            refl_phases_info = np.append(refl_phases_info, np.full((vertices[faces].shape[0],n_bands), refl_phases, dtype=np.float32), axis=0) 
-            # Get material properties refraction
-            refr_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
-            refr_phases = np.full((1,n_bands), [0], dtype=np.float32)
-            refr_coeffs_info = np.append(refr_coeffs_info, np.full((vertices[faces].shape[0],n_bands), refr_coeffs, dtype=np.float32), axis=0) 
-            refr_phases_info = np.append(refr_phases_info, np.full((vertices[faces].shape[0],n_bands), refr_phases, dtype=np.float32), axis=0) 
-            # Get material properties refraction
-            scat_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
-            scat_phases = np.full((1,n_bands), [0], dtype=np.float32)
-            scat_coeffs_info = np.append(scat_coeffs_info, np.full((vertices[faces].shape[0],n_bands), scat_coeffs, dtype=np.float32), axis=0) 
-            scat_phases_info = np.append(scat_phases_info, np.full((vertices[faces].shape[0],n_bands), scat_phases, dtype=np.float32), axis=0)
-
+    # Fill objects shader properties info with null values
+    roughness = 0
+    roughness_info = np.append(roughness_info, np.full((vertices[faces].shape[0],1), [roughness], dtype=np.float32), axis=0) 
+    # Get material properties absorption
+    abs_coeffs = np.full((1,n_bands), [1], dtype=np.float32)
+    abs_phases = np.full((1,n_bands), [0], dtype=np.float32)
+    abs_coeffs_info = np.append(abs_coeffs_info, np.full((vertices[faces].shape[0],n_bands), abs_coeffs, dtype=np.float32), axis=0) 
+    abs_phases_info = np.append(abs_phases_info, np.full((vertices[faces].shape[0],n_bands), abs_phases, dtype=np.float32), axis=0) 
+    # Get material properties reflecrtion
+    refl_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
+    refl_phases = np.full((1,n_bands), [0], dtype=np.float32)
+    refl_coeffs_info = np.append(refl_coeffs_info, np.full((vertices[faces].shape[0],n_bands), refl_coeffs, dtype=np.float32), axis=0) 
+    refl_phases_info = np.append(refl_phases_info, np.full((vertices[faces].shape[0],n_bands), refl_phases, dtype=np.float32), axis=0) 
+    # Get material properties refraction
+    refr_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
+    refr_phases = np.full((1,n_bands), [0], dtype=np.float32)
+    refr_coeffs_info = np.append(refr_coeffs_info, np.full((vertices[faces].shape[0],n_bands), refr_coeffs, dtype=np.float32), axis=0) 
+    refr_phases_info = np.append(refr_phases_info, np.full((vertices[faces].shape[0],n_bands), refr_phases, dtype=np.float32), axis=0) 
+    # Get material properties refraction
+    scat_coeffs = np.full((1,n_bands), [0], dtype=np.float32)
+    scat_phases = np.full((1,n_bands), [0], dtype=np.float32)
+    scat_coeffs_info = np.append(scat_coeffs_info, np.full((vertices[faces].shape[0],n_bands), scat_coeffs, dtype=np.float32), axis=0) 
+    scat_phases_info = np.append(scat_phases_info, np.full((vertices[faces].shape[0],n_bands), scat_phases, dtype=np.float32), axis=0)
 
 # Source data
-pose = np.load('data/pose/SphericalSource.npz')
-source_pos = pose[pose.files[0]].reshape(-1,3)
+n_src = 0
+source_bands = np.zeros((n_rays*n_bands,1), dtype=np.int32)
+for src_config in config.sources:
+    pose = np.load(f"{src_config.pose_path}/{src_config.name}.npz")
+    source_pos = pose[pose.files[0]].reshape(-1,3)
+    n_src += 1
+    for idx in range(n_rays):
+        lo_idx = n_bands * idx
+        hi_idx = n_bands * (idx +1)
+        source_bands[lo_idx:hi_idx] = np.arange(n_bands).reshape(-1,1)
+    origins_bands = np.append(origins_bands, source_bands, axis=0)
+
+    source_idx = np.full((num_points,1), [src_config.idx], dtype=np.int32)
+    origins_idx = np.append(origins_idx, source_idx, axis=0)
+
+    source_arr = np.full((num_points,3), [source_pos], dtype=np.float32)
+    origins = np.append(origins, source_arr, axis=0)
+
 
 # Objects mesh
 for obj_config in config.objects:
@@ -723,15 +773,14 @@ for obj_config in config.objects:
 
 embree_mesh = TriangleMesh(scene, mesh_info)
 
-n_rays = config.system.number_of_rays
-n_src = source_pos.shape[0]
-
-main_dirs = output_pos - source_pos
+main_dirs = destinations - origins
 main_dirs_norm = np.linalg.norm(main_dirs, axis=1, keepdims=True)
 main_dirs_norm[main_dirs_norm <= 1e-10] = 1e-10
 main_dirs = main_dirs / main_dirs_norm
 
 num_points = n_rays * n_src
+num_dirs = n_rays * n_src * n_bands
+directions = np.zeros((num_dirs,3), dtype=np.float32)
 
 phi = np.pi * (3. - np.sqrt(5.))
 theta = phi * np.arange(num_points)
@@ -740,20 +789,22 @@ radius = np.sqrt(1 - z * z)
 y = radius * np.sin(theta)
 x = radius * np.cos(theta)
 
-directions = np.array(list(zip(x,y,z)), dtype=np.float32)
+dirs = np.array(list(zip(x,y,z)), dtype=np.float32)
+
+for idx in range(n_rays):
+    lo_idx = n_bands * idx
+    hi_idx = n_bands * (idx +1)
+    index = np.arange(lo_idx, hi_idx)
+    directions[index] = dirs[idx]
 
 for idx in range(n_src):
-    index = n_rays * idx
-    directions[index] = main_dirs[idx]
+    main_idx = n_rays * n_bands * idx
+    directions[main_idx] = main_dirs[main_idx]
 
-origins = np.zeros((0,3), dtype=np.float32)
-for idx in range(n_src):
-    source_arr = np.full((n_rays,3), source_pos[idx], dtype=np.float32)
-    origins = np.append(origins, source_arr, axis=0)
+energies = np.full((num_dirs,1), [1], dtype=np.float32)
+phases = np.full((num_dirs,1), [0], dtype=np.float32)
+delay = np.full((num_dirs,1), [0], dtype=np.float32)
 
-energies = np.full((num_points,1), [1], dtype=np.float32)
-phases = np.full((num_points,1), [0], dtype=np.float32)
-delay = np.full((num_points,1), [0], dtype=np.float32)
 
-loop(origins, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands.get_bands(), output_energies, output_phases, output_delay, output_origins, output_directions)
+loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands.get_bands(), output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations)
 

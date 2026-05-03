@@ -115,6 +115,7 @@ class AcousticCoefficients:
         """
         for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
+            print('low_freq, high_freq', low_freq, high_freq)
             
             # Compute averages using Simpson's rule for better accuracy
             coeff_sum = 0.0
@@ -140,6 +141,7 @@ class AcousticCoefficients:
         """
         for i in nb.prange(n_bands):
             low_freq, high_freq = freq_bands[i]
+            print('low_freq, high_freq', low_freq, high_freq)
             
             # Compute average using Simpson's rule for better accuracy
             coeff_sum = 0.0
