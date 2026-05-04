@@ -91,10 +91,12 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     phases = phases[ray_inter]
     delay = delay[ray_inter]
 
+    print('#####DEBUG: ', energies[0])
     # Compute medium attenuation
     origins_bands_idx = np.arange(origins_bands.T.shape[0])
     attenuation = np.exp(-medium_alpha * path_length)
     energies = energies * attenuation[origins_bands_idx,origins_bands]
+    print('#####DEBUG: ', energies[0])
 
     # Compute phase shift
     phase_shift = path_length * medium_beta[origins_bands_idx,origins_bands]
@@ -128,9 +130,9 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     delay = delay[intersect_mask]
 
     # Get material property of intersected objects
+    origins_bands = origins_bands[intersect_mask]
+    origins_bands_idx = np.arange(origins_bands.T.shape[0])
     abs_coeffs = abs_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    print('abs_coeffs: ', abs_coeffs.shape, abs_coeffs)
-    print('origins_bands: ', origins_bands.shape, origins_bands[0])
     abs_phases = abs_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
     refl_coeffs = refl_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
     refl_phases = refl_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
@@ -158,7 +160,6 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     phases = phases[intersect_mask]
 
     # Compute reflection directions
-    print('########DEBUG: ', directions.shape, normals.shape)
     dot = np.sum(directions * normals, axis=1)
     incident_angles = np.arccos(-dot)
     reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
@@ -168,19 +169,20 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     # Compute absorption
     angle_factor = np.cos(incident_angles)
     angle_factor[angle_factor == 0] = 1e-16
-    #print('angle_factor', angle_factor.shape)
     absorbed_energies = energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
 
     # Compute reflection absorption
     reflected_energies = energies * refl_coeffs.reshape(-1,1)
     reflected_phase = - (phases + refl_phases.reshape(-1,1)) % (2 * np.pi)
     #print('reflected_energies', np.max(reflected_energies), np.min(reflected_energies))
+    print('#####DEBUG: ', reflected_energies[0], refl_coeffs[0], refl_coeffs.reshape(-1,1)[0])
 
     # Compute scattering absorption
     scattered_directions = _random_hemisphere_directions(normals)
     scattered_energies = energies * scat_coeffs * roughness_factor / max(scattered_directions.shape[0], 1e-16)
     scattered_phase = phases + scat_phases.reshape(-1,1) % (2 * np.pi)
     #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phase))
+    print('#####DEBUG: ', scattered_energies[0])
 
     # Energy conservation check
     total_out = energies + absorbed_energies + reflected_energies + scattered_energies
@@ -194,6 +196,7 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     absorbed_energies *= scale
     reflected_energies *= scale
     scattered_energies *= scale
+    print('#####DEBUG: ', reflected_energies[0], scattered_energies[0])
 
     # Detach new origins from triangles surface along normals of 0.001 factor
     origins = inters + 0.001 * normals
@@ -209,6 +212,7 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     phases = np.append(reflected_phase, scattered_phase, axis=0).astype(np.float32)
     delay = np.append(delay, delay, axis=0).astype(np.float32)
 
+    print('#####DEBUG: ', energies[0])
     # Filter direction, origins, phases, energy and delay on termination
     termination_energy = 1e-16 # config.termination.energy_threshold
     termination_mask = energies > termination_energy
@@ -224,39 +228,39 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     print('termination', np.count_nonzero(termination_mask < 1))
 
     if origins.shape[0] == 0:
-        # compute and save the ambisonic IR 
-        ambisonics_ir = compute_and_save_ir(output_energies, output_phases, output_delay, output_origins, output_directions)
-        sample_rate = int(config.system.sample_rate)
-
-        for src_config in config.sources:
-            if hasattr(src_config, 'audio_file') and os.path.exists(src_config.audio_file):
-                file_audio = src_config.audio_file
-                if file_audio.endswith('.wav'):
-                    mono_audio, samplerate = sf.read(file_audio)
-                    if not samplerate == sample_rate:
-                        mono_audio = resampy.resample(mono_audio, samplerate, sample_rate)
-                elif file_audio.endswith('.raw'):
-                    mono_audio = np.fromfile(audio_file, dtype=np.float32)
-
-                # Convolve Mono Audio track with AmbisonicIR
-                ambisonics_output = convolve_mono_to_ambisonics(mono_audio, ambisonics_ir, method='direct')
-                ambisonics_output_normalized = normalize_ambisonics_output(ambisonics_output)
-
-                # Transpose to get (n_samples, n_channels)
-                ambisonics_output_normalized = ambisonics_output_normalized.T
-
-                # Save the ambisonics_output_normalized to multitrack WAV file
-                output_dir = 'ambisonics_output'
-                os.makedirs(output_dir, exist_ok=True)
-                subtype='FLOAT'
-                filename='ambisonics_output_normalized.wav'
-                sf.write(filename, ambisonics_output_normalized, sample_rate, subtype=subtype)
-
-                print(f"Saved multitrack WAV file: {filename}")
-                print(f"Shape: {ambisonics_output_normalized.shape} (samples, channels)")
-                print(f"Sample rate: {sample_rate} Hz")
-                print(f"Duration: {ambisonics_output_normalized.shape[0] / sample_rate:.2f} seconds")
-                print(f"Format: {subtype}")
+#        # compute and save the ambisonic IR 
+#        ambisonics_ir = compute_and_save_ir(output_energies, output_phases, output_delay, output_origins, output_directions)
+#        sample_rate = int(config.system.sample_rate)
+#
+#        for src_config in config.sources:
+#            if hasattr(src_config, 'audio_file') and os.path.exists(src_config.audio_file):
+#                file_audio = src_config.audio_file
+#                if file_audio.endswith('.wav'):
+#                    mono_audio, samplerate = sf.read(file_audio)
+#                    if not samplerate == sample_rate:
+#                        mono_audio = resampy.resample(mono_audio, samplerate, sample_rate)
+#                elif file_audio.endswith('.raw'):
+#                    mono_audio = np.fromfile(audio_file, dtype=np.float32)
+#
+#                # Convolve Mono Audio track with AmbisonicIR
+#                ambisonics_output = convolve_mono_to_ambisonics(mono_audio, ambisonics_ir, method='direct')
+#                ambisonics_output_normalized = normalize_ambisonics_output(ambisonics_output)
+#
+#                # Transpose to get (n_samples, n_channels)
+#                ambisonics_output_normalized = ambisonics_output_normalized.T
+#
+#                # Save the ambisonics_output_normalized to multitrack WAV file
+#                output_dir = 'ambisonics_output'
+#                os.makedirs(output_dir, exist_ok=True)
+#                subtype='FLOAT'
+#                filename='ambisonics_output_normalized.wav'
+#                sf.write(filename, ambisonics_output_normalized, sample_rate, subtype=subtype)
+#
+#                print(f"Saved multitrack WAV file: {filename}")
+#                print(f"Shape: {ambisonics_output_normalized.shape} (samples, channels)")
+#                print(f"Sample rate: {sample_rate} Hz")
+#                print(f"Duration: {ambisonics_output_normalized.shape[0] / sample_rate:.2f} seconds")
+#                print(f"Format: {subtype}")
 
         return
 

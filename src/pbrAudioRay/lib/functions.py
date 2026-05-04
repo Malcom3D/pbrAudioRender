@@ -91,9 +91,6 @@ def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float,
     """
     Generate frequencies from lowest_frequency to higher_frequency with specified steps per octave
     """
-    if bands_per_octave == 0:
-        return [lowest_frequency]
-
     frequencies = []
     current_freq = lowest_frequency
     
@@ -174,6 +171,7 @@ def _parse_lib(lib_content: str):
         lines = file.readlines()
         frequencies, t60s, gains = ([] for _ in range(3))
         for line in lines:
+            line = line.replace('-nan','1')
             # Extract frequencies from modeFreqsUnscaled
             freq_match = re.search(freq_pattern, line, re.DOTALL)
             if not freq_match == None:
