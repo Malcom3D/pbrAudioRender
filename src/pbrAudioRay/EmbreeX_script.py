@@ -1,4 +1,4 @@
-#EmbreeX_script-0.0.12
+#EmbreeX_script-0.0.13
 import time
 import numpy as np
 import trimesh
@@ -21,7 +21,7 @@ from pbrAudioRay.lib.functions import _compute_rayleigh_damping
 
 np.set_printoptions(precision=18, floatmode='fixed', threshold=np.inf)
 
-def loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations):
+def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations, output_destinations_idx):
     n_bands = len(frequency_bands)
     t1 = time.time()
     res = scene.run(origins, directions, output=1)
@@ -47,11 +47,12 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     with open(filepath, 'w') as f:
         json.dump(data_dict, f, indent=2)
 
-    # Filter origins, origins_idx, origins_bands, destinations and directions
+    # Filter origins, origins_idx, origins_bands, destinations, destinations_idx and directions
     origins = origins[ray_inter]
     origins_idx = origins_idx[ray_inter]
     origins_bands = origins_bands[ray_inter]
     destinations = destinations[ray_inter]
+    destinations_idx = destinations_idx[ray_inter]
     directions = directions[ray_inter]
 
     # Compute traveled path length
@@ -75,6 +76,7 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
             mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=vertex_normals, faces=faces)
             medium_mask = mesh.contains(origins)
             if np.any(medium_mask):
+                print('Find medium object properties')
                 # Get medium properties
                 sound_speed = obj_config.acoustic_shader.sound_speed
                 density = obj_config.acoustic_shader.density
@@ -82,6 +84,7 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
                 poisson_ratio = obj_config.acoustic_shader.poisson_ratio
                 damping = obj_config.acoustic_shader.damping
                 alpha, beta = _compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping, frequency_bands)
+                print('medium: ', medium_mask.shape, medium_alpha.shape, alpha.shape, beta.shape)
                 medium_speed[medium_mask] = sound_speed
                 medium_alpha[medium_mask] = alpha
                 medium_beta[medium_mask] = beta
@@ -91,12 +94,10 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     phases = phases[ray_inter]
     delay = delay[ray_inter]
 
-    print('#####DEBUG: ', energies[0])
     # Compute medium attenuation
     origins_bands_idx = np.arange(origins_bands.T.shape[0])
     attenuation = np.exp(-medium_alpha * path_length)
     energies = energies * attenuation[origins_bands_idx,origins_bands]
-    print('#####DEBUG: ', energies[0])
 
     # Compute phase shift
     phase_shift = path_length * medium_beta[origins_bands_idx,origins_bands]
@@ -120,6 +121,7 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     output_delay = np.append(output_delay, delay[output_mask], axis=0).astype(np.float32)
     output_origins = np.append(output_origins, origins[output_mask], axis=0).astype(np.float32)
     output_destinations = np.append(output_destinations, destinations[output_mask], axis=0).astype(np.float32)
+    output_destinations_idx = np.append(output_destinations_idx, destinations_idx[output_mask], axis=0).astype(np.float32)
     output_directions = np.append(output_directions, directions[output_mask], axis=0).astype(np.float32)
     
     print('output:', np.count_nonzero(output_mask), output_directions.shape, output_origins.shape)
@@ -128,19 +130,6 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     inters = inters[intersect_mask]
     path_length = path_length[intersect_mask]
     delay = delay[intersect_mask]
-
-    # Get material property of intersected objects
-    origins_bands = origins_bands[intersect_mask]
-    origins_bands_idx = np.arange(origins_bands.T.shape[0])
-    abs_coeffs = abs_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    abs_phases = abs_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    refl_coeffs = refl_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    refl_phases = refl_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    refr_coeffs = refr_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    refr_phases = refr_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    scat_coeffs = scat_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    scat_phases = scat_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
-    roughness_factor = roughness_info[primID][intersect_mask]
 
     # Compute triangle normals using np.cross with broadcasting
     normals = np.cross(b-a, c-a)
@@ -153,11 +142,24 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     origins_idx = origins_idx[intersect_mask]
     origins_bands = origins_bands[intersect_mask]
     destinations = destinations[intersect_mask]
+    destinations_idx = destinations_idx[intersect_mask]
     normals = normals[intersect_mask]
 #    directions = directions[ray_inter][intersect_mask]
     directions = directions[intersect_mask]
     energies = energies[intersect_mask]
     phases = phases[intersect_mask]
+
+    # Get material property of intersected objects
+    origins_bands_idx = np.arange(origins_bands.T.shape[0])
+    abs_coeffs = abs_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    abs_phases = abs_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refl_coeffs = refl_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refl_phases = refl_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refr_coeffs = refr_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    refr_phases = refr_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    scat_coeffs = scat_coeffs_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    scat_phases = scat_phases_info[primID][intersect_mask][origins_bands_idx,origins_bands]
+    roughness_factor = roughness_info[primID][intersect_mask]
 
     # Compute reflection directions
     dot = np.sum(directions * normals, axis=1)
@@ -175,14 +177,12 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     reflected_energies = energies * refl_coeffs.reshape(-1,1)
     reflected_phase = - (phases + refl_phases.reshape(-1,1)) % (2 * np.pi)
     #print('reflected_energies', np.max(reflected_energies), np.min(reflected_energies))
-    print('#####DEBUG: ', reflected_energies[0], refl_coeffs[0], refl_coeffs.reshape(-1,1)[0])
 
     # Compute scattering absorption
     scattered_directions = _random_hemisphere_directions(normals)
     scattered_energies = energies * scat_coeffs * roughness_factor / max(scattered_directions.shape[0], 1e-16)
     scattered_phase = phases + scat_phases.reshape(-1,1) % (2 * np.pi)
     #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phase))
-    print('#####DEBUG: ', scattered_energies[0])
 
     # Energy conservation check
     total_out = energies + absorbed_energies + reflected_energies + scattered_energies
@@ -196,7 +196,6 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     absorbed_energies *= scale
     reflected_energies *= scale
     scattered_energies *= scale
-    print('#####DEBUG: ', reflected_energies[0], scattered_energies[0])
 
     # Detach new origins from triangles surface along normals of 0.001 factor
     origins = inters + 0.001 * normals
@@ -207,16 +206,17 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     origins_idx = np.append(origins_idx, origins_idx, axis=0).astype(np.int32)
     origins_bands = np.append(origins_bands, origins_bands, axis=0).astype(np.int32)
     destinations = np.append(destinations, destinations, axis=0).astype(np.float32)
+    destinations_idx = np.append(destinations_idx, destinations_idx, axis=0).astype(np.float32)
     directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
     energies = np.append(reflected_energies, scattered_energies, axis=0).astype(np.float32)
     phases = np.append(reflected_phase, scattered_phase, axis=0).astype(np.float32)
     delay = np.append(delay, delay, axis=0).astype(np.float32)
 
-    print('#####DEBUG: ', energies[0])
     # Filter direction, origins, phases, energy and delay on termination
     termination_energy = 1e-16 # config.termination.energy_threshold
     termination_mask = energies > termination_energy
     destinations = destinations[termination_mask.reshape(-1,)]
+    destinations_idx = destinations_idx[termination_mask].reshape(-1,1)
     directions = directions[termination_mask.reshape(-1,)]
     origins = origins[termination_mask.reshape(-1,)]
     origins_idx = origins_idx[termination_mask].reshape(-1,1)
@@ -228,10 +228,10 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
     print('termination', np.count_nonzero(termination_mask < 1))
 
     if origins.shape[0] == 0:
-#        # compute and save the ambisonic IR 
-#        ambisonics_ir = compute_and_save_ir(output_energies, output_phases, output_delay, output_origins, output_directions)
-#        sample_rate = int(config.system.sample_rate)
-#
+        # compute and save the ambisonic IR 
+        ambisonics_ir = compute_and_save_ir(output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_destinations, output_destinations_idx, output_directions, frequency_bands)
+        sample_rate = int(config.system.sample_rate)
+
 #        for src_config in config.sources:
 #            if hasattr(src_config, 'audio_file') and os.path.exists(src_config.audio_file):
 #                file_audio = src_config.audio_file
@@ -264,148 +264,184 @@ def loop(origins, origins_idx, origins_bands, destinations, directions, energies
 
         return
 
-    loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations)
+    loop(origins, origins_idx, origins_bands, destinations, destinations_idx, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands, output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations, output_destinations_idx)
 
-def compute_and_save_ir(output_energies, output_phases, output_delay, output_origins, output_directions):
+def compute_and_save_ir(output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_destinations, output_destinations_idx, output_directions, freq_bands: List[Tuple[float,float]]):
+
+    config = entity_manager.get('config')
+    sample_rate = int(config.system.sample_rate)
+    s_src = len(config.sources)
+    n_outs = len(config.outputs)
+    n_bands = len(freq_bands)
+
     # Sort output by delay
-    delay, energies, phases, origins, directions = zip(*(sorted(zip(output_delay.tolist(), output_energies.tolist(), output_phases.tolist(), output_origins.tolist(), output_directions.tolist()))))
+    delay, energies, phases, sources, bands, origins, destinations, destinations_idx, directions = zip(*(sorted(zip(output_delay.tolist(), output_energies.tolist(), output_phases.tolist(), output_source.tolist(), output_bands.tolist(), output_origins.tolist(), output_destinations.tolist(), output_destinations_idx.tolist(), output_directions.tolist()))))
     delay = np.array(delay)
     energies = np.array(energies)
     phases = np.array(phases)
+    sources = np.array(sources)
+    bands = np.array(bands)
     origins = np.array(origins)
+    destinations = np.array(destinations)
+    destinations_idx = np.array(destinations_idx)
     directions = np.array(directions)
 
     # Convert delay to samples
-    config = entity_manager.get('config')
-    sample_rate = int(config.system.sample_rate)
     delay_samples = np.round(delay * sample_rate).astype(int)
 
     # Determine max IR length
     ir_length = int(np.ceil(np.max(delay_samples))) + 10
 
-#    print('ir_length', ir_length)
+    print('ir_length', ir_length)
 
-    for out_config in config.outputs: 
-        if out_config.name == 'Camera':
-            if hasattr(out_config, 'order') :
-                ambisonic_order = out_config.order
+    # filter by src-out for bands_idx
+    for src_idx in range(n_src):
+        for out_idx in range(n_outs):
+            for bands_idx in range(n_bands):
+                # filter by scr_idx
+                source_mask = sources == src_idx
+                a_sources = sources[source_mask]
+                a_energies = energies[source_mask]
+                a_phases = phases[source_mask]
+                a_delay_samples = delay_samples[source_mask]
+                a_bands = bands[source_mask]
+                a_origins = origins[source_mask]
+                a_destinations = destinations[source_mask]
+                a_destinations_idx = destinations_idx[source_mask]
+                a_directions = directions[source_mask]
 
-    n_channels = (ambisonic_order + 1) ** 2
+                # filter by out_idx
+                destination_mask = a_destinations_idx == out_idx
+                a_sources = a_sources[destination_mask]
+                a_energies = a_energies[destination_mask]
+                a_phases = a_phases[destination_mask]
+                a_delay_samples = a_delay_samples[destination_mask]
+                a_bands = a_bands[destination_mask]
+                a_origins = a_origins[destination_mask]
+                a_destinations = a_destinations[destination_mask]
+                a_destinations_idx = a_destinations_idx[destination_mask]
+                a_directions = a_directions[destination_mask]
+
+                # filter by bands_idx
+                a_bands_mask = a_bands == bands_idx
+                a_sources = a_sources[bands_mask]
+                a_energies = a_energies[bands_mask]
+                a_phases = a_phases[bands_mask]
+                a_delay_samples = a_delay_samples[bands_mask]
+                a_bands = a_bands[bands_mask]
+                a_origins = a_origins[bands_mask]
+                a_destinations = a_destinations[bands_mask]
+                a_destinations_idx = a_destinations_idx[bands_mask]
+                a_directions = a_directions[bands_mask]
+
+                for out_config in config.outputs: 
+                    if out_config.idx == out_idx:
+                        ambisonic_order = out_config.order
+
+                # Initialize IR buffer
+                n_channels = (ambisonic_order + 1) ** 2
+                ambisonic_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
+
+                print('ambisonic_ir', ambisonic_ir.shape)
+
+                # Compute complex amplitudes
+                complex_amplitudes = np.sqrt(a_energies) * np.exp(1j * a_phases)
+
+                print('complex_amplitudes', complex_amplitudes.shape)
+
+                # Convert Cartesian to spherical coordinates
+                x, y, z = a_directions[:, 0], a_directions[:, 1], a_directions[:, 2]
+
+                # Spherical coordinates: theta (azimuth), phi (elevation)
+                theta = np.arctan2(y, x)  # Azimuth
+                phi = np.arcsin(z)  # Elevation (assuming unit vectors)
+
+                print('theta', theta.shape)
+                print('phi', phi.shape)
+
+                # Compute spherical harmonics coefficients
+                if ambisonic_order >= 0:
+                    # Order 0: W channel (omnidirectional)
+                    Y_00 = 1.0 / np.sqrt(4 * np.pi)  # SN3D normalization
     
-#    print('n_channels', n_channels)
+                    for i in range(len(a_delay_samples)):
+                        sample_idx = a_delay_samples[i]
+                        ambisonic_ir[0, sample_idx] += np.real(complex_amplitudes[i] * Y_00)
+#                print('W channel (omnidirectional)', np.count_nonzero(ambisonic_ir[0]), np.max(ambisonic_ir[0]), np.min(ambisonic_ir[0]))
 
-    # Initialize IR buffer
-    ambisonic_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
-
-#    print('ambisonic_ir', ambisonic_ir.shape)
-
-    # Compute complex amplitudes
-    complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
-
-#    print('complex_amplitudes', complex_amplitudes.shape)
-
-    # Convert Cartesian to spherical coordinates
-    x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
-
-    # Spherical coordinates: theta (azimuth), phi (elevation)
-    theta = np.arctan2(y, x)  # Azimuth
-    phi = np.arcsin(z)  # Elevation (assuming unit vectors)
-
-#    print('theta', theta.shape)
-#    print('phi', phi.shape)
-
-    # Compute spherical harmonics coefficients
-    if ambisonic_order >= 0:
-        # Order 0: W channel (omnidirectional)
-        Y_00 = 1.0 / np.sqrt(4 * np.pi)  # SN3D normalization
+                if ambisonic_order >= 1:
+                    # Order 1: X, Y, Z channels
+                    # These are the ACN channel ordering: W, Y, Z, X (for FuMa) or W, X, Y, Z (for ACN)
+                    # Using ACN ordering (most common in modern ambisonics)
+                    Y_1n1 = np.sqrt(3/(4*np.pi)) * np.sin(theta) * np.cos(phi)  # Y channel
+                    Y_10 = np.sqrt(3/(4*np.pi)) * np.sin(phi)                   # Z channel
+                    Y_11 = np.sqrt(3/(4*np.pi)) * np.cos(theta) * np.cos(phi)   # X channel
     
-        for i in range(len(delay_samples)):
-            sample_idx = delay_samples[i]
-            ambisonic_ir[0, sample_idx] += np.real(complex_amplitudes[i] * Y_00)
-#        print('W channel (omnidirectional)', np.count_nonzero(ambisonic_ir[0]), np.max(ambisonic_ir[0]), np.min(ambisonic_ir[0]))
+                    for i in range(len(a_delay_samples)):
+                        sample_idx = a_delay_samples[i]
+                        ambisonic_ir[1, sample_idx] += np.real(complex_amplitudes[i] * Y_1n1[i])
+                        ambisonic_ir[2, sample_idx] += np.real(complex_amplitudes[i] * Y_10[i])
+                        ambisonic_ir[3, sample_idx] += np.real(complex_amplitudes[i] * Y_11[i])
+#                    print('X channel (Order 1)', np.count_nonzero(ambisonic_ir[1]))
+#                    print('Y channel (Order 1)', np.count_nonzero(ambisonic_ir[2]))
+#                    print('Z channel (Order 1)', np.count_nonzero(ambisonic_ir[3]))
 
-    if ambisonic_order >= 1:
-        # Order 1: X, Y, Z channels
-        # These are the ACN channel ordering: W, Y, Z, X (for FuMa) or W, X, Y, Z (for ACN)
-        # Using ACN ordering (most common in modern ambisonics)
-        Y_1n1 = np.sqrt(3/(4*np.pi)) * np.sin(theta) * np.cos(phi)  # Y channel
-        Y_10 = np.sqrt(3/(4*np.pi)) * np.sin(phi)                   # Z channel
-        Y_11 = np.sqrt(3/(4*np.pi)) * np.cos(theta) * np.cos(phi)   # X channel
+                if ambisonic_order >= 2:
+                    # Order 2: Additional 5 channels
+                    # Second order spherical harmonics
+                    sin_theta = np.sin(theta)
+                    cos_theta = np.cos(theta)
+                    sin_phi = np.sin(phi)
+                    cos_phi = np.cos(phi)
     
-        for i in range(len(delay_samples)):
-            sample_idx = delay_samples[i]
-            ambisonic_ir[1, sample_idx] += np.real(complex_amplitudes[i] * Y_1n1[i])
-            ambisonic_ir[2, sample_idx] += np.real(complex_amplitudes[i] * Y_10[i])
-            ambisonic_ir[3, sample_idx] += np.real(complex_amplitudes[i] * Y_11[i])
-#        print('X channel (Order 1)', np.count_nonzero(ambisonic_ir[1]))
-#        print('Y channel (Order 1)', np.count_nonzero(ambisonic_ir[2]))
-#        print('Z channel (Order 1)', np.count_nonzero(ambisonic_ir[3]))
-
-    if ambisonic_order >= 2:
-        # Order 2: Additional 5 channels
-        # Second order spherical harmonics
-        sin_theta = np.sin(theta)
-        cos_theta = np.cos(theta)
-        sin_phi = np.sin(phi)
-        cos_phi = np.cos(phi)
+                    # Precompute common terms
+                    sqrt_15_4pi = np.sqrt(15/(4*np.pi))
+                    sqrt_5_16pi = np.sqrt(5/(16*np.pi))
     
-        # Precompute common terms
-        sqrt_15_4pi = np.sqrt(15/(4*np.pi))
-        sqrt_5_16pi = np.sqrt(5/(16*np.pi))
+                    Y_2n2 = sqrt_15_4pi * sin_theta * cos_theta * cos_phi**2  # R channel
+                    Y_2n1 = sqrt_15_4pi * sin_theta * sin_phi * cos_phi       # S channel
+                    Y_20 = np.sqrt(5/(16*np.pi)) * (3*sin_phi**2 - 1)          # T channel
+                    Y_21 = sqrt_15_4pi * cos_theta * sin_phi * cos_phi         # U channel
+                    Y_22 = sqrt_15_4pi * (cos_theta**2 - sin_theta**2) * cos_phi**2  # V channel
     
-        Y_2n2 = sqrt_15_4pi * sin_theta * cos_theta * cos_phi**2  # R channel
-        Y_2n1 = sqrt_15_4pi * sin_theta * sin_phi * cos_phi       # S channel
-        Y_20 = np.sqrt(5/(16*np.pi)) * (3*sin_phi**2 - 1)          # T channel
-        Y_21 = sqrt_15_4pi * cos_theta * sin_phi * cos_phi         # U channel
-        Y_22 = sqrt_15_4pi * (cos_theta**2 - sin_theta**2) * cos_phi**2  # V channel
-    
-        for i in range(len(delay_samples)):
-            sample_idx = delay_samples[i]
-            ambisonic_ir[4, sample_idx] += np.real(complex_amplitudes[i] * Y_2n2[i])
-            ambisonic_ir[5, sample_idx] += np.real(complex_amplitudes[i] * Y_2n1[i])
-            ambisonic_ir[6, sample_idx] += np.real(complex_amplitudes[i] * Y_20[i])
-            ambisonic_ir[7, sample_idx] += np.real(complex_amplitudes[i] * Y_21[i])
-            ambisonic_ir[8, sample_idx] += np.real(complex_amplitudes[i] * Y_22[i])
-#        print('R channel (Order 2)', np.count_nonzero(ambisonic_ir[4]))
-#        print('S channel (Order 2)', np.count_nonzero(ambisonic_ir[5]))
-#        print('T channel (Order 2)', np.count_nonzero(ambisonic_ir[6]))
-#        print('U channel (Order 2)', np.count_nonzero(ambisonic_ir[7]))
-#        print('V channel (Order 2)', np.count_nonzero(ambisonic_ir[8]))
+                    for i in range(len(a_delay_samples)):
+                        sample_idx = a_delay_samples[i]
+                        ambisonic_ir[4, sample_idx] += np.real(complex_amplitudes[i] * Y_2n2[i])
+                        ambisonic_ir[5, sample_idx] += np.real(complex_amplitudes[i] * Y_2n1[i])
+                        ambisonic_ir[6, sample_idx] += np.real(complex_amplitudes[i] * Y_20[i])
+                        ambisonic_ir[7, sample_idx] += np.real(complex_amplitudes[i] * Y_21[i])
+                        ambisonic_ir[8, sample_idx] += np.real(complex_amplitudes[i] * Y_22[i])
+#                    print('R channel (Order 2)', np.count_nonzero(ambisonic_ir[4]))
+#                    print('S channel (Order 2)', np.count_nonzero(ambisonic_ir[5]))
+#                    print('T channel (Order 2)', np.count_nonzero(ambisonic_ir[6]))
+#                    print('U channel (Order 2)', np.count_nonzero(ambisonic_ir[7]))
+#                    print('V channel (Order 2)', np.count_nonzero(ambisonic_ir[8]))
 
-    # Apply windowing to smooth the IR (optional)
-    window = np.hanning(ir_length)
-    for ch in range(n_channels):
-        ambisonic_ir[ch] *= window
+                # Apply windowing to smooth the IR (optional)
+                window = np.hanning(ir_length)
+                for ch in range(n_channels):
+                    ambisonic_ir[ch] *= window
 
-    # Normalize to prevent clipping
-    max_val = np.max(np.abs(ambisonic_ir))
-    if max_val > 0:
-        ambisonic_ir /= max_val
+                # Normalize to prevent clipping
+                max_val = np.max(np.abs(ambisonic_ir))
+                if max_val > 0:
+                    ambisonic_ir /= max_val
 
-    # Save the ambisonic_ir to single RAW file
-    output_dir = 'impulse_renspose'
-    os.makedirs(output_dir, exist_ok=True)
-    ch_map = ['W', 'X', 'Y', 'Z', 'R', 'S', 'T', 'U', 'V']
-    for idx in range(n_channels):
-        subtype='FLOAT'
-        filename=f"{output_dir}/ambisonic_ir_{ch_map[idx]}.raw"
-        sf.write(filename, ambisonic_ir[idx], sample_rate, subtype=subtype)
+                # Transpose to get (n_samples, n_channels)
+                ambisonic_ir_T = ambisonic_ir.T
 
-    # Transpose to get (n_samples, n_channels)
-    ambisonic_ir_T = ambisonic_ir.T
+                # Save the ambisonic_ir_T to multitrack WAV file
+                subtype='FLOAT'
+                filename=f"{output_dir}/aIR_{src_idx}_{out_idx}_{bands_idx}.wav"
+                sf.write(filename, ambisonic_ir_T, sample_rate, subtype=subtype)
 
-    # Save the ambisonic_ir_T to multitrack WAV file
-    subtype='FLOAT'
-    filename=f"{output_dir}/ambisonic_ir.wav"
-    sf.write(filename, ambisonic_ir_T, sample_rate, subtype=subtype)
+                print(f"Saved multitrack WAV file: {filename}")
+                print(f"Shape: {ambisonic_ir_T.shape} (samples, channels)")
+                print(f"Sample rate: {sample_rate} Hz")
+                print(f"Duration: {ambisonic_ir.shape[0] / sample_rate:.2f} seconds")
+                print(f"Format: {subtype}")
 
-    print(f"Saved multitrack WAV file: {filename}")
-    print(f"Shape: {ambisonic_ir_T.shape} (samples, channels)")
-    print(f"Sample rate: {sample_rate} Hz")
-    print(f"Duration: {ambisonic_ir.shape[0] / sample_rate:.2f} seconds")
-    print(f"Format: {subtype}")
-
-    return ambisonic_ir
+                return ambisonic_ir
 
 def convolve_mono_to_ambisonics(mono_audio, ambisonics_ir, method='fft'):
     """
@@ -523,6 +559,7 @@ def _compute_acoustic_object_coefficients(c: float, rho: float, E: float, nu: fl
     Works for gases, fluids, and solids using a simplified common method.
     """
     # Compute Rayleigh damping coefficient α (mass proportional) and Rayleigh damping coefficient β (stiffness proportional)
+    print('Compute Rayleigh damping coefficient')
     n_bands = len(freq_bands)
     alpha = beta = np.zeros((n_bands,1), dtype=np.float32)
     for idx in range(n_bands):
@@ -611,6 +648,7 @@ n_objs = len(config.objects)
 
 recursion_idx = 0
 destinations = np.zeros((0,3), dtype=np.float32)
+destinations_idx = np.zeros((0,1), dtype=np.float32)
 origins = np.zeros((0,3), dtype=np.float32)
 origins_idx = np.zeros((0,1), dtype=np.int32)
 origins_bands = np.zeros((0,1), dtype=np.int32)
@@ -622,6 +660,7 @@ output_source = np.zeros((0,1), dtype=np.float32)
 output_origins = np.zeros((0,3), dtype=np.float32)
 output_directions = np.zeros((0,3), dtype=np.float32)
 output_destinations = np.zeros((0,3), dtype=np.float32)
+output_destinations_idx = np.zeros((0,1), dtype=np.float32)
 mesh_info = np.zeros((0,3,3), dtype=np.float32)
 scene_info = np.zeros((0,1), dtype=np.float32)
 medium_info_alpha = np.zeros((n_objs,n_bands), dtype=np.float32)
@@ -685,13 +724,15 @@ n_rays = config.system.number_of_rays
 num_points = n_rays * n_bands
 
 # Output data and mesh
-out_idx = 0
+out_idx = -2
 for out_config in config.outputs:
     out_idx += -1
     pose = np.load('data/pose/Camera.npz')
     output_pos = pose[pose.files[0]].reshape(-1,3)
     output_arr = np.full((num_points,3), [output_pos], dtype=np.float32)
+    output_idx = np.full((num_points,1), [out_config.idx], dtype=np.float32)
     destinations = np.append(destinations, output_arr, axis=0)
+    destinations_idx = np.append(destinations_idx, output_idx, axis=0)
     if out_config.size == 0:
         out_config.size = 0.1
     mesh = trimesh.creation.icosphere(subdivisions=2, radius=out_config.size)
@@ -810,5 +851,5 @@ phases = np.full((num_dirs,1), [0], dtype=np.float32)
 delay = np.full((num_dirs,1), [0], dtype=np.float32)
 
 
-loop(origins, origins_idx, origins_bands, destinations, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands.get_bands(), output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations)
+loop(origins, origins_idx, origins_bands, destinations, destinations_idx, directions, energies, phases, delay, mesh_info, scene_info, recursion_idx, ad_alpha, ad_beta, medium_info_alpha, medium_info_beta, abs_coeffs_info, abs_phases_info, refl_coeffs_info, refl_phases_info, refr_coeffs_info, refr_phases_info, scat_coeffs_info, scat_phases_info, roughness_info, frequency_bands.get_bands(), output_source, output_bands, output_energies, output_phases, output_delay, output_origins, output_directions, output_destinations, output_destinations_idx)
 
