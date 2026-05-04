@@ -76,7 +76,7 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
             mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=vertex_normals, faces=faces)
             medium_mask = mesh.contains(origins)
             if np.any(medium_mask):
-                print('Find medium object properties')
+                print('Find medium object properties for', obj_config.name)
                 # Get medium properties
                 sound_speed = obj_config.acoustic_shader.sound_speed
                 density = obj_config.acoustic_shader.density
@@ -84,10 +84,9 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
                 poisson_ratio = obj_config.acoustic_shader.poisson_ratio
                 damping = obj_config.acoustic_shader.damping
                 alpha, beta = _compute_acoustic_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping, frequency_bands)
-                print('medium: ', medium_mask.shape, medium_alpha.shape, alpha.shape, beta.shape)
                 medium_speed[medium_mask] = sound_speed
-                medium_alpha[medium_mask] = alpha
-                medium_beta[medium_mask] = beta
+                medium_alpha[medium_mask] = alpha.T
+                medium_beta[medium_mask] = beta.T
 
     # Filter energies, phases and delay
     energies = energies[ray_inter]
@@ -124,7 +123,7 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
     output_destinations_idx = np.append(output_destinations_idx, destinations_idx[output_mask], axis=0).astype(np.float32)
     output_directions = np.append(output_directions, directions[output_mask], axis=0).astype(np.float32)
     
-    print('output:', np.count_nonzero(output_mask), output_directions.shape, output_origins.shape)
+    print('output:', np.count_nonzero(output_mask), output_energies.shape[0])
 
     # filter inters coordinate, path_length and delay
     inters = inters[intersect_mask]
@@ -172,14 +171,14 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
 
     # Compute reflection absorption
     reflected_energies = energies * refl_coeffs.reshape(-1,1)
-    reflected_phase = - (phases + refl_phases.reshape(-1,1)) % (2 * np.pi)
+    reflected_phases = - (phases + refl_phases.reshape(-1,1)) % (2 * np.pi)
     #print('reflected_energies', np.max(reflected_energies), np.min(reflected_energies))
 
     # Compute scattering absorption
     max_scattering = config.interface.max_scattering
     scattered_energies = energies * scat_coeffs * roughness_factor
-    scattered_phase = phases + scat_phases.reshape(-1,1) % (2 * np.pi)
-    #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phase))
+    scattered_phases = phases + scat_phases.reshape(-1,1) % (2 * np.pi)
+    #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phases))
 
     # Energy conservation check
     total_out = energies + absorbed_energies + reflected_energies + scattered_energies
@@ -193,9 +192,10 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
     absorbed_energies *= scale
     reflected_energies *= scale
     scattered_energies *= scale
+    #print('scattered_energies', np.max(scattered_energies), np.min(scattered_phases))
 
     # Detach new origins from triangles surface along normals of 0.001 factor
-    origins = inters + 0.001 * normals
+    origins = inters + (0.01 * normals)
     origins = origins.astype(np.float32)
 
     # Compute wavelength
@@ -213,11 +213,10 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
 
     # Compute reflection directions
     reflected_directions = _compute_reflection_directions(directions, normals, reflection_angles)
-    print('#######DEBUG reflected_directions', reflected_directions.shape)
     reflected_directions = reflected_directions.astype(np.float32)
 
     # Compute scattering directions
-    scattered_origins, scattered_origins_idx, scattered_origins_bands, scattered_destinations, scattered_destinations_idx, scattered_normals, scattered_energies, scattered_phases, scattered_delay, scattered_directions = _random_hemisphere_directions(origins, origins_idx, origins_bands, destinations, destinations_idx, scattered_energies, scattered_phase, delay, normals, roughness_factor, max_scattering)
+    scattered_origins, scattered_origins_idx, scattered_origins_bands, scattered_destinations, scattered_destinations_idx, scattered_energies, scattered_phases, scattered_delay, scattered_directions = _random_hemisphere_directions(origins, origins_idx, origins_bands, destinations, destinations_idx, scattered_energies, scattered_phases, delay, normals, roughness_factor, max_scattering)
 
     # Create new origins, origins_idx, origins_bands, directions, energies, phases
     origins = np.append(origins, scattered_origins, axis=0).astype(np.float32)
@@ -225,10 +224,9 @@ def loop(origins, origins_idx, origins_bands, destinations, destinations_idx, di
     origins_bands = np.append(origins_bands, scattered_origins_bands, axis=0).astype(np.int32)
     destinations = np.append(destinations, scattered_destinations, axis=0).astype(np.float32)
     destinations_idx = np.append(destinations_idx, scattered_destinations_idx, axis=0).astype(np.float32)
-    print('########DEBUG: directions', reflected_directions.shape, scattered_directions.shape)
     directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
     energies = np.append(reflected_energies, scattered_energies, axis=0).astype(np.float32)
-    phases = np.append(reflected_phase, scattered_phase, axis=0).astype(np.float32)
+    phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
     delay = np.append(delay, scattered_delay, axis=0).astype(np.float32)
 
     # Filter direction, origins, phases, energy and delay on termination
@@ -312,7 +310,7 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
     # Determine max IR length
     ir_length = int(np.ceil(np.max(delay_samples))) + 10
 
-    print('ir_length', ir_length)
+#    print('ir_length', ir_length)
 
     # filter by src-out for bands_idx
     for src_idx in range(n_src):
@@ -325,7 +323,6 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
                 a_phases = phases[bands_mask]
                 a_delay_samples = delay_samples[bands_mask]
                 a_bands = bands[bands_mask]
-                print('#########DEBUG: ', bands_idx, bands_mask.reshape(-1,).shape, origins.shape, destinations.shape, destinations_idx.shape, directions.shape)
                 a_origins = origins[bands_mask.reshape(-1,)]
                 a_destinations = destinations[bands_mask.reshape(-1,)]
                 a_destinations_idx = destinations_idx[bands_mask]
@@ -363,12 +360,12 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
                 n_channels = (ambisonic_order + 1) ** 2
                 ambisonic_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
 
-                print('ambisonic_ir', ambisonic_ir.shape)
+#                print('ambisonic_ir', ambisonic_ir.shape)
 
                 # Compute complex amplitudes
                 complex_amplitudes = np.sqrt(a_energies) * np.exp(1j * a_phases)
 
-                print('complex_amplitudes', complex_amplitudes.shape)
+#                print('complex_amplitudes', complex_amplitudes.shape)
 
                 # Convert Cartesian to spherical coordinates
                 x, y, z = a_directions[:, 0], a_directions[:, 1], a_directions[:, 2]
@@ -377,8 +374,8 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
                 theta = np.arctan2(y, x)  # Azimuth
                 phi = np.arcsin(z)  # Elevation (assuming unit vectors)
 
-                print('theta', theta.shape)
-                print('phi', phi.shape)
+#                print('theta', theta.shape)
+#                print('phi', phi.shape)
 
                 # Compute spherical harmonics coefficients
                 if ambisonic_order >= 0:
@@ -452,6 +449,8 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
                 ambisonic_ir_T = ambisonic_ir.T
 
                 # Save the ambisonic_ir_T to multitrack WAV file
+                output_dir = 'impulse_renspose'
+                os.makedirs(output_dir, exist_ok=True)
                 subtype='FLOAT'
                 filename=f"{output_dir}/aIR_{src_idx}_{out_idx}_{bands_idx}.wav"
                 sf.write(filename, ambisonic_ir_T, sample_rate, subtype=subtype)
@@ -462,7 +461,7 @@ def compute_and_save_ir(output_source, output_bands, output_energies, output_pha
                 print(f"Duration: {ambisonic_ir.shape[0] / sample_rate:.2f} seconds")
                 print(f"Format: {subtype}")
 
-                return ambisonic_ir
+    return ambisonic_ir
 
 def convolve_mono_to_ambisonics(mono_audio, ambisonics_ir, method='fft'):
     """
@@ -588,15 +587,14 @@ def _compute_reflection_directions(incident_directions, normals, reflection_angl
     # reflection = cos(reflection_angles) * incident_normals - sin(reflection_angles) * incident_tangent_unit
     
     # Compute the reflection direction
-    reflection_directions = (np.cos(reflection_angles)[:, np.newaxis] * incident_normals - np.sin(reflection_angles)[:, np.newaxis] * incident_tangent_unit)
+    reflection_directions = (np.cos(reflection_angles) * incident_normals - np.sin(reflection_angles) * incident_tangent_unit)
     
     # Normalize the result
-    print('########DEBUG reflection_directions:', reflection_directions.shape)
     reflection_directions = reflection_directions / np.linalg.norm(reflection_directions, axis=1, keepdims=True)
     return reflection_directions
 
 
-def _random_hemisphere_directions(origins: np.ndarray, origins_idx: np.ndarray, origins_bands: np.ndarray, destinations: np.ndarray, destinations_idx: np.ndarray, scattered_energies: np.ndarray, scattered_phase: np.ndarray, delay: np.ndarray, normals: np.ndarray, roughness_factor: np.ndarray, max_scattering: np.ndarray) -> np.ndarray:
+def _random_hemisphere_directions(origins: np.ndarray, origins_idx: np.ndarray, origins_bands: np.ndarray, destinations: np.ndarray, destinations_idx: np.ndarray, scattered_energies: np.ndarray, scattered_phases: np.ndarray, delay: np.ndarray, normals: np.ndarray, roughness_factor: np.ndarray, max_scattering: int) -> np.ndarray:
     """
     Generate random directions on hemispheres oriented along the normals.
     Args:
@@ -621,11 +619,10 @@ def _random_hemisphere_directions(origins: np.ndarray, origins_idx: np.ndarray, 
     scat_destinations = np.zeros((n_samples,3), dtype=np.float32)
     scat_destinations_idx = np.zeros((n_samples,1), dtype=np.int32)
     scat_normals = np.zeros((n_samples,3), dtype=np.float32)
-    scat_energies = np.zeros((n_samples,1), dtype=np.int32)
-    scat_phases = np.zeros((n_samples,1), dtype=np.int32)
+    scat_energies = np.zeros((n_samples,1), dtype=np.float32)
+    scat_phases = np.zeros((n_samples,1), dtype=np.float32)
     scat_delay = np.zeros((n_samples,1), dtype=np.float32)
 
-    print('########DEBUG: n_scat_rays', n_scat_rays.shape)
     for idx in range(n_scat_rays.shape[0]):
         lo_idx = hi_idx if idx > 0 else 0
         hi_idx = lo_idx + int(n_scat_rays[idx])
@@ -635,22 +632,22 @@ def _random_hemisphere_directions(origins: np.ndarray, origins_idx: np.ndarray, 
         scat_destinations[lo_idx:hi_idx] = destinations[idx]
         scat_destinations_idx[lo_idx:hi_idx] = destinations_idx[idx]
         scat_normals[lo_idx:hi_idx] = normals[idx]
-        scat_energies[lo_idx:hi_idx] = energies[idx] / (hi_idx - lo_idx)
-        scat_phases[lo_idx:hi_idx] = phases[idx]
+        scat_energies[lo_idx:hi_idx] = scattered_energies[idx] / (hi_idx - lo_idx)
+        scat_phases[lo_idx:hi_idx] = scattered_phases[idx]
         scat_delay[lo_idx:hi_idx] = delay[idx]
 
-    directions = np.random.uniform(-1,1,(n_samples,3))
-    directions /= np.linalg.norm(directions)
-    while not np.all(directions[:, 0]**2 + directions[:, 1]**2 + directions[:, 2]**2 < 1):
-        directions = np.random.uniform(-1,1,(n_samples,3))
+    scat_directions = np.random.uniform(-1,1,(n_samples,3))
+    scat_directions /= np.linalg.norm(scat_directions)
+    while not np.all(scat_directions[:, 0]**2 + scat_directions[:, 1]**2 + scat_directions[:, 2]**2 < 1):
+        scat_directions = np.random.uniform(-1,1,(n_samples,3))
         # Project onto hemisphere oriented along normals
-        directions /= np.linalg.norm(directions)
+        scat_directions /= np.linalg.norm(directions)
     # Flip if pointing away from normals
-    if not np.any(np.sum(directions * scat_normals, axis=1) < 0):
-        mask = np.sum(directions * scat_normals, axis=1) < 0
-        directions[mask] = -directions[mask]
+    if not np.any(np.sum(scat_directions * scat_normals, axis=1) < 0):
+        mask = np.sum(scat_directions * scat_normals, axis=1) < 0
+        scat_directions[mask] = -scat_directions[mask]
 
-    return scat_origins, scat_origins_idx, scat_origins_bands, scat_destinations, scat_destinations_idx, scat_normals, scat_energies, scat_phases, scat_delay, directions
+    return scat_origins, scat_origins_idx, scat_origins_bands, scat_destinations, scat_destinations_idx, scat_energies, scat_phases, scat_delay, scat_directions
 
 def _compute_acoustic_object_coefficients(c: float, rho: float, E: float, nu: float, damping: float, freq_bands: List[Tuple[float,float]]):
     """
