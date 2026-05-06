@@ -88,16 +88,17 @@ class ZarrRayData:
 
     def _create_array(self, name: str, shape: tuple, dtype: np.dtype) -> zarr.Array:
         """Create a Zarr array with chunking."""
-        chunk_size = calculate_chunk_size(shape, dtype)
-        return self.store.empty(name=name, shape=shape, chunks=(chunk_size), dtype=dtype)
+        #chunk_size = self._calculate_chunk_size(shape, dtype)
+        chunk_size = 4
+        return self.store.empty(name=name, shape=shape, chunks=(chunk_size, *shape[1:]), dtype=dtype)
         
-    @staticmethod
-    def calculate_chunk_size(shape, dtype):
+    def _calculate_chunk_size(self, shape, dtype):
         """Calculate optimal chunk size for Zarr arrays"""
         data_size_bytes = np.dtype(dtype).itemsize
         target_chunk_bytes = 1024 * 1024  # 1MB
         chunk_dim = int((target_chunk_bytes / data_size_bytes) ** (1/shape[1]))
-        return tuple(chunk_dim for _ in range(shape[1]))
+        #return tuple(chunk_dim for _ in range(shape[1]))
+        return chunk_dim
 
     def apply_mask(self, mask: np.array):
         # compute zarr new size
@@ -151,7 +152,6 @@ class ZarrRayData:
 class ZarrOutputData:
     """Holds accumulated output data using Zarr arrays."""
     entity_manager: EntityManager
-    chunk_size: int = 32
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
@@ -180,16 +180,17 @@ class ZarrOutputData:
 
     def _create_array(self, name: str, shape: tuple, dtype: np.dtype) -> zarr.Array:
         """Create a Zarr array with chunking."""
-        chunk_size = calculate_chunk_size(shape, dtype)
-        return self.store.empty(name=name, shape=shape, chunks=(chunk_size), dtype=dtype)
+        #chunk_size = self._calculate_chunk_size(shape, dtype)
+        chunk_size = 4
+        return self.store.empty(name=name, shape=shape, chunks=(chunk_size, *shape[1:]), dtype=dtype)
 
-    @staticmethod
-    def calculate_chunk_size(shape, dtype):
+    def _calculate_chunk_size(self, shape, dtype):
         """Calculate optimal chunk size for Zarr arrays"""
         data_size_bytes = np.dtype(dtype).itemsize
         target_chunk_bytes = 1024 * 1024  # 1MB
         chunk_dim = int((target_chunk_bytes / data_size_bytes) ** (1/shape[1]))
-        return tuple(chunk_dim for _ in range(shape[1]))
+        #return tuple(chunk_dim for _ in range(shape[1]))
+        return chunk_dim
 
 
 @dataclass
@@ -504,7 +505,7 @@ class AcousticRayTracer:
         print(f"Ran in {t2 - t1:.3f} s")
 
         ray_inter = res["geomID"] >= 0 
-        print(f"{sum(ray_inter)} rays intersect geometry (over {self.ray_data.origins.shape[0]})")
+        print(f"recursion {self.recursion_idx}: {sum(ray_inter)} rays intersect geometry (over {self.ray_data.origins.shape[0]})")
 
         if not np.any(ray_inter):
             self._finalize()
@@ -1031,20 +1032,20 @@ class AcousticRayTracer:
 
         return normalized.astype(np.float32)
 
-def main():
-    """Main entry point for the acoustic ray tracer."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Acoustic Ray Tracing Simulation')
-    parser.add_argument('config', type=str, help='Path to configuration JSON file')
-    args = parser.parse_args()
-
-    # Create and run ray tracer tracer
-    entity_manager = EntityManager(args.config)
-    tracer = AcousticRayTracer(entity_manager)
-    tracer.run()
-
-
-if __name__ == "__main__":
-    main()
+#def main():
+#    """Main entry point for the acoustic ray tracer."""
+#    import argparse
+#
+#    parser = argparse.ArgumentParser(description='Acoustic Ray Tracing Simulation')
+#    parser.add_argument('config', type=str, help='Path to configuration JSON file')
+#    args = parser.parse_args()
+#
+#    # Create and run ray tracer tracer
+#    entity_manager = EntityManager(args.config)
+#    tracer = AcousticRayTracer(entity_manager)
+#    tracer.run()
+#
+#
+#if __name__ == "__main__":
+#    main()
 
