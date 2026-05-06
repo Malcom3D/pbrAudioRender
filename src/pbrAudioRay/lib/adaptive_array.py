@@ -309,7 +309,7 @@ class AdaptiveArray:
         data = self.to_array()
         return np.sum(data, axis=axis)
     
-    def mean(self, axis: Optional[int] = None None) -> Union[np.ndarray, float]:
+    def mean(self, axis: Optional[int] = None) -> Union[np.ndarray, float]:
         """Mean along specified axis"""
         data = self.to_array()
         return np.mean(data, axis=axis)
