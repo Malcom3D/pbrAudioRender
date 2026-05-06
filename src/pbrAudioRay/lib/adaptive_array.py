@@ -387,7 +387,7 @@ class AdaptiveArray:
     def flatten(self) -> 'AdaptiveArray':
         """Flatten array to 1D"""
         data = self.to_array().flatten()
-        result = AdaptiveArray(self(self.memory_threshold, self.dtype)
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
         result.append(data)
         return result
     
