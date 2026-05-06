@@ -60,7 +60,6 @@ class MediumProperties:
 class ZarrRayData:
     """Holds ray tracing data using Zarr arrays for memory efficiency."""
     entity_manager: EntityManager
-    chunk_size: int = 32
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
@@ -89,7 +88,16 @@ class ZarrRayData:
 
     def _create_array(self, name: str, shape: tuple, dtype: np.dtype) -> zarr.Array:
         """Create a Zarr array with chunking."""
-        return self.store.empty(name=name, shape=shape, chunks=(self.chunk_size, *shape[1:]), dtype=dtype)
+        chunk_size = calculate_chunk_size(shape, dtype)
+        return self.store.empty(name=name, shape=shape, chunks=(chunk_size), dtype=dtype)
+        
+    @staticmethod
+    def calculate_chunk_size(shape, dtype):
+        """Calculate optimal chunk size for Zarr arrays"""
+        data_size_bytes = np.dtype(dtype).itemsize
+        target_chunk_bytes = 1024 * 1024  # 1MB
+        chunk_dim = int((target_chunk_bytes / data_size_bytes) ** (1/shape[1]))
+        return tuple(chunk_dim for _ in range(shape[1]))
 
     def apply_mask(self, mask: np.array):
         # compute zarr new size
@@ -172,7 +180,16 @@ class ZarrOutputData:
 
     def _create_array(self, name: str, shape: tuple, dtype: np.dtype) -> zarr.Array:
         """Create a Zarr array with chunking."""
-        return self.store.empty(name=name, shape=shape, chunks=(self.chunk_size, *shape[1:]), dtype=dtype)
+        chunk_size = calculate_chunk_size(shape, dtype)
+        return self.store.empty(name=name, shape=shape, chunks=(chunk_size), dtype=dtype)
+
+    @staticmethod
+    def calculate_chunk_size(shape, dtype):
+        """Calculate optimal chunk size for Zarr arrays"""
+        data_size_bytes = np.dtype(dtype).itemsize
+        target_chunk_bytes = 1024 * 1024  # 1MB
+        chunk_dim = int((target_chunk_bytes / data_size_bytes) ** (1/shape[1]))
+        return tuple(chunk_dim for _ in range(shape[1]))
 
 
 @dataclass
