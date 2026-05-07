@@ -229,6 +229,8 @@ class AdaptiveArray:
             if len(self._chunks) == 1:
                 return self._chunks[0].copy()
             elif len(self._chunks) > 1:
+                for i in range(len(self._chunks)):
+                    print(self._chunks[i].shape)
                 return np.concatenate(self._chunks, axis=0)
             return np.array([], dtype=self.dtype)
     
