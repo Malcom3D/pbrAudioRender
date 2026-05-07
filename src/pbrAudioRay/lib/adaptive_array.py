@@ -148,7 +148,14 @@ class AdaptiveArray:
         if self._shape is None:
             return 0
         return len(self._shape)
-    
+
+    @property 
+    def size(self) -> int:
+        """Get total number of elements"""
+        if self._total_size == 0:
+            return 0
+        return np.prod(self._shape)
+
     def to_array(self) -> np.ndarray:
         """Reconstruct full array."""
         if self._use_mmap:
@@ -264,3 +271,104 @@ class AdaptiveArray:
     
     def __str__(self):
         return str(self.to_array())
+
+    # Numpy compatibility methods
+    def astype(self, dtype) -> 'AdaptiveArray':
+        """Convert to different dtype"""
+        data = self.to_array().astype(dtype)
+        result = AdaptiveArray(self.memory_threshold, dtype)
+        result.append(data)
+        return result
+   
+    def flatten(self) -> 'AdaptiveArray':
+        """Flatten array to 1D"""
+        data = self.to_array().flatten()
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(data)
+        return result
+   
+    def ravel(self) -> 'AdaptiveArray':
+        """Return flattened array"""
+        return self.flatten()
+   
+    def sort(self, axis: int = -1, kind: str = 'quicksort'):
+        """Sort the array in-place"""
+        data = self.to_array()
+        data.sort(axis=axis, kind=kind)
+        self.clear()
+        self.append(data)
+
+    def unique(self) -> 'AdaptiveArray':
+        """Return unique elements"""
+        data = np.unique(self.to_array())
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(data)
+        return result
+
+    def where(self, condition: np.ndarray, x: Any, y: Any) -> 'AdaptiveArray':
+        """Return elements chosen from x or y depending on condition"""
+        data = np.where(condition, x, y)
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(data)
+        return result
+
+    def concatenate(self, others: List['AdaptiveArray'], axis: int = 0) -> 'AdaptiveArray':
+        """Concatenate multiple AdaptiveArrays"""
+        all_data = [self.to_array()]
+        for other in others:
+            all_data.append(other.to_array())
+
+        concatenated = np.concatenate(all_data, axis=axis)
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(concatenated)
+        return result
+
+    def split(self, indices_or_sections, axis: int = 0) -> List['AdaptiveArray']:
+        """Split array into multiple sub-arrays"""
+        data = self.to_array()
+        splits = np.split(data, indices_or_sections, axis=axis)
+
+        results = []
+        for split_data in splits:
+            result = AdaptiveArray(self.memory_threshold, self.dtype)
+            result.append(split_data)
+            results.append(result)
+
+        return results
+
+    def pad(self, pad_width, mode: str = 'constant', **kwargs) -> 'AdaptiveArray':
+        """Pad the array"""
+        data = self.to_array()
+        padded = np.pad(data, pad_width, mode=mode, **kwargs)
+
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(padded)
+        return result
+
+    def clip(self, min_val: Optional[float] = None, max_val: Optional[float] = None) -> 'AdaptiveArray':
+        """Clip values to a range"""
+        data = np.clip(self.to_array(), min_val, max_val)
+        result = AdaptiveArray(self.memory_threshold, self.dtype)
+        result.append(data)
+        return result
+
+    def fill(self, value: Any):
+        """Fill array with a scalar value"""
+        if self._use_mmap:
+            self._mmap.fill(value)
+        else:
+            for chunk in self._chunks:
+                chunk.fill(value)
+
+    def nonzero(self) -> Tuple[np.ndarray, ...]:
+        """Return indices of non-zero elements"""
+        return np.nonzero(self.to_array())
+
+    def all(self, axis: Optional[int] = None) -> Union[bool, np.ndarray]:
+        """Test whether all elements evaluate to True"""
+        return np.all(self.to_array(), axis=axis)
+
+    def any(self, axis: Optional[int] = None) -> Union[bool, np.ndarray]:
+        """Test whether any elements evaluate to True"""
+        return np.any(self.to_array(), axis=axis)
+
