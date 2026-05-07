@@ -17,13 +17,112 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-import numba as nb
-from typing import Tuple, Optional, List, Any
+import trimesh
 from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional, Any
+
+from embreex import rtcore_scene as rtcs
+from embreex.mesh_construction import TriangleMesh
+
+from pbrAudioRay.core.entity_manager import EntityManager
+from pbrAudioRay.engine.interface import InterfaceManager
+from pbrAudioRay.lib.output_data import OutputData
 
 @dataclass
-class RayTracer:
-    scene: Any # embreex.rtcore_scene.EmbreeScene
+class AcousticRayTracer:
+    """Main class for acoustic ray tracing."""
+    entity_manager: EntityManager
+    geometry_data: Any
+    material_properties: Any
+    medium_properties: Any
+    ray_data: Any
+    recursion_idx: int = 0
 
-    def compute(self, source_pos: np.ndarray, directions: np.ndarray):
-        return self.scene.run(source_pos, directions, output=1)
+    def __post_init__(self):
+        """Initialize ray directions using Fibonacci sphere distribution."""
+        config = self.entity_manager.get('config')
+        n_rays = self.config.system.number_of_rays
+        self.max_interactions = config.wave_propagation.max_interactions
+
+        # Fibonacci sphere
+        phi = np.pi * (3. - np.sqrt(5.))
+        theta = phi * np.arange(n_rays)
+        z = np.linspace(1/n_rays - 1, 1 - 1/n_rays, n_rays)
+        radius = np.sqrt(1 - z * z)
+        y = radius * np.sin(theta)
+        x = radius * np.cos(theta)
+
+        directions = np.array(list(zip(x, y, z)), dtype=np.float32)
+
+        # Set initial directions towards destinations
+        main_dir = self.ray_data.destinations[0] - self.ray_data.origins[0]
+        main_dir_norm = np.linalg.norm(main_dir, axis=1, keepdims=True)
+        main_dir_norm[main_dir_norm <= 1e-10] = 1e-10
+        main_dir = main_dir / main_dir_norm
+
+        directions[0] = main_dir
+
+        self.ray_data.directions = directions
+        self.ray_data.energies = np.full((n_rays, 1), 1.0, dtype=np.float32)
+        self.ray_data.phases = np.full((n_rays, 1), 0.0, dtype=np.float32)
+        self.ray_data.delay = np.full((n_rays, 1), 0.0, dtype=np.float32)
+
+        # Initialize Ray output
+        self.output_data = OutputData(bands_idx=self.ray_data.bands_idx)
+
+    @delayed
+    def compute(self):
+        # Initialize interface manager
+        self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.medium_properties, self.ray_data, self.output_data)
+
+        # Initialize EmbreeX Scene
+        self.scene = rtcs.EmbreeScene()
+
+        # Create EmbreeX mesh scene
+        embree_mesh = TriangleMesh(self.scene, self.geometry_data.mesh_info)
+
+        # Start recursive ray tracing
+        self._ray_tracing_loop()
+
+    def _ray_tracing_loop(self):
+        """Recursive ray tracing loop."""
+        res = self.scene.run(self.ray_data.origins.astype(np.float32), self.ray_data.directions.astype(np.float32), output=1)
+
+        ray_inter = res["geomID"] >= 0
+        print(f"Recursion {self.recursion_idx}: {sum(ray_inter)} rays intersect geometry (over {self.ray_data.origins.shape[0]})")
+
+        if not np.any(ray_inter) or self.recursion_idx == self.max_interactions:
+            return self.output_data
+
+        # Process intersections
+        self.interface.compute(res, ray_inter)
+
+        # Apply energy threshold
+        self._apply_energy_threshold()
+
+        # Recursive call
+        self.recursion_idx += 1
+        if self.ray_data.origins.shape[0] > 0:
+            self._ray_tracing_loop()
+        else:
+            return self.output_data
+
+    def _apply_energy_threshold(self):
+        """Apply energy threshold to terminate low-energy rays."""
+        termination_energy = 1e-16
+        termination_mask = self.ray_data.energies > termination_energy
+
+        self.ray_data.origins = self.ray_data.origins[termination_mask.reshape(-1,)]
+        self.ray_data.origins_idx = self.ray_data.origins_idx[termination_mask].reshape(-1, 1)
+        self.ray_data.origins_bands = self.ray_data.origins_bands[termination_mask].reshape(-1, 1)
+        self.ray_data.destinations = self.ray_data.destinations[termination_mask.reshape(-1,)]
+        self.ray_data.destinations_idx = self.ray_data.destinations_idx[termination_mask].reshape(-1, 1)
+        self.ray_data.directions = self.ray_data.directions[termination_mask.reshape(-1,)]
+        self.ray_data.energies = self.ray_data.energies[termination_mask].reshape(-1, 1)
+        self.ray_data.phases = self.ray_data.phases[termination_mask].reshape(-1, 1)
+        self.ray_data.delay = self.ray_data.delay[termination_mask].reshape(-1, 1)
+
+        n_terminated = np.count_nonzero(~termination_mask)
+        if n_terminated > 0:
+            print(f'Terminated {n_terminated} rays below energy threshold')
+

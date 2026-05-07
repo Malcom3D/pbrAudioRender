@@ -17,15 +17,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 @dataclass
-class RayData:
-    """Holds ray tracing data."""
-    bands_idx: int = None
-    origins: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    destinations: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    directions: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
-    phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
-    delay: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
+class MaterialProperties:
+    """Holds acoustic properties for materials."""
+    absorption_coeffs: np.ndarray
+    absorption_phases: np.ndarray
+    reflection_coeffs: np.ndarray
+    reflection_phases: np.ndarray
+    refraction_coeffs: np.ndarray
+    refraction_phases: np.ndarray
+    scattering_coeffs: np.ndarray
+    scattering_phases: np.ndarray
+    roughness: np.ndarray
+

@@ -17,15 +17,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-@dataclass
-class RayData:
-    """Holds ray tracing data."""
-    bands_idx: int = None
-    origins: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    destinations: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    directions: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
-    phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
-    delay: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
+@dataclass  
+class MediumProperties:
+    """Holds medium (gas/fluid/solid) properties."""
+    speed: float
+    alpha: np.ndarray
+    beta: np.ndarray
+    density: float = 1.225
+    temperature: float = 20.0
+    impedance: float = 413.3
