@@ -96,18 +96,18 @@ class AdaptiveArray:
                     )
     
     def _update_shape_after_append(self, data: np.ndarray, axis: int):
-    """Update the stored shape after appending along axis."""
-    if self._shape is None:
-        self._shape = list(data.shape)
-        self._ndim = data.ndim
-    else:
-        # Increase only along the appended axis
-        self._shape[axis] += data.shape[axis]
-        # For other axes, ensure shape compatibility
-        for i in range(self._ndim):
-            if i != axis:
-                if self._shape[i] != data.shape[i]:
-                    raise ValueError(f"Shape mismatch at axis {i} after append: expected {self._shape[i]}, got {data.shape[i]}")
+        """Update the stored shape after appending along axis."""
+        if self._shape is None:
+            self._shape = list(data.shape)
+            self._ndim = data.ndim
+        else:
+            # Increase only along the appended axis
+            self._shape[axis] += data.shape[axis]
+            # For other axes, ensure shape compatibility
+            for i in range(self._ndim):
+                if i != axis:
+                    if self._shape[i] != data.shape[i]:
+                        raise ValueError(f"Shape mismatch at axis {i} after append: expected {self._shape[i]}, got {data.shape[i]}")
     
     def _convert_to_mmap(self):
         """Convert existing chunks to memory-mapped file"""
