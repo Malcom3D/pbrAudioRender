@@ -18,6 +18,7 @@
 
 import sys
 import math
+import copy 
 import numpy as np
 import numba as nb
 from numba import prange
@@ -27,14 +28,13 @@ from dataclasses import dataclass
 
 from ..core.entity_manager import EntityManager
 
-from ..engine.ray_tracer import RayTracer
-from ..engine.interface import InterfaceManager
+from ..engine.ray_tracer import AcousticRayTracer
 
 from ..lib.functions import _load_pose
-from ..lib.embree_scene import EmbreeScene
 from ..lib.ray_data import RayData
-from ..lib.simd_math import generate_all_directions_batch
-
+from ..lib.geometry_data import GeometryData
+from ..lib.material_properties import MaterialProperties
+from ..lib.medium_properties import MediumProperties
 
 @dataclass
 class WavePropagator:
@@ -43,179 +43,99 @@ class WavePropagator:
     combo: Tuple[int, int]
     
     def __post_init__(self):
-        self.source_idx, self.output_idx = self.combo
-        self.config = self.entity_manager.get('config')
-        max_interactions = self.config.wave_propagation.max_interactions
+        config = self.entity_manager.get('config')
+        max_interactions = config.wave_propagation.max_interactions
         sys.setrecursionlimit(max_interactions)
 
-        # Get frequency bands
-        self.freq_bands = self.entity_manager.get('frequency_bands').get_bands()
+        # Initialize Ray data
+        self.ray_data = RayData()
+
+        # Get scene data
+        self.geometry_data = self.entity_manager.get('geometry_data')
+        self.material_properties = self.entity_manager.get('material_properties')
+        self.medium_properties = self.entity_manager.get('medium_properties')
+
+        # Finalize scene
+        self._finalize_scene()
+
+    def _finalize_scene(self):
+        source_idx, output_idx = self.combo
+        self._initialize_sources(source_idx)
+        self._initialize_outputs(output_idx)
+
+    def _initialize_sources(self, source_idx: int):
+        """Initialize source positions and directions."""
+        config = self.entity_manager.get('config')
+        n_rays = config.system.number_of_rays
+
+        for src_config in config.sources:
+            if src_config.idx == source_idx:
+                pose = np.load(f"{src_config.pose_path}/{src_config.name}.npz")
+                source_pos = pose[pose.files[0]].reshape(-1, 3)
+
+                source_arr = np.full((n_rays, 3), [source_pos], dtype=np.float32)
+                self.ray_data.origins = np.append(self.ray_data.origins, source_arr, axis=0)
         
+    def _initialize_outputs(self, output_idx: int):
+        """Initialize output positions."""
+        config = self.entity_manager.get('config')
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        n_bands = len(frequency_bands.get_bands())
+        n_rays = config.system.number_of_rays
+
+        for out_config in config.outputs:
+            if out_config.idx == output_idx:
+                pose = np.load(f"{out_config.pose_path}/{out_config.name}.npz")
+                output_pos = pose[pose.files[0]].reshape(-1, 3)
+
+            output_arr = np.full((n_rays, 3), [output_pos], dtype=np.float32)
+
+            self.ray_data.destinations = np.append(self.ray_data.destinations, output_arr, axis=0)
+
+            # Create output sphere geometry
+            if out_config.size == 0:
+                out_config.size = 0.1
+
+            mesh = trimesh.creation.icosphere(subdivisions=2, radius=out_config.size)
+            mesh.apply_transform([
+                [1, 0, 0, output_pos[0][0]],
+                [0, 1, 0, output_pos[0][1]],
+                [0, 0, 1, output_pos[0][2]],
+                [0, 0, 0, 1]
+            ])
+
+            vertices = mesh.vertices.astype(np.float32)
+            faces = mesh.faces.astype(np.int32)
+
+            self.geometry.mesh_info = np.append(self.geometry.mesh_info, mesh.vertices[mesh.faces], axis=0)
+            self.geometry.scene_info = np.append(self.geometry.scene_info, np.full((mesh.vertices[mesh.faces].shape[0],), [-3], dtype=np.int32))
+
+            # Add null properties for output geometry
+            n_faces = vertices[faces].shape[0]
+            self.material_properties.roughness = np.append(self.material_properties.roughness, np.full((n_faces, 1), 0.0, dtype=np.float32), axis=0)
+
+            for prop_name in ['absorption', 'reflection', 'refraction', 'scattering']:
+                coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
+                phases = getattr(self.material_properties, f'{prop_name}_phases')
+
+                new_coeffs = np.full((n_faces, n_bands),  1.0 if prop_name == 'absorption' else 0.0, dtype=np.float32)
+                new_phases = np.full((n_faces, n_bands), 0.0, dtype=np.float32)
+
+                setattr(self.material_properties, f'{prop_name}_coeffs', np.append(coeffs, new_coeffs, axis=0))
+                setattr(self.material_properties, f'{prop_name}_phases', np.append(phases, new_phases, axis=0))
     @delayed
     def compute(self, frame_idx):
         """Compute impulse response for a single frame"""
-        # Get scene data for this frame
-        embree_scene = EmbreeScene(self.entity_manager, self.combo, frame_idx)
-        #print('Embreex: scene loading complete...', self.combo)
-        scene = embree_scene.scene
-        acoustic_scene = embree_scene.acoustic_scene
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        n_bands = len(frequency_bands.get_bands())
 
-        n_bands = len(self.freq_bands)
-
-        # Init RayTracer engine
-        self.ray_tracer = RayTracer(scene)
-
-        # Init InterfaceManager engine
-        self.interface = InterfaceManager(self.entity_manager, acoustic_scene)
-
-        # Load output positions
-        for output_config in self.config.outputs:
-            if output_config.idx == self.output_idx:
-                output_positions, _ = _load_pose(output_config)
-                if output_config.static:
-                    output_pos = output_positions
-                else:
-                    output_pos = output_positions[frame_idx]
-                output_pos = output_pos.reshape(-1,3)
-
-        # Load source positions
-        for source_config in self.config.sources:
-            if source_config.idx == self.source_idx:
-                source_positions, _ = _load_pose(source_config)
-                if source_config.static:
-                    source_pos = source_positions
-                else:
-                    source_pos = source_positions[frame_idx]
-                source_pos = source_pos.reshape(-1,3)
-
-                if source_config.type == 'SPHERE' and source_config.size > 0:
-                    source_size = source_config.size
-                    # Diffuse source
-#                    n_points = int(np.random.uniform(1, 10, size=1))
-#                    source_pos = self._source_points(n_points, source_pos, source_size)
-
-        n_src = source_pos.shape[0]
-        n_rays = self.config.system.number_of_rays
-
-        directions = self._generate_isotropic_directions(n_rays, source_pos, output_pos)
-        origins = np.zeros((0,3), dtype=np.float32)
-        for idx in range(n_src):
-            source_arr = np.full((n_rays,3), source_pos[idx], dtype=np.float32)
-            origins = np.append(origins, source_arr, axis=0)
-
-        print('origins', origins, 'directions', directions)
-        # First fast rays propagation without frequency bands
-        hits = self.ray_tracer.compute(origins, directions)
-        
-        #print('WavePropagator: first fast rays propagation ended', self.combo)
-
-        # Compute Paths for band_idx
-        task_tracer = []
+        tracer_task = []
         for bands_idx in range(n_bands):
-            # Init  RayData storage
-            energies = np.full((origins.shape[0],1), [1], dtype=np.float32)
-            phases = np.full((origins.shape[0],1), [0], dtype=np.float32)
-            ray_data = RayData(src_idx=self.source_idx, out_idx=self.output_idx, bands_idx=bands_idx, recursion_idx=0, origins=origins, directions=directions, energies=energies, phases=phases)
-            _ = self.entity_manager.register('ray_datas', ray_data)
-            task_tracer += [self.interface.parallel_compute(hits, ray_data)]
-        tracer_results = compute(*task_tracer)
+            ray_data = copy.deepcopy(self.ray_data)
+            ray_data.bands_idx = bands_idx
+            ray_tracer = AcousticRayTracer(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, ray_data)
+            tracer_task += [ray_tracer.compute()]
 
-        #print('WavePropagator: paths for band computed', self.combo)
+        results = compute(*tracer_task)
 
-        for ray_data in tracer_results:
-            if isinstance(ray_data, RayData) and isinstance(ray_data.origins, np.ndarray) and isinstance(ray_data.directions, np.ndarray):
-                if not ray_data.origins.shape[0] == 0 and not ray_data.directions.shape[0] == 0:
-                    self.compute_loop(ray_data)
 
-    def compute_loop(self, ray_data: RayData):
-        #print('WavePropagator: compute_loop ray tracer begin', self.combo)
-        hits = self.ray_tracer.compute(ray_data.origins, ray_data.directions)
-        new_ray_data = self.interface.compute(hits, ray_data)
-
-        if isinstance(new_ray_data, RayData) and isinstance(new_ray_data.origins, np.ndarray) and isinstance(new_ray_data.directions, np.ndarray):
-            if not new_ray_data.origins.shape[0] == 0 and not new_ray_data.directions.shape[0] == 0:
-                #print(f"WavePropagator: compute_loop restarted", self.combo)
-                self.compute_loop(new_ray_data)
-
-        #print(f"WavePropagator: compute_loop end", self.combo)
-
-    @staticmethod
-    def _source_points(n_points: int, source_center: np.ndarray, source_size: float) -> np.ndarray:
-        """
-        Generate random points uniformly distributed inside a sphere using Marsaglia's method.
-        More efficient than rejection sampling.
-        """
-        points = np.zeros((n_points, 3))
-        cx, cy, cz = source_center[0], source_center[1], source_center[2]
-
-        for i in range(n_points):
-            # Marsaglia's method for uniform distribution in sphere
-            while True:
-                # Generate random point on unit disk
-                u = 2.0 * np.random.random() - 1.0
-                v = 2.0 * np.random.random() - 1.0
-                s = u*u + v*v
-
-                if s < 1.0:
-                    # Generate random radius with cubic root for uniform volume distribution
-                    r = source_size * np.cbrt(np.random.random())
-
-                    # Calculate coordinates
-                    sqrt_term = np.sqrt(1.0 - s)
-                    x = 2.0 * u * sqrt_term
-                    y = 2.0 * v * sqrt_term
-                    z = 1.0 - 2.0 * s
-
-                    # Scale and translate
-                    points[i, 0] = cx + r * x
-                    points[i, 1] = cy + r * y
-                    points[i, 2] = cz + r * z
-                    break
-        return points
-
-    def _generate_isotropic_directions(self, n_dirs: int, source_pos: np.ndarray, dest_pos: np.ndarray, seed: int = 1) -> np.ndarray:
-        """
-        Evenly distribute rays on 4π steradian from source(s) to destination.
-    
-        Parameters:
-        -----------
-        source_pos : numpy.ndarray
-            Source position(s) as shape (3,) for single source or (n_sources, 3) for multiple sources
-        dest_pos : numpy.ndarray
-            Destination position as shape (3,)
-        n_dirs : int
-            Number of final directions
-        
-        Returns:
-        --------
-        numpy.ndarray
-            Direction vectors of shape (n_dirs, 3)
-        """
-        n_sources = source_pos.shape[0]
-    
-        # Calculate main direction from each source to destination
-        main_dirs = dest_pos - source_pos  # shape (n_sources, 3)
-    
-        # Normalize main directions
-        main_dirs_norm = np.linalg.norm(main_dirs, axis=1, keepdims=True)
-        main_dirs_norm[main_dirs_norm <= 1e-10] = 1e-10
-        main_dirs = main_dirs / main_dirs_norm
-    
-        # Generate evenly distributed points on sphere using Fibonacci sphere algorithm
-        num_points = n_dirs * n_sources
-
-        # Golden ratio
-        phi = np.pi * (3. - np.sqrt(5.))
-        theta = phi * np.arange(num_points)
-        z = np.linspace(1/num_points-1, 1-1/num_points, num_points)
-        radius = np.sqrt(1 - z * z)
-        y = radius * np.sin(theta)
-        x = radius * np.cos(theta)
-
-        directions = np.array(list(zip(x,y,z)), dtype=np.float32)
-
-        for idx in range(n_sources):
-            index = n_dirs * idx
-            directions[index] = main_dirs[idx]
-
-        return directions

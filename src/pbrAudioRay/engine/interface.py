@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
 
-#from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface
+#from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface, DiffusionInterface
 from .interfaces.absorption import AbsorptionInterface
 from .interfaces.reflection import ReflectionInterface
 from .interfaces.scattering import ScatteringInterface
@@ -36,25 +36,20 @@ class InterfaceManager:
     Handle rays interaction with objects boundaries
     """
     entity_manager: EntityManager
-    acoustic_scene: Any  # AcousticScene
+    geometry_data: Any
+    medium_properties: Any
+    ray_data: Any
+    output_data: Any
+    recursion_idx: int = 0
     
     def __post_init__(self):
         config = self.entity_manager.get('config')
-        self.max_interactions = config.wave_propagation.max_interactions
-        self.n_bands = len(self.entity_manager.get('frequency_bands').get_bands())
 
-        self.absorption_interface = AbsorptionInterface(self.entity_manager, self.acoustic_scene)
+        self.absorption_interface = AbsorptionInterface(self.entity_manager)
         self.reflection_interface = ReflectionInterface(self.entity_manager)
         self.scattering_interface = ScatteringInterface(self.entity_manager)
 
-        # Initialize counters
-        self.current_interactions = 0
-
-    @delayed
-    def parallel_compute(self, hits: Dict[str, np.ndarray], ray_data: RayData) -> RayData:
-        return self.compute(hits, ray_data)
-
-    def compute(self, hits: Dict[str, np.ndarray], ray_data: RayData) -> RayData:
+    def compute(self, res: Dict[str, np.ndarray], ray_inter: np.ndarray):
         """
         Process ray hits and deliver data to interface subclasses.
         
@@ -69,142 +64,330 @@ class InterfaceManager:
         enable_reflection = config.interface.enable_reflection
         enable_scattering = config.interface.enable_scattering
 
-        if self.current_interactions == self.max_interactions:
-            return None
-
-        bands_idx = ray_data.bands_idx
-
-        print('hits', hits)
-        geom_ids = hits["geomID"] >= 0
-        prim_ids = hits["primID"][geom_ids]
-        if prim_ids.shape[0] == 0:
-            return None
-
-        print('prim_ids', prim_ids)
-        u = hits["u"][geom_ids]
-        v = hits["v"][geom_ids]
+        primID = res["primID"][ray_inter]
+        u = res["u"][ray_inter]
+        v = res["v"][ray_inter]
         w = 1 - u - v
 
-        origins = ray_data.origins[geom_ids]
+        a = self.geometry_data.mesh_info[primID][:, 0, :]
+        b = self.geometry_data.mesh_info[primID][:, 1, :]
+        c = self.geometry_data.mesh_info[primID][:, 2, :]
 
-        triangle = self.acoustic_scene.get_mesh_info()
-        a = triangle[prim_ids][:, 0, :]
-        b = triangle[prim_ids][:, 1, :]
-        c = triangle[prim_ids][:, 2, :]
-        
-        hits_obj_idx = self.acoustic_scene.scene_info[prim_ids]
-        output_mask = hits_obj_idx == -3
-        intersect_mask = hits_obj_idx >= 0
+        inters = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
-        # Compute hit point using barycentric coordinates
-        hit_points = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
+        # Save ray data
+        #self._save_ray_data(self.ray_data.origins, inters)
 
-        # Save ray_data origins and hit_points to json for analysis
-        import json
-        data_dict = {}
-        data_dict['origins'] = ray_data.origins.tolist()
-        data_dict['hit_points'] = hit_points.tolist()
-        filepath = f"ray_datas/{ray_data.src_idx}_{ray_data.out_idx}_{ray_data.bands_idx}_{ray_data.recursion_idx:05}.json"
+        # Filter rays that intersect
+        self._filter_intersected_rays(ray_inter, primID, inters)
+
+    def _save_ray_data(self, origins: np.ndarray, hit_points: np.ndarray):
+        """Save ray data to JSON file."""
+        data_dict = {
+            'origins': origins.tolist(),
+            'hit_points': hit_points.tolist()
+        }
+
+        os.makedirs('ray_datas', exist_ok=True)
+        filepath = f"ray_datas/embreex_{self.recursion_idx:04}.json"
+
         with open(filepath, 'w') as f:
             json.dump(data_dict, f, indent=2)
 
-        # Compute triangle normals using np.cross with broadcasting
-        normals = np.cross(b-a, c-a)
+    def _filter_intersected_rays(self, ray_inter: np.ndarray, primID: np.ndarray, inters: np.ndarray):
+        """Filter and process intersected rays."""
+        # Filter all ray data
+        self.ray_data.origins = self.ray_data.origins[ray_inter]
+        self.ray_data.origins_idx = self.ray_data.origins_idx[ray_inter]
+        self.ray_data.origins_bands = self.ray_data.origins_bands[ray_inter]
+        self.ray_data.destinations = self.ray_data.destinations[ray_inter]
+        self.ray_data.destinations_idx = self.ray_data.destinations_idx[ray_inter]
+        self.ray_data.directions = self.ray_data.directions[ray_inter]
+        self.ray_data.energies = self.ray_data.energies[ray_inter]
+        self.ray_data.phases = self.ray_data.phases[ray_inter]
+        self.ray_data.delay = self.ray_data.delay[ray_inter]
 
-        # Normalize (avoid division by zero)
-        normals /= np.linalg.norm(normals, axis=1, keepdims=True)
+        # Compute path length
+        path_length = np.sqrt(np.sum((inters - self.ray_data.origins)**2, axis=1)).reshape(-1, 1)
 
-        directions = ray_data.directions
+        # Update medium properties
+        self._update_medium_properties(path_length)
 
-        # Get materials properties
-        abs_coeffs, abs_phases = self.acoustic_scene.get_absorption(mask=prim_ids, bands_idx=bands_idx)
-        refl_coeffs, refl_phases = self.acoustic_scene.get_reflection(mask=prim_ids, bands_idx=bands_idx)
-        refr_coeffs, refr_phases = self.acoustic_scene.get_refraction(mask=prim_ids, bands_idx=bands_idx)
-        scat_coeffs, scat_phases = self.acoustic_scene.get_scattering(mask=prim_ids, bands_idx=bands_idx)
+        # Get object indices and filter
+        hits_obj_idx = self.geometry_data.scene_info[primID]
+        intersect_mask = hits_obj_idx >= 0
 
-        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[geom_ids] for _ in range(4))
-        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[geom_ids] for _ in range(4))
-#        rays_energies, absorbed_energy, reflected_energy, scattered_energy = (ray_data.energies[prim_ids] for _ in range(4))
-#        rays_phases, absorbed_phases, reflected_phases, scattered_phases = (ray_data.phases[prim_ids] for _ in range(4))
-        reflected_directions, scattered_directions = (None for _ in range(2))
-        incident_angles = 1
+        # Collect output data
+        self._collect_output_data(hits_obj_idx, intersect_mask, path_length)
 
-        if enable_absorption:
-            rays_energies, rays_phases = self.absorption_interface.compute_attenuation(initial_energy=rays_energies, initial_phase=rays_phases, origins=origins, hit_points=hit_points, bands_idx=bands_idx, ray_data=ray_data)
+        # Continue with remaining rays
+        if np.any(intersect_mask):
+            self._continue_tracing(inters, primID, path_length, intersect_mask)
 
-            energies_output = rays_energies[output_mask]
-            phases_output = rays_phases[output_mask]
-            rays_energies, absorbed_energy, reflected_energy, scattered_energy = (rays_energies[intersect_mask] for _ in range(4))
-            rays_phases, absorbed_phases, reflected_phases, scattered_phases = (rays_phases[intersect_mask] for _ in range(4))
-            directions = directions[intersect_mask]
-            normals = normals[intersect_mask]
+    def _update_medium_properties(self, path_length: np.ndarray):
+        """Update medium attenuation and phase shift."""
+        n_rays = self.ray_data.origins.shape[0]
 
-        if enable_reflection:
-            print(normals.shape, directions.shape, rays_energies.shape, rays_phases.shape, refl_coeffs.shape, refl_phases.shape)
-            reflected_energy, reflected_phases, incident_angles, reflected_directions = self.reflection_interface.compute(normals, directions, rays_energies, rays_phases, refl_coeffs, refl_phases, ray_data)
+        # Default medium properties (air)
+        medium_speed = np.full((n_rays, 1), self.medium_properties.speed, dtype=np.float32)
+        medium_alpha = np.full((n_rays, self.n_bands), self.medium_properties.alpha, dtype=np.float32)
+        medium_beta = np.full((n_rays, self.n_bands), self.medium_properties.beta, dtype=np.float32)
 
-        if enable_absorption:
-            print(rays_energies.shape, rays_phases.shape, incident_angles.shape)
-            absorbed_energy, absorbed_phases = self.absorption_interface.compute(rays_energies, rays_phases, incident_angles, abs_coeffs, abs_phases, ray_data)
+        # Check for objects containing origins
+        for obj_config in self.config.objects:
+            mesh_file = f"{obj_config.obj_path}/{obj_config.name}.npz"
+            if not os.path.isfile(mesh_file):
+                continue
 
-        if enable_scattering:
-            roughness_factor = self.acoustic_scene.get_roughness(mask=prim_ids)[intersect_mask]
-            scattered_energy, scattered_phases, scattered_directions = self.scattering_interface.compute(rays_energies, rays_phases, normals, roughness_factor, scat_coeffs, scat_phases)
+            data = np.load(mesh_file, allow_pickle=False)
+            vertices = data[data.files[0]].astype(np.float32)
+            vertex_normals = data[data.files[1]].astype(np.float32)
+            faces = data[data.files[2]].astype(np.int32)
 
-        absorbed_energy, scattered_energy, reflected_energy = self._check_energy_conservation(rays_energies, absorbed_energy, reflected_energy, scattered_energy)
+            mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=vertex_normals, faces=faces)
 
-        # move new origins along normals of 0.001 factor from triangles surface
-        new_origins = hit_points[intersect_mask] + (0.001 * normals)
+            medium_mask = mesh.contains(self.ray_data.origins)
+            if np.any(medium_mask):
+                print(f'Get medium object properties for {obj_config.name}')
 
-        # Append origins, directions, energies and phases
-        if isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = np.append(new_origins, new_origins, axis=0).astype(np.float32)
-            appended_directions = np.append(reflected_directions, scattered_directions, axis=0).astype(np.float32)
-            appended_energies = np.append(reflected_energy, scattered_energy, axis=0).astype(np.float32)
-            appended_phases = np.append(reflected_phases, scattered_phases, axis=0).astype(np.float32)
-        elif isinstance(reflected_directions, np.ndarray) and not isinstance(scattered_directions, np.ndarray):
-            appended_origins = new_origins
-            appended_directions = reflected_directions
-            appended_energies = reflected_energy
-            appended_phases = reflected_phases
-        elif not isinstance(reflected_directions, np.ndarray) and isinstance(scattered_directions, np.ndarray):
-            appended_origins = new_origins
-            appended_directions = scattered_directions
-            appended_energies = scattered_energy
-            appended_phases = scattered_phases
+                sound_speed = obj_config.acoustic_shader.sound_speed
+                density = obj_config.acoustic_shader.density
+                young_modulus = obj_config.acoustic_shader.young_modulus
+                poisson_ratio = obj_config.acoustic_shader.poisson_ratio
+                damping = obj_config.acoustic_shader.damping
+
+                alpha, beta = self._compute_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
+
+                medium_speed[medium_mask] = sound_speed
+                medium_alpha[medium_mask] = alpha.T
+                medium_beta[medium_mask] = beta.T
+
+        # Apply medium attenuation
+        origins_bands_idx = np.arange(self.ray_data.origins_bands.T.shape[0])
+        attenuation = np.exp(-medium_alpha * path_length)
+        self.ray_data.energies *= attenuation[origins_bands_idx, self.ray_data.origins_bands]
+
+        # Apply phase shift
+        phase_shift = path_length * medium_beta[origins_bands_idx, self.ray_data.origins_bands]
+        self.ray_data.phases = (self.ray_data.phases + phase_shift) % (2 * np.pi)
+
+        # Update delay
+        new_delay = path_length / medium_speed
+        self.ray_data.delay += new_delay
+
+    def _compute_object_coefficients(self, c: float, rho: float, E: float, nu: float, damping: float):
+        """Calculate medium attenuation coefficient and phase shift for objects."""
+        n_bands = self.n_bands
+        alpha = np.zeros((n_bands, 1), dtype=np.float32)
+        beta = np.zeros((n_bands, 1), dtype=np.float32)
+
+        for idx in range(n_bands): 
+            min_freq, max_freq = self.frequency_bands.get_bands()[idx]
+            alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
+
+        freqs = np.unique(self.frequency_bands.get_bands())[:-1]
+        omega = 2 * np.pi * freqs
+        omega = omega.reshape(freqs.shape[0], 1)
+
+        K = E / (3 * (1 - 2 * nu))
+        G = E / (2 * (1 + nu)) 
+        Z = rho * c
+
+        is_solid = G > 0.1 * E
+
+        alpha_attenuation = (alpha / (2 * c)) + (beta * omega**2 / (2 * c))
+
+        if not is_solid:
+            viscosity = 1.8e-5 if rho < 100 else 1e-3
+            alpha_viscous = (2 * omega**2 * viscosity) / (3 * rho * c**3)
+        else:
+            alpha_viscous = 0
+
+        alpha_attenuation = alpha_attenuation + alpha_viscous
+        phase_shift = omega / c
+
+        return alpha_attenuation, phase_shift
+
+    def _continue_tracing(self, inters: np.ndarray, primID: np.ndarray, path_length: np.ndarray, intersect_mask: np.ndarray):
+        """Continue ray tracing for rays that hit objects."""
+        # Filter for rays that hit objects
+        inters = inters[intersect_mask]
+        path_length = path_length[intersect_mask]
+
+        # Compute normals
+        a = self.geometry_data.mesh_info[primID][:, 0, :]
+        b = self.geometry_data.mesh_info[primID][:, 1, :]
+        c = self.geometry_data.mesh_info[primID][:, 2, :]
         
-        # Filter direction, origins and phases on energy termination
-        termination_energy = 1e-6 # config.termination.energy_threshold
-        termination_mask = appended_energies > termination_energy
-        new_energies = appended_energies[termination_mask].reshape(-1,1)
-        new_phases = appended_phases[termination_mask].reshape(-1,1)
-        new_directions = appended_directions[termination_mask.reshape(-1,)]
-        new_origins = appended_origins[termination_mask.reshape(-1,)]
+        normals = np.cross(b - a, c - a)
+        normals /= np.linalg.norm(normals, axis=1, keepdims=True)
+        normals = normals[intersect_mask]
+            
+        # Filter remaining data
+        self.ray_data.origins = self.ray_data.origins[intersect_mask]
+        self.ray_data.origins_idx = self.ray_data.origins_idx[intersect_mask]
+        self.ray_data.origins_bands = self.ray_data.origins_bands[intersect_mask]
+        self.ray_data.destinations = self.ray_data.destinations[intersect_mask]
+        self.ray_data.destinations_idx = self.ray_data.destinations_idx[intersect_mask]
+        self.ray_data.directions = self.ray_data.directions[intersect_mask]
+        self.ray_data.energies = self.ray_data.energies[intersect_mask]
+        self.ray_data.phases = self.ray_data.phases[intersect_mask]
+        self.ray_data.delay = self.ray_data.delay[intersect_mask]
+            
+        # Get material properties for intersected faces
+        self._apply_material_properties(primID, inters, intersect_mask, normals)
 
-        # Create new RayData storage
-        recursion_idx = ray_data.recursion_idx + 1
-        print('InterfaceManager', recursion_idx, ray_data.bands_idx)
-        new_ray_data = RayData(src_idx=ray_data.src_idx, out_idx=ray_data.out_idx, bands_idx=ray_data.bands_idx, recursion_idx=recursion_idx, origins=new_origins, directions=new_directions, energies=new_energies, phases=new_phases)
-        _ = self.entity_manager.register('ray_datas', ray_data)
+    def _apply_material_properties(self, primID: np.ndarray, inters: np.ndarray, intersect_mask: np.ndarray, normals: np.ndarray):
+        """Apply material properties at intersection points."""
+        primID_filtered = primID[intersect_mask]
 
-        self.current_interactions += 1
-        return new_ray_data
+        # Get material properties
+        origins_bands_idx = np.arange(self.ray_data.origins_bands.T.shape[0])
+        bands = self.ray_data.origins_bands.flatten()
 
-    def _check_energy_conservation(self, rays_energies: np.ndarray, absorbed_energy: np.ndarray = None, reflected_energy: np.ndarray = None, scattered_energy: np.ndarray = None):
-        # Energy conservation check
-        total_out = rays_energies
-        total_out += absorbed_energy
-        total_out += reflected_energy
-        total_out += scattered_energy
+        if enable_absorption:
+            abs_coeffs = self.material_properties.absorption_coeffs[primID_filtered][origins_bands_idx, bands]
+            abs_phases = self.material_properties.absorption_phases[primID_filtered][origins_bands_idx, bands]
+        if enable_reflection:
+            refl_coeffs = self.material_properties.reflection_coeffs[primID_filtered][origins_bands_idx, bands]
+            refl_phases = self.material_properties.reflection_phases[primID_filtered][origins_bands_idx, bands]
+        if enable_scattering:
+            scat_coeffs = self.material_properties.scattering_coeffs[primID_filtered][origins_bands_idx, bands]
+            scat_phases = self.material_properties.scattering_phases[primID_filtered][origins_bands_idx, bands]
 
-        delta_energies = abs(total_out - rays_energies)
-        delta_mask = delta_energies > 1e-10
-        if not np.all(delta_mask):
-            total_out[~delta_mask] = rays_energies[~delta_mask] + 1e-10
-        # Normalize to ensure energy conservation
-        scale = rays_energies / total_out
-        absorbed_energy *= scale
-        reflected_energy *= scale
-        scattered_energy *= scale
+        # Compute incident angles
+        dot_projection = np.sum(self.ray_data.directions * normals, axis=1)
+        incident_angles = np.arccos(-dot_projection)
+        if enable_absorption:
+            angle_factor = np.cos(incident_angles)
+            angle_factor[angle_factor == 0] = 1e-16
+            absorbed_energies = energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
+        else:
+            absorbed_energies = energies
 
-        return absorbed_energy, reflected_energy, scattered_energy
+        # Compute reflection and scattering
+        if enable_reflection:
+            reflected_energies = self.ray_data.energies * refl_coeffs.reshape(-1, 1)
+            reflected_phases = self.ray_data.phases * -refl_phases.reshape(-1, 1) % (2 * np.pi)
+        else:
+            reflected_energies = np.zeros((0,1), dtype=np.float32)
+            reflected_phases = np.zeros((0,1), dtype=np.float32)
+
+        # Compute new origins
+        new_origins = inters + (0.01 * normals)
+        new_origins = new_origins.astype(np.float32)
+
+        # Compute reflection directions
+        if enable_reflection:
+            incident_directions = self.ray_data.origins - new_origins
+            reflected_directions = self._compute_reflection_directions(incident_directions, normals, incident_angles)
+        else:
+            reflected_directions = np.zeros((0,3), dtype=np.float32)
+
+        # Generate scattering rays
+        if enable_scattering:
+            scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs)
+        else:
+            scattered_data = {
+                'origins': np.zeros((0, 3), dtype=np.float32),
+                'directions': np.zeros((0, 3), dtype=np.float32),
+                'normals': np.zeros((0, 3), dtype=np.float32),
+                'energies': np.zeros((0, 1), dtype=np.float32),
+                'phases': np.zeros((0, 1), dtype=np.float32),
+                'delay': np.zeros((0, 1), dtype=np.float32)
+            }
+
+        # Combine reflected and scattered rays
+        self.ray_data.origins = np.append(new_origins, scattered_data['origins'], axis=0)
+        self.ray_data.directions = np.append(reflected_directions, scattered_data['directions'], axis=0)
+        self.ray_data.energies = np.append(reflected_energies, scattered_data['energies'], axis=0)
+        self.ray_data.phases = np.append(reflected_phases, scattered_data['phases'], axis=0)
+        self.ray_data.delay = np.append(self.ray_data.delay, scattered_data['delay'], axis=0)
+
+    def _compute_reflection_directions(self, incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray) -> np.ndarray:
+        """Compute reflection direction vectors."""
+        # Normalize inputs
+        incident_directions = incident_directions / np.linalg.norm(incident_directions, axis=1, keepdims=True)
+        normals = normals / np.linalg.norm(normals, axis=1, keepdims=True)
+
+        # Compute components
+        n_dot_i = np.sum(normals * incident_directions, axis=1, keepdims=True)
+        incident_normals = n_dot_i * normals
+        incident_tangent = incident_directions - incident_normals
+
+        # Normalize tangent
+        tangent_norm = np.linalg.norm(incident_tangent, axis=1, keepdims=True)
+        incident_tangent_unit = incident_tangent / (tangent_norm + 1e-10)
+
+        # Compute reflection direction
+        reflection_directions = (np.cos(incident_angles.reshape(-1, 1)) * incident_normals - np.sin(incident_angles.reshape(-1, 1)) * incident_tangent_unit)
+
+        return reflection_directions / np.linalg.norm(reflection_directions, axis=1, keepdims=True)
+
+    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
+        """Generate scattering rays on hemisphere."""
+        n_scat_origins = origins.shape[0]
+        max_scattering = max(self.config.interface.max_scattering, 2)
+
+        # Generate number of scattering rays
+        roughness = self.material_properties.roughness
+        n_scat_rays = np.random.randint(1, max_scattering, size=(n_scat_origins, 1))
+        n_samples = np.sum(n_scat_rays)
+
+        # Initialize arrays
+        result = {
+            'origins': np.zeros((n_samples, 3), dtype=np.float32),
+            'directions': np.zeros((n_samples, 3), dtype=np.float32),
+            'normals': np.zeros((n_samples, 3), dtype=np.float32),
+            'energies': np.zeros((n_samples, 1), dtype=np.float32),
+            'phases': np.zeros((n_samples, 1), dtype=np.float32),
+            'delay': np.zeros((n_samples, 1), dtype=np.float32)
+        }
+
+        # Generate random directions on hemisphere
+        hi_idx = 0
+        for idx in range(n_scat_origins):
+            lo_idx = hi_idx
+            hi_idx = lo_idx + int(n_scat_rays[idx])
+            n_rays_this = hi_idx - lo_idx
+
+            # Copy info array
+            result['origins'][lo_idx:hi_idx] = origins[idx]
+            result['directions'][lo_idx:hi_idx] = self.ray_data.directions[idx]
+            result['normals'][lo_idx:hi_idx] = normals[idx]
+            result['energies'][lo_idx:hi_idx] = self.ray_data.energies[idx]
+            result['phases'][lo_idx:hi_idx] = self.ray_data.phases[idx]
+            result['delay'][lo_idx:hi_idx] = self.ray_data.delay[idx]
+
+            # Generate random directions on hemisphere
+            random_dirs = np.random.uniform(-1, 1, (n_rays_this, 3))
+            random_dirs /= np.linalg.norm(random_dirs, axis=1, keepdims=True)
+
+            # Ensure directions point along hemisphere oriented by normal
+            normal = normals[idx]
+            dot_products = np.sum(random_dirs * normal, axis=1)
+            flip_mask = dot_products < 0
+            random_dirs[flip_mask] = -random_dirs[flip_mask]
+
+            result['directions'][lo_idx:hi_idx] = random_dirs
+
+            # Distribute energy among scattering rays
+            result['energies'][lo_idx:hi_idx] = scat_coeffs[idx] / n_rays_this
+
+        return result
+
+    def _collect_output_data(self, hits_obj_idx: np.ndarray, intersect_mask: np.ndarray, path_length: np.ndarray):
+        """Collect rays that reached output destinations."""
+        output_mask = hits_obj_idx <= -3
+
+        if np.any(output_mask):
+            self.output_data.source = np.append(self.output_data.source, self.ray_data.origins_idx[output_mask], axis=0).astype(np.int32)
+            self.output_data.bands = np.append(self.output_data.bands, self.ray_data.origins_bands[output_mask], axis=0).astype(np.int32)
+            self.output_data.energies = np.append(self.output_data.energies, self.ray_data.energies[output_mask], axis=0).astype(np.float32)
+            self.output_data.phases = np.append(self.output_data.phases, self.ray_data.phases[output_mask], axis=0).astype(np.float32)
+            self.output_data.delay = np.append(self.output_data.delay, self.ray_data.delay[output_mask], axis=0).astype(np.float32)
+            self.output_data.origins = np.append(self.output_data.origins, self.ray_data.origins[output_mask], axis=0).astype(np.float32)
+            self.output_data.destinations = np.append(self.output_data.destinations, self.ray_data.destinations[output_mask], axis=0).astype(np.float32)
+            self.output_data.destinations_idx = np.append(self.output_data.destinations_idx, self.ray_data.destinations_idx[output_mask], axis=0).astype(np.int32)
+            self.output_data.directions = np.append(self.output_data.directions, self.ray_data.directions[output_mask], axis=0).astype(np.float32)
+            print(f'Output: {np.count_nonzero(output_mask)}, 'f'{self.output_data.energies.shape[0]}')

@@ -17,22 +17,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import numpy as np
-import numba as nb
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 
 @dataclass
 class RayData:
-    src_idx: int
-    out_idx: int
-    bands_idx: int
-    recursion_idx: int
-    origins: np.ndarray
-    directions: np.ndarray
-    energies: np.ndarray
-    phases: np.ndarray
-    hits_coords: np.ndarray = None
-    path_length: np.ndarray = None
-    medium_absorption_coeffs: np.ndarray = None
-    medium_absorption_phases: np.ndarray = None
-    hits: Dict[str, np.ndarray] = None
+    """Holds ray tracing data."""
+    bands_idx: int = None
+    origins: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
+    destinations: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
+    directions: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
+    energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
+    phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
+    delay: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))

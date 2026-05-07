@@ -57,6 +57,25 @@ class AcousticEngine:
         tasks += [self._add_output(output) for output in config.outputs]
         compute(*tasks)
 
+        print('AcousticEngine: configuration loaded...')
+
+        # Initialize data structures
+        self.n_bands = len(frequency_bands.get_bands())
+
+        # Initialize geometry
+        self.geometry_data: Optional[GeometryData] = None
+        self.material_properties: Optional[MaterialProperties] = None
+        self.medium_properties: Optional[MediumProperties] = None
+
+        self._initialize_scene()
+        self._initialize_objects()
+
+        self.entity_manager.register('geometry_data', self.geometry_data)
+        self.entity_manager.register('material_properties', self.material_properties)
+        self.entity_manager.register('medium_properties', self.medium_properties)
+
+        print('AcousticEngine: acoustic scene loaded...')
+
         combos = []
         for i in range(len(config.sources)):
             for j in range(len(config.outputs)):
@@ -64,7 +83,7 @@ class AcousticEngine:
         tasks = [self._add_solvers(combo) for combo in combos]
         compute(*tasks)
 
-        print('AcousticEngine: configuration loaded...')
+        print('AcousticEngine: wave propagator engine ready...')
 
     @delayed
     def _add_source(self, config):
@@ -115,3 +134,107 @@ class AcousticEngine:
         wave_propagators = self.entity_manager.get('wave_propagators')
         tasks = [wave_propagators[index].compute(frame_idx) for index in wave_propagators.keys()]
         compute(*tasks)
+
+
+
+    def _initialize_scene(self):
+        """Initialize the acoustic domain scene."""
+        config = self.entity_manager.get('config')
+        ac_geometry = np.array(config.acoustic_domain.geometry)
+        ac_max = np.max(ac_geometry, axis=0)
+        ac_min = np.min(ac_geometry, axis=0)
+
+        mesh = trimesh.creation.box(bounds=(ac_min, ac_max))
+        vertices = mesh.vertices.astype(np.float32)
+        faces = mesh.faces.astype(np.int32)
+
+        mesh_info = mesh.vertices[mesh.faces]
+        scene_info = np.full((mesh_info.shape[0],), [-1], dtype=np.int32)
+
+        # Initialize medium properties
+        sound_speed = config.acoustic_domain.acoustic_shader.sound_speed
+        density = config.acoustic_domain.acoustic_shader.density
+        temperature = config.acoustic_domain.acoustic_shader.temperature
+        impedance = config.acoustic_domain.acoustic_shader.impedence
+
+        alpha, beta = self._compute_acoustic_domain_coefficients(sound_speed, density, temperature, impedance)
+
+        self.medium_properties = MediumProperties(
+            speed=sound_speed,
+            alpha=alpha,
+            beta=beta,
+            density=density,
+            temperature=temperature,
+            impedance=impedance
+        )
+
+        # Initialize acoustic properties for domain
+        n_faces = vertices[faces].shape[0]
+        self.material_properties = MaterialProperties(
+            absorption_coeffs=np.full((n_faces, self.n_bands), 1.0, dtype=np.float32),
+            absorption_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            reflection_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            reflection_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            refraction_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            refraction_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            scattering_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            scattering_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            roughness=np.full((n_faces, 1), 0.0, dtype=np.float32)
+        )
+
+        self.geometry_data = GeometryData(
+            vertices=vertices,
+            faces=faces,
+            mesh_info=mesh_info,
+            scene_info=scene_info
+        )
+
+    def _initialize_objects(self):
+        """Initialize scene objects."""
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        objects = self.entity_manager.get('objects')
+        for key in objects:
+            obj_config = objects[key].config_obj
+            vertices, vertex_normals, faces = objects[key].get_data()
+
+            self.geometry_data.mesh_info = np.append(self.geometry_data.mesh_info, vertices[faces], axis=0)
+            self.geometry_data.scene_info = np.append(self.geometry_data.scene_info, np.full((vertices[faces].shape[0],), [obj_config.idx], dtype=np.int32))
+
+            # Get object acoustic properties
+            n_faces = vertices[faces].shape[0]
+            roughness = obj_config.acoustic_shader.roughness
+            self.material_properties.roughness = np.append(self.material_properties.roughness, np.full((n_faces, 1), [roughness], dtype=np.float32), axis=0)
+
+            for prop_name in ['absorption', 'reflection', 'refraction', 'scattering']:
+                prop = getattr(obj_config.acoustic_shader.acoustic_properties, prop_name)
+                coeffs, phases = prop.get_bands_avg(frequency_bands.get_bands())
+
+                existing_coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
+                existing_phases = getattr(self.material_properties, f'{prop_name}_phases')
+
+                setattr(self.material_properties, f'{prop_name}_coeffs', np.append(existing_coeffs, np.full((n_faces, self.n_bands), coeffs, dtype=np.float32), axis=0))
+                setattr(self.material_properties, f'{prop_name}_phases', np.append(existing_phases, np.full((n_faces, self.n_bands), phases, dtype=np.float32), axis=0))
+
+    def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float):
+        """Compute absorption and phase shift coefficients for air."""
+        freqs = np.unique(frequency_bands.get_bands())[:-1]
+        T_K = T + 273.15
+        omega = 2 * np.pi * freqs
+
+        # Constants for air
+        mu = 1.846e-5  # Dynamic viscosity (Pa·s)
+        kappa = 0.0262  # Thermal conductivity (W/m·K)
+        Cp = 1005  # Specific heat at constant pressure (J/kg·K)
+        Cv = 718  # Specific heat at constant volume (J/kg·K)
+        gamma_specific = Cp / Cv
+
+        # Viscous and thermal contributions
+        alpha_visc = (omega**2 * mu) / (2 * rho * c**3)
+        alpha_therm = (omega**2 * kappa * (gamma_specific - 1)) / (2 * rho * c**3 * Cp)
+
+        alpha = alpha_visc + alpha_therm
+        beta = omega / c
+
+        return alpha, beta
+
+
