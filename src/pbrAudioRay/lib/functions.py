@@ -96,12 +96,15 @@ def _generate_band_frequencies(lowest_frequency: float, higher_frequency: float,
     frequencies = []
     current_freq = lowest_frequency
     
-    # Calculate the frequency ratio for one step
-    step_ratio = 2 ** (1 / bands_per_octave)
+    if bands_per_octave > 0:
+        # Calculate the frequency ratio for one step
+        step_ratio = 2 ** (1 / bands_per_octave)
 
-    while current_freq <= higher_frequency:
+        while current_freq <= higher_frequency:
+            frequencies.append(current_freq)
+            current_freq *= step_ratio
+    else:
         frequencies.append(current_freq)
-        current_freq *= step_ratio
 
     return frequencies
 
