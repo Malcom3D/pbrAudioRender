@@ -175,7 +175,7 @@ class AdaptiveArray:
         local_mmap.flush()
         del local_mmap
     
-    def _mmap_append_parallel(self, data data: np.ndarray, axis: int = 0):
+    def _mmap_append_parallel(self, data: np.ndarray, axis: int = 0):
         """Append data to memory-mapped file using parallel I/O"""
         old_size = self._total_size
         append_size = self._get_append_size(data, axis)
@@ -203,7 +203,7 @@ class AdaptiveArray:
         if old_size > 0:
             # Read old data in parallel
             old_path = self._mmap_path
-            old old_mmap = np.memmap(old_path, dtype=self.dtype, mode='r', shape=old_shape)
+            old_mmap = np.memmap(old_path, dtype=self.dtype, mode='r', shape=old_shape)
             
             # Split the copy operation into chunks for parallel processing
             chunk_size = max(1, old_shape[0] // self.num_io_workers)
@@ -253,7 +253,7 @@ class AdaptiveArray:
             new_local[start:end] = old_local[start:end]
         else:
             slicing_old = [slice(None)] * self._ndim
-            slicing_old[axis] = slice(start,, end)
+            slicing_old[axis] = slice(start, end)
             slicing_new = [slice(None)] * self._ndim
             slicing_new[axis] = slice(start, end)
             new_local[tuple(slicing_new)] = old_local[tuple(slicing_old)]
@@ -484,7 +484,7 @@ class AdaptiveArray:
     
     def sum(self, axis: Optional[int] = None) -> Union[np.ndarray, float]:
         """Sum along specified axis"""
-        data = = self.to_array()
+        data = self.to_array()
         return np.sum(data, axis=axis)
     
     def mean(self, axis: Optional[int] = None) -> Union[np.ndarray, float]:
@@ -537,7 +537,7 @@ class AdaptiveArray:
             self._mmap = None
             self._total_size = 0
             self._use_mmap = False
-                       self._shape = None
+            self._shape = None
             self._ndim = 0
             self._mmap_path = None
     
