@@ -65,8 +65,7 @@ class AdaptiveArray:
         
         if not self._use_mmap:
             # Check if we should switch to mmap
-            estimated_size = (self._total_size + self._get_append_size(data, axis)) * \
-                           np.dtype(self.dtype).itemsize
+            estimated_size = (self._total_size + self._get_append_size(data, axis)) * np.dtype(self.dtype).itemsize
             if estimated_size > self.memory_threshold:
                 self._convert_to_mmap()
                 self.append(data, axis)
@@ -219,21 +218,29 @@ class AdaptiveArray:
         return result
     
     def to_array(self) -> np.ndarray:
-        """Convert to regular numpy array"""
+        """Convert to regular numpy array with robust handling of chunks."""
         if self._total_size == 0:
             return np.array([], dtype=self.dtype)
-        
+    
         if self._use_mmap:
             return self._mmap[:].copy()
         else:
-            if len(self._chunks) == 1:
-                return self._chunks[0].copy()
-            elif len(self._chunks) > 1:
-                for i in range(len(self._chunks)):
-                    print(self._chunks[i].shape)
-                return np.concatenate(self._chunks, axis=0)
-            return np.array([], dtype=self.dtype)
-    
+            if self._chunks:
+                # Filter out empty chunks
+                non_empty_chunks = [chunk for chunk in self._chunks if chunk.size > 0]
+                if len(non_empty_chunks) == 0:
+                    # No non-empty chunks, return empty array with proper shape
+                    # Determine shape: shape of an empty chunk or fallback
+                    shape = list(self._shape) if self._shape is not None else (0,)
+                    return np.empty(shape, dtype=self.dtype)
+                elif len(non_empty_chunks) == 1:
+                    return non_empty_chunks[0].copy()
+                else:
+                    # Concatenate only non-empty chunks
+                    return np.concatenate(non_empty_chunks, axis=0)
+            else:
+                return np.array([], dtype=self.dtype)
+
     def __getitem__(self, key):
         """Support numpy-like indexing"""
         data = self.to_array()
