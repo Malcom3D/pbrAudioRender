@@ -23,12 +23,8 @@ from dataclasses import dataclass, field
 class OutputData:
     """Holds accumulated output data."""
     bands_idx: int = None
-    source: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
-    bands: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     delay: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     origins: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
     directions: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    destinations: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    destinations_idx: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
