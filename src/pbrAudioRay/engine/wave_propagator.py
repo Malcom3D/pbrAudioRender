@@ -178,7 +178,7 @@ class WavePropagator:
                 phi = np.arcsin(z)  # Elevation
 
                 # Compute spherical harmonics for each order
-                self._compute_spherical_harmonics(ambisonics_ir, delay, complex_amplitudes, theta, phi, ambisonic_order)
+                self._compute_spherical_harmonics(ambisonics_ir, delay_samples, complex_amplitudes, theta, phi, ambisonic_order)
 
                 # Apply windowing
                 window = np.hanning(ir_length)
