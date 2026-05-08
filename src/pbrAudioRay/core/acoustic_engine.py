@@ -33,6 +33,8 @@ from pbrAudioRay.lib.material_properties import MaterialProperties
 
 from pbrAudioRay.lib.functions import _mono_to_bands
 
+from pbrAudioRay.lib.ambisonic_ir_interpolator import AmbisonicIRInterpolator
+
 from pbrAudioRay.sources.spherical_source import SphericalSource
 from pbrAudioRay.sources.planar_source import PlanarSource
 
@@ -129,12 +131,23 @@ class AcousticEngine:
 
     def compute(self):
         config = self.entity_manager.get('config')
+
         start_frame = config.system.start_frame
         end_frame = config.system.end_frame
+
         for frame_idx in range(end_frame - start_frame):
             self._compute_frame(frame_idx)
+
         # interpolate x bands_idx IRs for wave_propagators[index].combo
+        ir_task = [self._interpolate_ir([wave_propagators[index].combo) for index in wave_propagators.keys()]
+        ir_results = compute(*ir_tasks)
+
+    @delayed
+    def _interpolate_ir(self, combo):
+        interpolator = AmbisonicIRInterpolator(self.entity_manager, combo)
+
         # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
+        convolved_audio = interpolator.smooth_convolve()
         
     def _compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
@@ -202,6 +215,7 @@ class AcousticEngine:
         frequency_bands = self.entity_manager.get('frequency_bands')
         objects = self.entity_manager.get('objects')
         n_bands = len(frequency_bands.get_bands())
+
         for key in objects:
             obj_config = objects[key].config_obj
             vertices, vertex_normals, faces = objects[key].get_data(-1)
@@ -215,14 +229,15 @@ class AcousticEngine:
             self.material_properties.roughness = np.append(self.material_properties.roughness, np.full((n_faces, 1), [roughness], dtype=np.float32), axis=0)
 
             for prop_name in ['absorption', 'reflection', 'refraction', 'scattering']:
-                prop = getattr(obj_config.acoustic_shader.acoustic_properties, prop_name)
-                coeffs, phases = prop.get_bands_avg(frequency_bands.get_bands())
+            if hasattr(obj_config.acoustic_shader.acoustic_properties, prop_name):
+                    prop = getattr(obj_config.acoustic_shader.acoustic_properties, prop_name)
+                    coeffs, phases = prop.get_bands_avg(frequency_bands.get_bands())
 
-                existing_coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
-                existing_phases = getattr(self.material_properties, f'{prop_name}_phases')
+                    existing_coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
+                    existing_phases = getattr(self.material_properties, f'{prop_name}_phases')
 
-                setattr(self.material_properties, f'{prop_name}_coeffs', np.append(existing_coeffs, np.full((n_faces, n_bands), coeffs, dtype=np.float32), axis=0))
-                setattr(self.material_properties, f'{prop_name}_phases', np.append(existing_phases, np.full((n_faces, n_bands), phases, dtype=np.float32), axis=0))
+                    setattr(self.material_properties, f'{prop_name}_coeffs', np.append(existing_coeffs, np.full((n_faces, n_bands), coeffs, dtype=np.float32), axis=0))
+                    setattr(self.material_properties, f'{prop_name}_phases', np.append(existing_phases, np.full((n_faces, n_bands), phases, dtype=np.float32), axis=0))
 
     def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float):
         """Compute absorption and phase shift coefficients for air."""

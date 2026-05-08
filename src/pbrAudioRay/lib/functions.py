@@ -410,7 +410,7 @@ def _compute_rayleigh_damping(f1: float, f2: float, xi1: float, xi2: float = Non
     except np.linalg.LinAlgError:
         raise ValueError("The two frequencies must be different to compute unique Rayleigh damping coefficients.")
 
-def _mono_to_bands(audio_file: str, sample_rate: int, frequency_bands: List[Tuple[float, float]]) -> str:
+def _mono_to_bands(audio_file: str, sample_rate: int, frequency_bands: List[Tuple[float, float]]) -> List:
     """
     Convert audio_file to frequency dependent np.ndarray in npz file audio_npz.
     """
