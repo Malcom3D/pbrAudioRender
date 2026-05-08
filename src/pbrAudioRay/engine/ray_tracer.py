@@ -42,7 +42,7 @@ class AcousticRayTracer:
     def __post_init__(self):
         """Initialize ray directions using Fibonacci sphere distribution."""
         config = self.entity_manager.get('config')
-        n_rays = self.config.system.number_of_rays
+        n_rays = config.system.number_of_rays
         self.max_interactions = config.wave_propagation.max_interactions
 
         # Fibonacci sphere
@@ -57,8 +57,8 @@ class AcousticRayTracer:
 
         # Set initial directions towards destinations
         main_dir = self.ray_data.destinations[0] - self.ray_data.origins[0]
-        main_dir_norm = np.linalg.norm(main_dir, axis=1, keepdims=True)
-        main_dir_norm[main_dir_norm <= 1e-10] = 1e-10
+        main_dir_norm = np.linalg.norm(main_dir)
+        main_dir_norm = max(main_dir_norm, 1e-10)
         main_dir = main_dir / main_dir_norm
 
         directions[0] = main_dir
@@ -74,7 +74,7 @@ class AcousticRayTracer:
     @delayed
     def compute(self):
         # Initialize interface manager
-        self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.medium_properties, self.ray_data, self.output_data)
+        self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, self.ray_data, self.output_data)
 
         # Initialize EmbreeX Scene
         self.scene = rtcs.EmbreeScene()

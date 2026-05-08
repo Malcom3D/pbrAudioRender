@@ -27,6 +27,9 @@ from ..core.entity_manager import EntityManager
 
 from ..lib.frequency_bands import FrequencyBands
 from ..lib.acoustic_object import AcousticObject
+from ..lib.geometry_data import GeometryData
+from ..lib.medium_properties import MediumProperties
+from ..lib.material_properties import MaterialProperties
 
 from ..sources.spherical_source import SphericalSource
 from ..sources.planar_source import PlanarSource

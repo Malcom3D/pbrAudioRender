@@ -21,6 +21,7 @@ import math
 import copy 
 import numpy as np
 import numba as nb
+import trimesh
 from numba import prange
 from dask import delayed, compute
 from typing import List, Tuple
@@ -86,11 +87,7 @@ class WavePropagator:
         for out_config in config.outputs:
             if out_config.idx == output_idx:
                 pose = np.load(f"{out_config.pose_path}/{out_config.name}.npz")
-                output_pos = pose[pose.files[0]].reshape(-1, 3)
-
-            output_arr = np.full((n_rays, 3), [output_pos], dtype=np.float32)
-
-            self.ray_data.destinations = np.append(self.ray_data.destinations, output_arr, axis=0)
+                self.ray_data.destinations = pose[pose.files[0]].reshape(-1, 3)
 
             # Create output sphere geometry
             if out_config.size == 0:
@@ -98,17 +95,17 @@ class WavePropagator:
 
             mesh = trimesh.creation.icosphere(subdivisions=2, radius=out_config.size)
             mesh.apply_transform([
-                [1, 0, 0, output_pos[0][0]],
-                [0, 1, 0, output_pos[0][1]],
-                [0, 0, 1, output_pos[0][2]],
+                [1, 0, 0, self.ray_data.destinations[0][0]],
+                [0, 1, 0, self.ray_data.destinations[0][1]],
+                [0, 0, 1, self.ray_data.destinations[0][2]],
                 [0, 0, 0, 1]
             ])
 
             vertices = mesh.vertices.astype(np.float32)
             faces = mesh.faces.astype(np.int32)
 
-            self.geometry.mesh_info = np.append(self.geometry.mesh_info, mesh.vertices[mesh.faces], axis=0)
-            self.geometry.scene_info = np.append(self.geometry.scene_info, np.full((mesh.vertices[mesh.faces].shape[0],), [-3], dtype=np.int32))
+            self.geometry_data.mesh_info = np.append(self.geometry_data.mesh_info, mesh.vertices[mesh.faces], axis=0)
+            self.geometry_data.scene_info = np.append(self.geometry_data.scene_info, np.full((mesh.vertices[mesh.faces].shape[0],), [-3], dtype=np.int32))
 
             # Add null properties for output geometry
             n_faces = vertices[faces].shape[0]
