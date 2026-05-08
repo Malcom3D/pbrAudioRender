@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import json
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
@@ -47,11 +48,12 @@ class AmbisonicOutput:
                 self.output_config = output_config
 
         # Load spatial arrangement configuration
-        with open(self.output_config.spatial_arrangement_file, 'r') as f:
-            self.spatial_config = json.load(f)
+        if os.path.exists(self.output_config.spatial_arrangement_file):
+            with open(self.output_config.spatial_arrangement_file, 'r') as f:
+                self.spatial_config = json.load(f)
 
-        tasks = [self._add_output(output) for output in self.spatial_config['outputs']]
-        compute(*tasks)
+            tasks = [self._add_output(output) for output in self.spatial_config['outputs']]
+            compute(*tasks)
 
     @delayed
     def _add_output(self, config):
