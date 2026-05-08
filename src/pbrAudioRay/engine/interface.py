@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 
 from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
+from ..lib.functions import _compute_rayleigh_damping
 
 #from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface, DiffusionInterface
 #from .interfaces.absorption import AbsorptionInterface
