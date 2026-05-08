@@ -204,7 +204,7 @@ class AcousticEngine:
         n_bands = len(frequency_bands.get_bands())
         for key in objects:
             obj_config = objects[key].config_obj
-            vertices, vertex_normals, faces = objects[key].get_data()
+            vertices, vertex_normals, faces = objects[key].get_data(-1)
 
             self.geometry_data.mesh_info = np.append(self.geometry_data.mesh_info, vertices[faces], axis=0)
             self.geometry_data.scene_info = np.append(self.geometry_data.scene_info, np.full((vertices[faces].shape[0],), [obj_config.idx], dtype=np.int32))
