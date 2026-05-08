@@ -72,9 +72,9 @@ class AcousticRayTracer:
         self.output_data = OutputData(bands_idx=self.ray_data.bands_idx)
 
     @delayed
-    def compute(self):
+    def compute(self, frame_idx: int):
         # Initialize interface manager
-        self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, self.ray_data, self.output_data)
+        self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, self.ray_data, self.output_data, frame_idx)
 
         # Initialize EmbreeX Scene
         self.scene = rtcs.EmbreeScene()
