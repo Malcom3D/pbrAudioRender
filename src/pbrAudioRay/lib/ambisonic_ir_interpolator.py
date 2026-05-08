@@ -24,7 +24,8 @@ from typing import List, Tuple, Any
 from dataclasses import dataclass
 import warnings
 
-from ..lib.functions import _mono_to_bands
+from pbrAudioRay.core.entity_manager import EntityManager
+from pbrAudioRay.lib.functions import _mono_to_bands
 
 @dataclass
 class AmbisonicIRInterpolator:
@@ -62,12 +63,12 @@ class AmbisonicIRInterpolator:
             if src_config.idx == source_idx:
                 self.audio_file = src_config.audio_file
 
-        ir_path = = f"{config.system.cache_path}/impulse_responses"
+        ir_path = f"{config.system.cache_path}/impulse_responses"
         items = os.listdir(ir_path)
         interpolators = []
         ir_sequence = []
         for bands_idx in range(n_bands):
-            items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(_{source_idx}_{output_idx}_{bands_idx:05}.wav")]
+            items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")]
             filenames = sorted(items, key=lambda x: int(''.join(filter(str.isdigit, x))))
             for filename in filenames:
                 ir_data, sr = sf.read(filename)
