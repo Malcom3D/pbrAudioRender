@@ -23,24 +23,26 @@ from typing import List, Tuple
 
 from dask import delayed, compute
 
-from ..core.entity_manager import EntityManager
+from pbrAudioRay.core.entity_manager import EntityManager
 
-from ..lib.frequency_bands import FrequencyBands
-from ..lib.acoustic_object import AcousticObject
-from ..lib.geometry_data import GeometryData
-from ..lib.medium_properties import MediumProperties
-from ..lib.material_properties import MaterialProperties
+from pbrAudioRay.lib.frequency_bands import FrequencyBands
+from pbrAudioRay.lib.acoustic_object import AcousticObject
+from pbrAudioRay.lib.geometry_data import GeometryData
+from pbrAudioRay.lib.medium_properties import MediumProperties
+from pbrAudioRay.lib.material_properties import MaterialProperties
 
-from ..sources.spherical_source import SphericalSource
-from ..sources.planar_source import PlanarSource
+from pbrAudioRay.lib.functions import _mono_to_bands
 
-from ..engine.wave_propagator import WavePropagator
+from pbrAudioRay.sources.spherical_source import SphericalSource
+from pbrAudioRay.sources.planar_source import PlanarSource
 
-from ..outputs.ambisonic_output import AmbisonicOutput
-from ..outputs.omnidirectional_output import OmnidirectionalOutput
-from ..outputs.cardioid_output import CardioidOutput
-from ..outputs.hypercardioid_output import HypercardioidOutput
-from ..outputs.figure8_output import Figure8Output
+from pbrAudioRay.engine.wave_propagator import WavePropagator
+
+from pbrAudioRay.outputs.ambisonic_output import AmbisonicOutput
+from pbrAudioRay.outputs.omnidirectional_output import OmnidirectionalOutput
+from pbrAudioRay.outputs.cardioid_output import CardioidOutput
+from pbrAudioRay.outputs.hypercardioid_output import HypercardioidOutput
+from pbrAudioRay.outputs.figure8_output import Figure8Output
 
 # Configure Dask to use more threads
 from dask import config as dask_config
@@ -131,13 +133,14 @@ class AcousticEngine:
         end_frame = config.system.end_frame
         for frame_idx in range(end_frame - start_frame):
             self.compute_frame(frame_idx)
+        # interpolate x bands_idx IRs for wave_propagators[index].combo
+        # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
         
     def compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
         tasks = [wave_propagators[index].compute(frame_idx) for index in wave_propagators.keys()]
-        compute(*tasks)
-
-
+        results = compute(*tasks)
+        # compute x bands_idx IRs for wave_propagators[index].combo
 
     def _initialize_scene(self):
         """Initialize the acoustic domain scene."""

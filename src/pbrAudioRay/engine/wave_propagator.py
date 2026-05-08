@@ -27,15 +27,14 @@ from dask import delayed, compute
 from typing import List, Tuple
 from dataclasses import dataclass
 
-from ..core.entity_manager import EntityManager
+from pbrAudioRay.core.entity_manager import EntityManager
+from pbrAudioRay.engine.ray_tracer import AcousticRayTracer
 
-from ..engine.ray_tracer import AcousticRayTracer
-
-from ..lib.functions import _load_pose
-from ..lib.ray_data import RayData
-from ..lib.geometry_data import GeometryData
-from ..lib.material_properties import MaterialProperties
-from ..lib.medium_properties import MediumProperties
+from pbrAudioRay.lib.functions import _load_pose
+from pbrAudioRay.lib.ray_data import RayData
+from pbrAudioRay.lib.geometry_data import GeometryData
+from pbrAudioRay.lib.material_properties import MaterialProperties
+from pbrAudioRay.lib.medium_properties import MediumProperties
 
 @dataclass
 class WavePropagator:
@@ -134,5 +133,6 @@ class WavePropagator:
             tracer_task += [ray_tracer.compute()]
 
         results = compute(*tracer_task)
+        #return output_data
         for output_data in results:
             print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
