@@ -151,8 +151,8 @@ class InterfaceManager:
                         alpha, beta = self._compute_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
 
                         medium_speed[medium_mask] = sound_speed
-                        medium_alpha[medium_mask] = alpha.T
-                        medium_beta[medium_mask] = beta.T
+                        medium_alpha[medium_mask] = np.full((1,n_bands), [alpha], dtype=np.float32)
+                        medium_beta[medium_mask] = np.full((1,n_bands), [beta], dtype=np.float32)
 
         # Apply medium attenuation
         attenuation = np.exp(-medium_alpha * path_length)
