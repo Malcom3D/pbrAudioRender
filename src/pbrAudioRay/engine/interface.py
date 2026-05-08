@@ -26,9 +26,9 @@ from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
 
 #from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface, DiffusionInterface
-from .interfaces.absorption import AbsorptionInterface
-from .interfaces.reflection import ReflectionInterface
-from .interfaces.scattering import ScatteringInterface
+#from .interfaces.absorption import AbsorptionInterface
+#from .interfaces.reflection import ReflectionInterface
+#from .interfaces.scattering import ScatteringInterface
 
 @dataclass
 class InterfaceManager:
@@ -45,9 +45,9 @@ class InterfaceManager:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
-        self.absorption_interface = AbsorptionInterface(self.entity_manager)
-        self.reflection_interface = ReflectionInterface(self.entity_manager)
-        self.scattering_interface = ScatteringInterface(self.entity_manager)
+#        self.absorption_interface = AbsorptionInterface(self.entity_manager)
+#        self.reflection_interface = ReflectionInterface(self.entity_manager)
+#        self.scattering_interface = ScatteringInterface(self.entity_manager)
 
     def compute(self, res: Dict[str, np.ndarray], ray_inter: np.ndarray):
         """
@@ -98,10 +98,6 @@ class InterfaceManager:
         """Filter and process intersected rays."""
         # Filter all ray data
         self.ray_data.origins = self.ray_data.origins[ray_inter]
-        self.ray_data.origins_idx = self.ray_data.origins_idx[ray_inter]
-        self.ray_data.origins_bands = self.ray_data.origins_bands[ray_inter]
-        self.ray_data.destinations = self.ray_data.destinations[ray_inter]
-        self.ray_data.destinations_idx = self.ray_data.destinations_idx[ray_inter]
         self.ray_data.directions = self.ray_data.directions[ray_inter]
         self.ray_data.energies = self.ray_data.energies[ray_inter]
         self.ray_data.phases = self.ray_data.phases[ray_inter]
@@ -130,45 +126,38 @@ class InterfaceManager:
 
         # Default medium properties (air)
         medium_speed = np.full((n_rays, 1), self.medium_properties.speed, dtype=np.float32)
-        medium_alpha = np.full((n_rays, self.n_bands), self.medium_properties.alpha, dtype=np.float32)
-        medium_beta = np.full((n_rays, self.n_bands), self.medium_properties.beta, dtype=np.float32)
+        medium_alpha = np.full((n_rays, 1), self.medium_properties.alpha, dtype=np.float32)
+        medium_beta = np.full((n_rays, 1), self.medium_properties.beta, dtype=np.float32)
 
         # Check for objects containing origins
-        for obj_config in self.config.objects:
-            mesh_file = f"{obj_config.obj_path}/{obj_config.name}.npz"
-            if not os.path.isfile(mesh_file):
-                continue
+        config = self.entity_manager.get('config')
+        objects = self.entity_manager.get('objects'):
+        for key in objects:
+            mesh = objects[key].get_mesh()
+            for obj_config in config.objects:
+                if obj_config.obj_idx == objects.idx:
+                    medium_mask = mesh.contains(self.ray_data.origins)
+                    if np.any(medium_mask):
+                        print(f'Get medium object properties for {obj_config.name}')
 
-            data = np.load(mesh_file, allow_pickle=False)
-            vertices = data[data.files[0]].astype(np.float32)
-            vertex_normals = data[data.files[1]].astype(np.float32)
-            faces = data[data.files[2]].astype(np.int32)
+                        sound_speed = obj_config.acoustic_shader.sound_speed
+                        density = obj_config.acoustic_shader.density
+                        young_modulus = obj_config.acoustic_shader.young_modulus
+                        poisson_ratio = obj_config.acoustic_shader.poisson_ratio
+                        damping = obj_config.acoustic_shader.damping
 
-            mesh = trimesh.Trimesh(vertices=vertices, vertex_normals=vertex_normals, faces=faces)
+                        alpha, beta = self._compute_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
 
-            medium_mask = mesh.contains(self.ray_data.origins)
-            if np.any(medium_mask):
-                print(f'Get medium object properties for {obj_config.name}')
-
-                sound_speed = obj_config.acoustic_shader.sound_speed
-                density = obj_config.acoustic_shader.density
-                young_modulus = obj_config.acoustic_shader.young_modulus
-                poisson_ratio = obj_config.acoustic_shader.poisson_ratio
-                damping = obj_config.acoustic_shader.damping
-
-                alpha, beta = self._compute_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
-
-                medium_speed[medium_mask] = sound_speed
-                medium_alpha[medium_mask] = alpha.T
-                medium_beta[medium_mask] = beta.T
+                        medium_speed[medium_mask] = sound_speed
+                        medium_alpha[medium_mask] = alpha
+                        medium_beta[medium_mask] = beta
 
         # Apply medium attenuation
-        origins_bands_idx = np.arange(self.ray_data.origins_bands.T.shape[0])
         attenuation = np.exp(-medium_alpha * path_length)
-        self.ray_data.energies *= attenuation[origins_bands_idx, self.ray_data.origins_bands]
+        self.ray_data.energies *= attenuation
 
         # Apply phase shift
-        phase_shift = path_length * medium_beta[origins_bands_idx, self.ray_data.origins_bands]
+        phase_shift = path_length * medium_beta
         self.ray_data.phases = (self.ray_data.phases + phase_shift) % (2 * np.pi)
 
         # Update delay
@@ -177,17 +166,13 @@ class InterfaceManager:
 
     def _compute_object_coefficients(self, c: float, rho: float, E: float, nu: float, damping: float):
         """Calculate medium attenuation coefficient and phase shift for objects."""
-        n_bands = self.n_bands
-        alpha = np.zeros((n_bands, 1), dtype=np.float32)
-        beta = np.zeros((n_bands, 1), dtype=np.float32)
+        frequency_bands = self.entity_manager.get('frequency_bands')
 
-        for idx in range(n_bands): 
-            min_freq, max_freq = self.frequency_bands.get_bands()[idx]
-            alpha[idx], beta[idx] = _compute_rayleigh_damping(min_freq, max_freq, damping)
+        min_freq, max_freq = frequency_bands.get_bands()[self.ray_data.bands_idx]
+        alpha, beta = _compute_rayleigh_damping(min_freq, max_freq, damping)
 
-        freqs = np.unique(self.frequency_bands.get_bands())[:-1]
+        freqs = min_freq + (max_freq - min_freq)/2
         omega = 2 * np.pi * freqs
-        omega = omega.reshape(freqs.shape[0], 1)
 
         K = E / (3 * (1 - 2 * nu))
         G = E / (2 * (1 + nu)) 
@@ -225,10 +210,6 @@ class InterfaceManager:
             
         # Filter remaining data
         self.ray_data.origins = self.ray_data.origins[intersect_mask]
-        self.ray_data.origins_idx = self.ray_data.origins_idx[intersect_mask]
-        self.ray_data.origins_bands = self.ray_data.origins_bands[intersect_mask]
-        self.ray_data.destinations = self.ray_data.destinations[intersect_mask]
-        self.ray_data.destinations_idx = self.ray_data.destinations_idx[intersect_mask]
         self.ray_data.directions = self.ray_data.directions[intersect_mask]
         self.ray_data.energies = self.ray_data.energies[intersect_mask]
         self.ray_data.phases = self.ray_data.phases[intersect_mask]
@@ -242,18 +223,15 @@ class InterfaceManager:
         primID_filtered = primID[intersect_mask]
 
         # Get material properties
-        origins_bands_idx = np.arange(self.ray_data.origins_bands.T.shape[0])
-        bands = self.ray_data.origins_bands.flatten()
-
         if enable_absorption:
-            abs_coeffs = self.material_properties.absorption_coeffs[primID_filtered][origins_bands_idx, bands]
-            abs_phases = self.material_properties.absorption_phases[primID_filtered][origins_bands_idx, bands]
+            abs_coeffs = self.material_properties.absorption_coeffs[primID_filtered][:, self.ray_data.bands_idx]
+            abs_phases = self.material_properties.absorption_phases[primID_filtered][:, self.ray_data.bands_idx]
         if enable_reflection:
-            refl_coeffs = self.material_properties.reflection_coeffs[primID_filtered][origins_bands_idx, bands]
-            refl_phases = self.material_properties.reflection_phases[primID_filtered][origins_bands_idx, bands]
+            refl_coeffs = self.material_properties.reflection_coeffs[primID_filtered][:, self.ray_data.bands_idx]
+            refl_phases = self.material_properties.reflection_phases[primID_filtered][:, self.ray_data.bands_idx]
         if enable_scattering:
-            scat_coeffs = self.material_properties.scattering_coeffs[primID_filtered][origins_bands_idx, bands]
-            scat_phases = self.material_properties.scattering_phases[primID_filtered][origins_bands_idx, bands]
+            scat_coeffs = self.material_properties.scattering_coeffs[primID_filtered][:, self.ray_data.bands_idx]
+            scat_phases = self.material_properties.scattering_phases[primID_filtered][:, self.ray_data.bands_idx]
 
         # Compute incident angles
         dot_projection = np.sum(self.ray_data.directions * normals, axis=1)
@@ -261,9 +239,9 @@ class InterfaceManager:
         if enable_absorption:
             angle_factor = np.cos(incident_angles)
             angle_factor[angle_factor == 0] = 1e-16
-            absorbed_energies = energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
+            absorbed_energies = self.ray_data.energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
         else:
-            absorbed_energies = energies
+            absorbed_energies = self.ray_data.energies
 
         # Compute reflection and scattering
         if enable_reflection:
@@ -297,6 +275,17 @@ class InterfaceManager:
                 'delay': np.zeros((0, 1), dtype=np.float32)
             }
 
+        # Energy conservation check
+        total_out = absorbed_energies + reflected_energies + scattered_data['energies']
+        delta_energies = abs(total_out - self.ray_data.energies)
+        delta_mask = delta_energies > 1e-16
+        if not np.all(delta_mask):
+            total_out[~delta_mask] = self.ray_data.energies[~delta_mask] + 1e-16
+        scale = self.ray_data.energies / total_out
+        absorbed_energies *= scale
+        reflected_energies *= scale
+        scattered_data['energies'] *= scale
+
         # Combine reflected and scattered rays
         self.ray_data.origins = np.append(new_origins, scattered_data['origins'], axis=0)
         self.ray_data.directions = np.append(reflected_directions, scattered_data['directions'], axis=0)
@@ -327,7 +316,8 @@ class InterfaceManager:
     def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
         """Generate scattering rays on hemisphere."""
         n_scat_origins = origins.shape[0]
-        max_scattering = max(self.config.interface.max_scattering, 2)
+        max_scattering_rays = int(self.config.interface.max_scattering/self.ray_data.energies
+        max_scattering = max(max_scattering_rays, 1)
 
         # Generate number of scattering rays
         roughness = self.material_properties.roughness
@@ -382,12 +372,9 @@ class InterfaceManager:
 
         if np.any(output_mask):
             self.output_data.source = np.append(self.output_data.source, self.ray_data.origins_idx[output_mask], axis=0).astype(np.int32)
-            self.output_data.bands = np.append(self.output_data.bands, self.ray_data.origins_bands[output_mask], axis=0).astype(np.int32)
             self.output_data.energies = np.append(self.output_data.energies, self.ray_data.energies[output_mask], axis=0).astype(np.float32)
             self.output_data.phases = np.append(self.output_data.phases, self.ray_data.phases[output_mask], axis=0).astype(np.float32)
             self.output_data.delay = np.append(self.output_data.delay, self.ray_data.delay[output_mask], axis=0).astype(np.float32)
             self.output_data.origins = np.append(self.output_data.origins, self.ray_data.origins[output_mask], axis=0).astype(np.float32)
-            self.output_data.destinations = np.append(self.output_data.destinations, self.ray_data.destinations[output_mask], axis=0).astype(np.float32)
-            self.output_data.destinations_idx = np.append(self.output_data.destinations_idx, self.ray_data.destinations_idx[output_mask], axis=0).astype(np.int32)
             self.output_data.directions = np.append(self.output_data.directions, self.ray_data.directions[output_mask], axis=0).astype(np.float32)
             print(f'Output: {np.count_nonzero(output_mask)}, 'f'{self.output_data.energies.shape[0]}')

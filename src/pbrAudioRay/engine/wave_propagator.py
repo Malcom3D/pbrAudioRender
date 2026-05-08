@@ -137,5 +137,5 @@ class WavePropagator:
             tracer_task += [ray_tracer.compute()]
 
         results = compute(*tracer_task)
-
-
+        for output_data in results:
+            print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
