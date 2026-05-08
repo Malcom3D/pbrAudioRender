@@ -24,7 +24,7 @@ import numba as nb
 import trimesh
 from numba import prange
 from dask import delayed, compute
-from typing import List, Tuple
+from typing import List, Tuple, Any
 from dataclasses import dataclass
 
 from pbrAudioRay.core.entity_manager import EntityManager
