@@ -45,7 +45,7 @@ class WavePropagator:
     def __post_init__(self):
         config = self.entity_manager.get('config')
         max_interactions = config.wave_propagation.max_interactions
-        sys.setrecursionlimit(max_interactions)
+        sys.setrecursionlimit(max_interactions*2)
 
         # Initialize Ray data
         self.ray_data = RayData()
