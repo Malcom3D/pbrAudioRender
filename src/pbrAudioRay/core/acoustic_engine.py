@@ -132,15 +132,14 @@ class AcousticEngine:
         start_frame = config.system.start_frame
         end_frame = config.system.end_frame
         for frame_idx in range(end_frame - start_frame):
-            self.compute_frame(frame_idx)
+            self._compute_frame(frame_idx)
         # interpolate x bands_idx IRs for wave_propagators[index].combo
         # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
         
-    def compute_frame(self, frame_idx: int):
+    def _compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
         tasks = [wave_propagators[index].compute(frame_idx) for index in wave_propagators.keys()]
         results = compute(*tasks)
-        # compute x bands_idx IRs for wave_propagators[index].combo
 
     def _initialize_scene(self):
         """Initialize the acoustic domain scene."""
@@ -247,5 +246,3 @@ class AcousticEngine:
         beta = omega / c
 
         return alpha, beta
-
-
