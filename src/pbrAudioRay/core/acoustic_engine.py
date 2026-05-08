@@ -16,6 +16,8 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import trimesh
+import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -58,9 +60,6 @@ class AcousticEngine:
         compute(*tasks)
 
         print('AcousticEngine: configuration loaded...')
-
-        # Initialize data structures
-        self.n_bands = len(frequency_bands.get_bands())
 
         # Initialize geometry
         self.geometry_data: Optional[GeometryData] = None
@@ -140,6 +139,9 @@ class AcousticEngine:
     def _initialize_scene(self):
         """Initialize the acoustic domain scene."""
         config = self.entity_manager.get('config')
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        n_bands = len(frequency_bands.get_bands())
+
         ac_geometry = np.array(config.acoustic_domain.geometry)
         ac_max = np.max(ac_geometry, axis=0)
         ac_min = np.min(ac_geometry, axis=0)
@@ -171,14 +173,14 @@ class AcousticEngine:
         # Initialize acoustic properties for domain
         n_faces = vertices[faces].shape[0]
         self.material_properties = MaterialProperties(
-            absorption_coeffs=np.full((n_faces, self.n_bands), 1.0, dtype=np.float32),
-            absorption_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            reflection_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            reflection_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            refraction_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            refraction_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            scattering_coeffs=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
-            scattering_phases=np.full((n_faces, self.n_bands), 0.0, dtype=np.float32),
+            absorption_coeffs=np.full((n_faces, n_bands), 1.0, dtype=np.float32),
+            absorption_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            reflection_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            reflection_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            refraction_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            refraction_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            scattering_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            scattering_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             roughness=np.full((n_faces, 1), 0.0, dtype=np.float32)
         )
 
@@ -193,6 +195,7 @@ class AcousticEngine:
         """Initialize scene objects."""
         frequency_bands = self.entity_manager.get('frequency_bands')
         objects = self.entity_manager.get('objects')
+        n_bands = len(frequency_bands.get_bands())
         for key in objects:
             obj_config = objects[key].config_obj
             vertices, vertex_normals, faces = objects[key].get_data()
@@ -212,12 +215,14 @@ class AcousticEngine:
                 existing_coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
                 existing_phases = getattr(self.material_properties, f'{prop_name}_phases')
 
-                setattr(self.material_properties, f'{prop_name}_coeffs', np.append(existing_coeffs, np.full((n_faces, self.n_bands), coeffs, dtype=np.float32), axis=0))
-                setattr(self.material_properties, f'{prop_name}_phases', np.append(existing_phases, np.full((n_faces, self.n_bands), phases, dtype=np.float32), axis=0))
+                setattr(self.material_properties, f'{prop_name}_coeffs', np.append(existing_coeffs, np.full((n_faces, n_bands), coeffs, dtype=np.float32), axis=0))
+                setattr(self.material_properties, f'{prop_name}_phases', np.append(existing_phases, np.full((n_faces, n_bands), phases, dtype=np.float32), axis=0))
 
     def _compute_acoustic_domain_coefficients(self, c: float, rho: float, T: float, Z: float):
         """Compute absorption and phase shift coefficients for air."""
+        frequency_bands = self.entity_manager.get('frequency_bands')
         freqs = np.unique(frequency_bands.get_bands())[:-1]
+
         T_K = T + 273.15
         omega = 2 * np.pi * freqs
 

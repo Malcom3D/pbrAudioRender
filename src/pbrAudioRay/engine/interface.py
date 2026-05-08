@@ -131,7 +131,7 @@ class InterfaceManager:
 
         # Check for objects containing origins
         config = self.entity_manager.get('config')
-        objects = self.entity_manager.get('objects'):
+        objects = self.entity_manager.get('objects')
         for key in objects:
             mesh = objects[key].get_mesh()
             for obj_config in config.objects:
@@ -316,7 +316,7 @@ class InterfaceManager:
     def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
         """Generate scattering rays on hemisphere."""
         n_scat_origins = origins.shape[0]
-        max_scattering_rays = int(self.config.interface.max_scattering/self.ray_data.energies
+        max_scattering_rays = int(self.config.interface.max_scattering/self.ray_data.energies)
         max_scattering = max(max_scattering_rays, 1)
 
         # Generate number of scattering rays
