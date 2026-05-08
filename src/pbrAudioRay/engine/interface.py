@@ -136,7 +136,7 @@ class InterfaceManager:
         config = self.entity_manager.get('config')
         objects = self.entity_manager.get('objects')
         for key in objects:
-            mesh = objects[key].get_mesh()
+            mesh = objects[key].get_mesh(self.frame_idx)
             for obj_config in config.objects:
                 if obj_config.idx == objects[key].obj_idx:
                     medium_mask = mesh.contains(self.ray_data.origins)
