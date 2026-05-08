@@ -24,7 +24,6 @@ class RayData:
     """Holds ray tracing data."""
     bands_idx: int = None
     origins: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
-    destinations: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
     directions: np.ndarray = field(default_factory=lambda: np.zeros((0, 3), dtype=np.float32))
     energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))

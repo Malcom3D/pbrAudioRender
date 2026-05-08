@@ -84,6 +84,9 @@ class AcousticRayTracer:
         # Start recursive ray tracing
         self._ray_tracing_loop()
 
+        # Return output data for ir computations
+        return self.output_data
+
     def _ray_tracing_loop(self):
         """Recursive ray tracing loop."""
         res = self.scene.run(self.ray_data.origins.astype(np.float32), self.ray_data.directions.astype(np.float32), output=1)
@@ -104,8 +107,6 @@ class AcousticRayTracer:
         self.recursion_idx += 1
         if self.ray_data.origins.shape[0] > 0:
             self._ray_tracing_loop()
-        else:
-            return self.output_data
 
     def _apply_energy_threshold(self):
         """Apply energy threshold to terminate low-energy rays."""
@@ -113,10 +114,6 @@ class AcousticRayTracer:
         termination_mask = self.ray_data.energies > termination_energy
 
         self.ray_data.origins = self.ray_data.origins[termination_mask.reshape(-1,)]
-        self.ray_data.origins_idx = self.ray_data.origins_idx[termination_mask].reshape(-1, 1)
-        self.ray_data.origins_bands = self.ray_data.origins_bands[termination_mask].reshape(-1, 1)
-        self.ray_data.destinations = self.ray_data.destinations[termination_mask.reshape(-1,)]
-        self.ray_data.destinations_idx = self.ray_data.destinations_idx[termination_mask].reshape(-1, 1)
         self.ray_data.directions = self.ray_data.directions[termination_mask.reshape(-1,)]
         self.ray_data.energies = self.ray_data.energies[termination_mask].reshape(-1, 1)
         self.ray_data.phases = self.ray_data.phases[termination_mask].reshape(-1, 1)
