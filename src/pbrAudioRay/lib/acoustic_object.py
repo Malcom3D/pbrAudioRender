@@ -41,7 +41,7 @@ class AcousticObject:
         vertices, normals, faces = self.get_data(frame_idx)
         return trimesh.Trimesh(vertices=vertices, vertex_normals=normals, faces=faces)
 
-    def get_data(self, frame_idx: int = None) -> Tuple(np.ndarray, np.ndarray, np.ndarray)
+    def get_data(self, frame_idx: int = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """ Return object geometry data"""
         frame_idx = frame_idx if not frame_idx == None else 0
         return _load_mesh(self.config_obj, frame_idx)
