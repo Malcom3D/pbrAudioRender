@@ -198,6 +198,7 @@ class AcousticEngine:
 
     def _initialize_objects(self):
         """Initialize scene objects."""
+        config = self.entity_manager.get('config')
         frequency_bands = self.entity_manager.get('frequency_bands')
         objects = self.entity_manager.get('objects')
         n_bands = len(frequency_bands.get_bands())

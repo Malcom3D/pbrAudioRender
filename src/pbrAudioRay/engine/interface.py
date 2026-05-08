@@ -42,6 +42,7 @@ class InterfaceManager:
     medium_properties: Any
     ray_data: Any
     output_data: Any
+    frame_idx: int
     recursion_idx: int = 0
     
     def __post_init__(self):

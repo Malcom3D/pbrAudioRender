@@ -130,7 +130,7 @@ class WavePropagator:
             ray_data = copy.deepcopy(self.ray_data)
             ray_data.bands_idx = bands_idx
             ray_tracer = AcousticRayTracer(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, ray_data)
-            tracer_task += [ray_tracer.compute()]
+            tracer_task += [ray_tracer.compute(frame_idx)]
 
         results = compute(*tracer_task)
 
@@ -192,14 +192,14 @@ class WavePropagator:
 
                 # Save impulse response
                 output_dir = f"{config.system.cache_path}/impulse_responses"
-                    os.makedirs(output_dir, exist_ok=True)
+                os.makedirs(output_dir, exist_ok=True)
 
-                    filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx}_{source_idx}_{output_idx}_{bands_idx}.wav"
-                    sf.write(filename, ambisonics_ir.T, sample_rate, subtype='FLOAT')
+                filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx}_{source_idx}_{output_idx}_{bands_idx}.wav"
+                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='FLOAT')
 
-                    print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
-                    print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
-                    print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
+                print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
+                print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
+                print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
 
     def _compute_spherical_harmonics(self, ambisonics_ir: np.ndarray, delay_samples: np.ndarray, complex_amplitudes: np.ndarray, theta: np.ndarray, phi: np.ndarray, ambisonic_order: int):
         """Compute spherical harmonics and add to IR buffer."""
