@@ -23,6 +23,7 @@ import copy
 import numpy as np
 import numba as nb
 import trimesh
+import soundfile as sf
 from numba import prange
 from dask import delayed, compute
 from typing import List, Tuple, Any
