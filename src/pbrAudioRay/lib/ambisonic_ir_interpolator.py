@@ -59,7 +59,6 @@ class AmbisonicIRInterpolator:
                 self.src_name = src_config.name
 
         ir_path = f"{config.system.cache_path}/impulse_responses"
-        interpolators = []
         for bands_idx in range(n_bands):
             ir_sequence = []
             items = os.listdir(ir_path)
@@ -88,9 +87,9 @@ class AmbisonicIRInterpolator:
         ir_datas = []
         for ir_data in ir_sequence:
             if not ir_data.shape[0] == self.max_ir_length:
-                diff_samples = self.max_ir_length - ir_data.shape[1]
-                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1]), axis=0))
-                ir_datas += ir_data
+                diff_samples = self.max_ir_length - ir_data.shape[0]
+                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0))
+            ir_datas += ir_data
 
         # Create a 3D grid: (time_position, sample, channel)
         # Frame time positions in samples of IRs
@@ -106,17 +105,10 @@ class AmbisonicIRInterpolator:
         grid = (times, samples, channels)
         
         # Create values array
-        values = np.stack([ir_datas], axis=0)
+        values = np.stack(ir_datas, axis=0)
         
         # Create interpolator
-        interpolator = RegularGridInterpolator(
-            grid, 
-            values,
-            method='slinear',
-            bounds_error=False,
-            fill_value=None
-        )
-
+        interpolator = RegularGridInterpolator(grid, values, method='slinear', bounds_error=False, fill_value=None)
         return interpolator
 
     def get_ir_sequence_at_times(self, time_samples: np.ndarray, bands_idx: int):
