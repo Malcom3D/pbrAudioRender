@@ -139,6 +139,7 @@ class AcousticEngine:
             self._compute_frame(frame_idx)
 
         # interpolate x bands_idx IRs for wave_propagators[index].combo
+        wave_propagators = self.entity_manager.get('wave_propagators')
         ir_task = [self._interpolate_ir(wave_propagators[index].combo) for index in wave_propagators.keys()]
         ir_results = compute(*ir_tasks)
 
