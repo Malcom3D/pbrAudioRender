@@ -35,7 +35,7 @@ class SystemConfig:
     end_frame: int = None
     file_format: str = 'RAW'
     cache_path: str = "./pbrAudioCache/"
-    output_path: str = "/tmp/"
+    render_path: str = "/tmp/"
     number_of_rays: int = 16 # Number of rays to be emitted per entity
     direction_seed: int = 1 # Rays random isotropic direction seed
     bands_per_octave: int = 24 # frequency steps per octave
