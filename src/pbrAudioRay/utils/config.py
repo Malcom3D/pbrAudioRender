@@ -41,7 +41,7 @@ class SystemConfig:
     bands_per_octave: int = 24 # frequency steps per octave
     lowest_frequency: float = 5
     higher_frequency: float = 24000.0 # Nyquist clock/2
-    adr_threshold: float = None
+    view_ray: bool = False
 
 @dataclass
 class AcousticDomainConfig:
