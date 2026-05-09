@@ -21,6 +21,7 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import convolve
 from scipy.interpolate import RegularGridInterpolator
+from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
 from pbrAudioRay.core.entity_manager import EntityManager
@@ -88,7 +89,7 @@ class AmbisonicIRInterpolator:
         for ir_data in ir_sequence:
             if not ir_data.shape[0] == self.max_ir_length:
                 diff_samples = self.max_ir_length - ir_data.shape[1]
-                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1]), axis=0)
+                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1]), axis=0))
                 ir_datas += ir_data
 
         # Create a 3D grid: (time_position, sample, channel)
@@ -111,17 +112,17 @@ class AmbisonicIRInterpolator:
         interpolator = RegularGridInterpolator(
             grid, 
             values,
-            method='cubic',
+            method='slinear',
             bounds_error=False,
             fill_value=None
         )
 
-    return interpolator
+        return interpolator
 
     def get_ir_sequence_at_times(self, time_samples: np.ndarray, bands_idx: int):
         # Create points to interpolate
         interpolated_irs = []
-        for idx in range(time_samples.shape[0])
+        for idx in range(time_samples.shape[0]):
             points = np.array([[tx, s, c] for s in range(self.max_ir_length) for c in range(self.num_channels)])
 
             # Perform interpolation
