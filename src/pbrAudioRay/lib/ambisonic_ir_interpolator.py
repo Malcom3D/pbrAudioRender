@@ -16,32 +16,23 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import numpy as np
 import soundfile as sf
 from scipy.signal import convolve
-from scipy.interpolate import interp1d
-from typing import List, Tuple, Any
-from dataclasses import dataclass
-import warnings
+from scipy.interpolate import RegularGridInterpolator
+from typing import List, Tuple, Optional
 
 from pbrAudioRay.core.entity_manager import EntityManager
 from pbrAudioRay.lib.functions import _mono_to_bands
 
 @dataclass
 class AmbisonicIRInterpolator:
-    """
-    Interpolates ambisonic impulse responses for smooth audio rendering.
-    
-    Parameters:
-    -----------
-    ir_sequence : np.ndarray
-        Shape: (n_frames, n_channels, ir_length)
-        Sequence of ambisonic IRs
-    fps : float
-        Frames per second of the original animation
-    """
     entity_manager: EntityManager
     combo: Tuple[int, int]
+    interpolators: List[List] = field(default_factory=lambda: [[]])
+    max_ir_length: int = 0
+    n_channels: int = 0
 
     def __post_init__(self):
         config = self.entity_manager.get('config')
@@ -54,148 +45,157 @@ class AmbisonicIRInterpolator:
         subframes = config.system.subframes
         self.sfps = ( fps / fps_base ) * subframes # subframes per seconds
 
-        source_idx, output_idx = combo
+        source_idx, output_idx = self.combo
         for out_config in config.outputs:
             if out_config.idx == output_idx:
                 ambisonic_order = out_config.order
+                self.n_channels = (ambisonic_order + 1) ** 2
+                self.out_name = out_config.name
 
         for src_config in config.sources:
             if src_config.idx == source_idx:
                 self.audio_file = src_config.audio_file
+                self.src_name = src_config.name
 
         ir_path = f"{config.system.cache_path}/impulse_responses"
-        items = os.listdir(ir_path)
         interpolators = []
-        ir_sequence = []
         for bands_idx in range(n_bands):
+            ir_sequence = []
+            items = os.listdir(ir_path)
             items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")]
             filenames = sorted(items, key=lambda x: int(''.join(filter(str.isdigit, x))))
             for filename in filenames:
-                ir_data, sr = sf.read(filename)
+                ir_data, sr = sf.read(f"{ir_path}/{filename}")
+                n_frames, n_channels = ir_data.shape
+                self.max_ir_length = max(self.max_ir_length, n_frames)
                 ir_sequence += [ir_data]
 
-                ir_sequence = np.array(ir_sequence)
-                # Pre-compute interpolation functions for each channel and sample
-                self.interpolators += [self._build_bands_interpolators(ir_sequence)] # per bands_idx interpolator for frame_idx
-        
+            # Pre-compute interpolation functions for each channel and sample
+            self.interpolators += self._build_interpolator(ir_sequence)
+
         # Initialize output buffer
-        n_channels = (ambisonic_order + 1) ** 2 
         audio_data, sr = sf.read(self.audio_file)
         output_length = len(audio_data) + self.max_ir_length - 1
-        self.output = np.zeros((n_channels, output_length))
+        self.output = np.zeros((output_length, self.n_channels))
 
-    def _build_bands_interpolators(self, ir_sequence):
-        """Build interpolation functions for each channel and sample point."""
-        # Time points for original IRs (in seconds) 
-        n_frames, n_channels, ir_length = ir_sequence.shape
-        self.max_ir_length = max(self.max_ir_length, ir_length)
-        self.frame_times = np.arange(n_frames) / self.sfps
-        
-        # Create interpolators for each channel and each IR sample
-        interpolators = []
-        for ch in range(n_channels):
-            channel_irs = ir_sequence[:, ch, :]  # (n_frames, ir_length)
-            # Interpolate each sample point across time
-            interp_func = interp1d(
-                self.frame_times,
-                channel_irs.T,  # (ir_length, n_frames)
-                axis=1,
-                kind='linear',
-                bounds_error=False,
-                fill_value='extrapolate'
-            )
-            interpolators.append(interp_func)
-        return interpolators
-    
-    def get_ir_sequence_at_times(self, time_seconds, bands_idx):
+    def _build_interpolator(self, ir_sequence: List[np.ndarray]) -> RegularGridInterpolator:
         """
-        Get interpolated IR at any time point.
-        
-        Parameters:
-        -----------
-        time_seconds : float or array-like
-            Time point(s) to interpolate at
-        
         Returns:
-        --------
-        np.ndarray : Interpolated IR(s) of shape (n_channels, ir_length) or 
-                    (n_times, n_channels, ir_length)
+            Interpolated impulse response (samples x channels)
         """
-        time_seconds = np.atleast_1d(time_seconds)
+        # Ensure all irs have the same length
+        ir_datas = []
+        for ir_data in ir_sequence:
+            if not ir_data.shape[0] == self.max_ir_length:
+                diff_samples = self.max_ir_length - ir_data.shape[1]
+                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1]), axis=0)
+                ir_datas += ir_data
+
+        # Create a 3D grid: (time_position, sample, channel)
+        # Frame time positions in samples of IRs
+        times = np.arange(len(ir_datas)) * self.sample_rate / self.sfps
         
-        # Clamp time to valid range
-        time_seconds = np.clip(time_seconds, self.frame_times[0], self.frame_times[-1])
+        # Sample indices
+        samples = np.arange(self.max_ir_length)
         
-        # Get interpolated IRs for each channel
+        # Channel indices
+        channels = np.arange(self.n_channels)
+        
+        # Create the grid
+        grid = (times, samples, channels)
+        
+        # Create values array
+        values = np.stack([ir_datas], axis=0)
+        
+        # Create interpolator
+        interpolator = RegularGridInterpolator(
+            grid, 
+            values,
+            method='cubic',
+            bounds_error=False,
+            fill_value=None
+        )
+
+    return interpolator
+
+    def get_ir_sequence_at_times(self, time_samples: np.ndarray, bands_idx: int):
+        # Create points to interpolate
         interpolated_irs = []
-        for ch in range(self.n_channels):
-            ch_ir = self.interpolators[bands_idx][ch](time_seconds)  # (ir_length, n_times)
-            interpolated_irs.append(ch_ir.T)  # (n_times, ir_length)
-        
-        result = np.stack(interpolated_irs, axis=1)  # (n_times, n_channels, ir_length)
-        
-        # Remove singleton dimension if single time point
-        if result.shape[0] == 1:
-            return result[0]
-        return result
-    
+        for idx in range(time_samples.shape[0])
+            points = np.array([[tx, s, c] for s in range(self.max_ir_length) for c in range(self.num_channels)])
+
+            # Perform interpolation
+            interpolated_ir = interpolator(points)
+
+            # Reshape back to (samples, channels)
+            interpolated_irs += interpolated_ir.reshape(self.max_ir_length, self.num_channels)
+        return interpolated_irs
+
     def smooth_convolve(self, hop_size=None):
         """
         Smoothly convolve audio with interpolated ambisonic IRs.
-        
+
         Parameters:
         -----------
         audio : np.ndarray
             Mono audio signal to convolve (n_samples,)
         hop_size : int, optional
-            Number of audio samples between IR updates. 
+            Number of audio samples between IR updates.
             Default: one IR per audio frame (sample_rate / fps)
-        
+
         Returns:
         --------
-        np.ndarray : Convolved audio of shape (n_channels, n_output_samples)
+        np.ndarray : Convolved audio of shape (n_output_samples, n_channels)
         """
         config = self.entity_manager.get('config')
         frequency_bands = self.entity_manager.get('frequency_bands')
         n_bands = len(frequency_bands.get_bands())
 
-        multi_bands_audio = _mono_to_bands(self.audio_file, self.sample_rate, frequency_bands)
+        multi_bands_audio = _mono_to_bands(self.audio_file, self.sample_rate, frequency_bands.get_bands())
 
         for bands_idx in range(n_bands):
             audio = multi_bands_audio[bands_idx]
-            audio_duration = len(audio) / self.sample_rate
-        
+            audio_duration = len(audio)
+
             # Calculate hop size (samples between IR updates)
             if hop_size is None:
-                hop_size = int(sample_rate / self.sfps)
-        
+                hop_size = int(self.sample_rate / self.sfps)
+
             # Calculate number of IR updates needed
-            n_updates = int(np.ceil(audio_duration * self.sfps)) + 1
-        
+            n_updates = int(np.ceil(audio_duration / hop_size)) + 1
+
             # Time points for IR updates
             update_times = np.linspace(0, audio_duration, n_updates)
-        
+
             # Get interpolated IRs at update times
             interpolated_irs = self.get_ir_sequence_at_times(update_times, bands_idx)
-        
+
             # Perform overlap-add convolution
-            for i, (time, ir) in enumerate(zip(update_times, interpolated_irs)):
-                # Calculate start sample for this IR
-                start_sample = int(time * sample_rate)
-            
+            for i, (start_sample, ir) in enumerate(zip(update_times, interpolated_irs)):
                 # Ensure we don't exceed audio bounds
                 if start_sample >= len(audio):
                     break
-            
+
                 # Extract audio segment for this IR
                 end_sample = min(start_sample + hop_size, len(audio))
                 audio_segment = audio[start_sample:end_sample]
-            
+
                 # Convolve each channel
                 for ch in range(self.n_channels):
-                    conv_result = convolve(audio_segment, ir[ch], mode='full')
-                
+                    conv_result = convolve(audio_segment, ir[:,ch], mode='full')
+
                     # Add to output (with overlap)
                     seg_end = min(start_sample + len(conv_result), output_length)
                     seg_len = seg_end - start_sample
-                    self.output[ch, start_sample:seg_end] += conv_result[:seg_len]
+                    self.output[start_sample:seg_end, ch] += conv_result[seg_len:]
+
+    def save_output(self):
+        config = self.entity_manager.get('config')
+        render_path = config.system.render_path
+        subtype = config.system.bit_depth
+        file_format = config.system.file_format.lower()
+        os.makedirs(render_path, exist_ok=True)
+        filename = f"{self.src_name}_{self.out_name}.{file_format}"
+        sf.write(filename, self.output, self.sample_rate, subtype=subtype)
+
+        print(f"Saved convolved Audio: {filename} for source {self.src_name}, output {self.out_name}")

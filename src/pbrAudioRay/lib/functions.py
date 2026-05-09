@@ -5,6 +5,8 @@ import string
 import trimesh
 import numpy as np
 import numba as nb
+import resampy
+import soundfile as sf
 from typing import Any, Tuple, Optional, List, Union, Dict
 
 from ..lib.filter import LinkwitzRileyFilter
@@ -429,7 +431,7 @@ def _mono_to_bands(audio_file: str, sample_rate: int, frequency_bands: List[Tupl
 
     # align sample_rate
     if not sample_rate == sr:
-        audio_data = resampy.resample(audio_data, sample_rate, grid_sample_rate)
+        audio_data = resampy.resample(audio_data, sr, sample_rate)
 
     # create an array of shape (n_bands,audio_length)
     n_bands = len(frequency_bands)
@@ -438,6 +440,7 @@ def _mono_to_bands(audio_file: str, sample_rate: int, frequency_bands: List[Tupl
     for index in range(n_bands):
         low_freq = frequency_bands[index][0]
         high_freq = frequency_bands[index][1]
+        high_freq = high_freq if high_freq < sample_rate / 2 else (sample_rate / 2) - 1
         filtered_audio, sample_rate = LinkwitzRileyFilter.linkwitz_riley_bandpass_filter(audio_data, sample_rate, low_freq, high_freq)
         multi_bands_audio[index] = filtered_audio
 
