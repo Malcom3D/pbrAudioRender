@@ -88,8 +88,8 @@ class AmbisonicIRInterpolator:
         for ir_data in ir_sequence:
             if not ir_data.shape[0] == self.max_ir_length:
                 diff_samples = self.max_ir_length - ir_data.shape[0]
-                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0))
-            ir_datas += ir_data
+                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0)
+            ir_datas += [ir_data]
 
         # Create a 3D grid: (time_position, sample, channel)
         # Frame time positions in samples of IRs
