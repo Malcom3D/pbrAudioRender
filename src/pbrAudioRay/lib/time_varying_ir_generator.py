@@ -25,7 +25,8 @@ from scipy.spatial.transform import RotationSpline, Rotation
 from typing import List, Tuple, Optional, Dict, Any
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
+from pbrAudioRay.core.entity_manager import EntityManager
+from pbrAudioRay.lib.band_interpolator_set import BandInterpolatorSet
 
 @dataclass
 class TimeVaryingIRGenerator:
@@ -57,7 +58,7 @@ class TimeVaryingIRGenerator:
         Returns:
             Complex IR array (n_samples, n_bands)
         """
-        key = ( (source_idx, output_idx)
+        key = (source_idx, output_idx)
         if key not in self.interpolators:
             raise ValueError(f"No interpolators for source {source_idx} -> output {output_idx}")
         
@@ -216,7 +217,7 @@ class TimeVaryingIRGenerator:
                     band_set.energy_interpolator = CubicSpline(
                         np.array(band_dict['energy_x']),
                         np.array(band_dict['energy_y']),
-                        bc bc_type='natural',
+                        bc_type='natural',
                         extrapolate=True
                     )
                 
