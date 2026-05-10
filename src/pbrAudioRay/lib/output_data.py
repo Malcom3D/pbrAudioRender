@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 @dataclass
 class OutputData:
     """Holds accumulated output data."""
+    frame_idx = None
     bands_idx: int = None
     energies: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))
     phases: np.ndarray = field(default_factory=lambda: np.zeros((0, 1), dtype=np.float32))

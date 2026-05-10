@@ -33,12 +33,12 @@ from pbrAudioRay.lib.material_properties import MaterialProperties
 
 from pbrAudioRay.lib.functions import _mono_to_bands
 
-from pbrAudioRay.lib.ambisonic_ir_interpolator import AmbisonicIRInterpolator
-
 from pbrAudioRay.sources.spherical_source import SphericalSource
 from pbrAudioRay.sources.planar_source import PlanarSource
 
 from pbrAudioRay.engine.wave_propagator import WavePropagator
+from pbrAudioRay.lib.interpolation_engine import TimeVaryingIRGenerator
+from pbrAudioRay.lib.time_varying_ir_generator import TimeVaryingIRGenerator
 
 from pbrAudioRay.outputs.ambisonic_output import AmbisonicOutput
 from pbrAudioRay.outputs.omnidirectional_output import OmnidirectionalOutput
@@ -138,20 +138,30 @@ class AcousticEngine:
         for frame_idx in range(end_frame - start_frame):
             self._compute_frame(frame_idx)
 
-        # interpolate x bands_idx IRs for wave_propagators[index].combo
-        wave_propagators = self.entity_manager.get('wave_propagators')
-        ir_tasks = [self._interpolate_ir(wave_propagators[index].combo) for index in wave_propagators.keys()]
+        interpolation_engine = InterpolationEngine(self.entity_manager)
+        all_interpolators = interpolation_engine.build_all_interpolators()
+    
+        # Generate time-varying IR for each source-output pair
+        ir_generator = TimeVaryingIRGenerator(self.entity_manager, all_interpolators)
+    
+        # Generate IRs for all pairs
+        ir_tasks = []
+        for key in all_interpolators.keys():
+            source_idx, output_idx = key
+            duration = 2.0  # 2 seconds of IR
+            ir_tasks.append(
+                ir_generator.generate_ir_sequence(source_idx, output_idx, duration)
+            )
+    
         ir_results = compute(*ir_tasks)
-
-    @delayed
-    def _interpolate_ir(self, combo):
-        interpolator = AmbisonicIRInterpolator(self.entity_manager, combo)
-
-        # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
-        convolved_audio = interpolator.smooth_convolve()
-
-        # save convolved audio
-        interpolator.save_output()
+    
+        # Store IRs in entity manager
+        for i, key in enumerate(all_interpolators.keys()):
+            self.entity_manager.register('impulse_responses', ir_results[i], 
+                                         key=f"ir_{key[0]}_{key[1]}")
+    
+        # Save interpolators for later use
+        ir_generator.save_interpolators("./exports/interpolators.pkl")
         
     def _compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
