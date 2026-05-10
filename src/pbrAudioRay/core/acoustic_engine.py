@@ -37,7 +37,7 @@ from pbrAudioRay.sources.spherical_source import SphericalSource
 from pbrAudioRay.sources.planar_source import PlanarSource
 
 from pbrAudioRay.engine.wave_propagator import WavePropagator
-from pbrAudioRay.lib.interpolation_engine import TimeVaryingIRGenerator
+from pbrAudioRay.lib.interpolation_engine import InterpolationEngine
 from pbrAudioRay.lib.time_varying_ir_generator import TimeVaryingIRGenerator
 
 from pbrAudioRay.outputs.ambisonic_output import AmbisonicOutput
