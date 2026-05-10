@@ -16,6 +16,7 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
 import numpy as np
 import numba as nb
 from dask import delayed, compute
@@ -76,7 +77,8 @@ class InterfaceManager:
         inters = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Save ray data
-        #self._save_ray_data(self.ray_data.origins, inters)
+        if config.system.view_ray and self.ray_data.bands_idx == 0:
+            self._save_ray_data(self.ray_data.origins, inters)
 
         # Filter rays that intersect
         self._filter_intersected_rays(ray_inter, primID, inters)

@@ -71,7 +71,7 @@ class AmbisonicIRInterpolator:
                 ir_sequence += [ir_data]
 
             # Pre-compute interpolation functions for each channel and sample
-            self.interpolators += self._build_interpolator(ir_sequence)
+            self.interpolators += [self._build_interpolator(ir_sequence)]
 
         # Initialize output buffer
         audio_data, sr = sf.read(self.audio_file)
@@ -113,15 +113,16 @@ class AmbisonicIRInterpolator:
 
     def get_ir_sequence_at_times(self, time_samples: np.ndarray, bands_idx: int):
         # Create points to interpolate
+        interpolator = self.interpolators[bands_idx]
         interpolated_irs = []
         for idx in range(time_samples.shape[0]):
-            points = np.array([[tx, s, c] for s in range(self.max_ir_length) for c in range(self.num_channels)])
+            points = np.array([[time_samples[idx], s, c] for s in range(self.max_ir_length) for c in range(self.n_channels)])
 
             # Perform interpolation
             interpolated_ir = interpolator(points)
 
             # Reshape back to (samples, channels)
-            interpolated_irs += interpolated_ir.reshape(self.max_ir_length, self.num_channels)
+            interpolated_irs += interpolated_ir.reshape(self.max_ir_length, self.n_channels)
         return interpolated_irs
 
     def smooth_convolve(self, hop_size=None):
