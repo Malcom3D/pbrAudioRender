@@ -40,6 +40,7 @@ class EntityManager:
                 self._sources = {}
                 self._objects = {}
                 self._outputs = {}
+                self._output_datas = {}
                 self._wave_propagators = {}
                 self._layer_managers = {}
                 self._trajectories = {}
@@ -68,7 +69,6 @@ class EntityManager:
                     'objects': ['AcousticObject'],
                     'outputs': ['AmbisonicOutput', 'OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
                     'wave_propagators': 'WavePropagator',
-                    'ray_datas': 'RayData',
                     'output_datas': 'OutputData',
                     'trajectories': ['TrajectoryData', 'tmpTrajectoryData'],
                     'collisions': [ 'CollisionData'],
@@ -102,7 +102,7 @@ class EntityManager:
     def get(self, entity: str = None, idx: int = None) -> dict[str, Any]:
         """Get all objects"""
         if entity == None:
-            return self._singleton, self._sources, self._objects, self._outputs, self._wave_propagators, self._ray_datas, self._output_datas, self._trajectories, self._collisions, self._forces, self._modal_vertices, self._score_tracks, self._rigidbody_synth, self._resonance_synth
+            return self._singleton, self._sources, self._objects, self._outputs, self._wave_propagators, self._output_datas, self._trajectories, self._collisions, self._forces, self._modal_vertices, self._score_tracks, self._rigidbody_synth, self._resonance_synth
         for key in self.sigleton_map.keys():
             if entity in key:
                 if entity in ['geometry_data', 'material_properties', 'medium_properties']:
