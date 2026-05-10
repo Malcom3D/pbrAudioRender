@@ -157,11 +157,12 @@ class AcousticEngine:
     
         # Store IRs in entity manager
         for i, key in enumerate(all_interpolators.keys()):
-            self.entity_manager.register('impulse_responses', ir_results[i], 
-                                         key=f"ir_{key[0]}_{key[1]}")
+            self.entity_manager.register('impulse_responses', ir_results[i], key=f"ir_{key[0]}_{key[1]}")
     
         # Save interpolators for later use
-        ir_generator.save_interpolators("./exports/interpolators.pkl")
+        interpolators_path = f"{config.system.cache_path}/interpolators"
+        os.makedirs(interpolators_path, exist_ok=True)
+        ir_generator.save_interpolators(f"{interpolators_path}/interpolators.pkl")
         
     def _compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
