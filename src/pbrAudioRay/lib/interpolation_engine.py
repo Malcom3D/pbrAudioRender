@@ -41,7 +41,7 @@ class InterpolationEngine:
     def __post_init__(self):
         self.config = self.entity_manager.get('config')
         self.frequency_bands = self.entity_manager.get('frequency_bands')
-        self.n_bands = len(self.frequency_bands.get__bands())
+        self.n_bands = len(self.frequency_bands.get_bands())
         self.fps = self.config.system.fps
         self.sample_rate = self.config.system.sample_rate
         
