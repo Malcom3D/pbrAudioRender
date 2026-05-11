@@ -93,7 +93,7 @@ class AmbisonicIRInterpolator:
 
         # Frame time positions in samples of IRs
         n_irs = len(ir_datas)
-        times = np.arange(len(n_irs)) * self.sample_rate / self.sfps
+        times = np.arange(n_irs) * self.sample_rate / self.sfps
         
         # Initialize interpolator array
         band_interpolators = np.zeros((self.max_ir_length, self.n_channels), dtype=np.float32)
