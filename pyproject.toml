@@ -56,4 +56,4 @@ manylinux-x86_64-image = "manylinux2014"
 archs = ["x86_64"]
 
 [tool.setuptools_scm]
-write_to = "src/pbrAudioRender/__version__.py"
+write_to = "__version__.py"
