@@ -124,6 +124,7 @@ class WavePropagator:
     @delayed
     def compute(self, frame_idx: int):
         """Compute impulse response for a single frame"""
+        source_idx, output_idx = self.combo
         frequency_bands = self.entity_manager.get('frequency_bands')
         n_bands = len(frequency_bands.get_bands())
 
@@ -139,6 +140,8 @@ class WavePropagator:
         # register the per-bands_idx output data for this frame
         for output_data in results:
             output_data.frame_idx = frame_idx
+            output_data.source_idx = source_idx
+            output_data.output_idx = output_idx
             self.entity_manager.register('output_datas', output_data)
 
 #            self._compute_and_save_ir(output_data, frame_idx)
