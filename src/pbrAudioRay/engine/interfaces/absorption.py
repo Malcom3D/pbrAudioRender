@@ -39,11 +39,11 @@ class AbsorptionInterface:
 
         # Compute traveled path length
         path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
-        ray_data.path_length = path_length
+        ray_data.path_length += path_length
 
         # Compute dalay in main medium
         delay = path_length * ac_sound_speed # all path are on the acoustic domain
-        ray_data.delay = delay
+        ray_data.delay += delay
 
         # Compute energy attenuation and phase shift after traveled path using exponential decay
         # E = E0 * exp(-alpha * distance)

@@ -124,7 +124,6 @@ class WavePropagator:
     @delayed
     def compute(self, frame_idx: int):
         """Compute impulse response for a single frame"""
-        source_idx, output_idx = self.combo
         frequency_bands = self.entity_manager.get('frequency_bands')
         n_bands = len(frequency_bands.get_bands())
 
@@ -137,120 +136,115 @@ class WavePropagator:
 
         results = compute(*tracer_task)
 
-        # register the per-bands_idx output data for this frame
+        # compute x bands_idx IRs for wave_propagators[index].combo
         for output_data in results:
-            output_data.frame_idx = frame_idx
-            output_data.source_idx = source_idx
-            output_data.output_idx = output_idx
-            self.entity_manager.register('output_datas', output_data)
+            self._compute_and_save_ir(output_data, frame_idx)
+            print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
 
-#            self._compute_and_save_ir(output_data, frame_idx)
-#            print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
-#
-#    def _compute_and_save_ir(self, output_data: Any, frame_idx: int):
-#        config = self.entity_manager.get('config')
-#        frequency_bands = self.entity_manager.get('frequency_bands')
-#        sample_rate = int(config.system.sample_rate)
-#        source_idx, output_idx = self.combo
-#        bands_idx = output_data.bands_idx
-#
-#        # Sort output by delay
-#        sort_idx = np.argsort(output_data.delay.flatten())
-#
-#        delay = output_data.delay.flatten()[sort_idx]
-#        energies = output_data.energies.flatten()[sort_idx]
-#        phases = output_data.phases.flatten()[sort_idx]
-#        directions = output_data.directions[sort_idx]
-#
-#        # Convert delay to samples
-#        delay_samples = np.round(delay * sample_rate).astype(int)
-#
-#        # Determine max IR length
-#        ir_length = int(np.ceil(np.max(delay_samples))) + 10
-#
-#        # Get ambisonic order for this output
-#        ambisonic_order = 1  # default
-#        for out_config in config.outputs:
-#            if out_config.idx == output_idx:
-#                ambisonic_order = out_config.order
-#
-#                n_channels = (ambisonic_order + 1) ** 2
-#                ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
-#
-#                # Compute complex amplitudes
-#                complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
-#
-#                # Convert directions to spherical coordinates
-#                x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
-#                theta = np.arctan2(y, x)  # Azimuth
-#                phi = np.arcsin(z)  # Elevation
-#
-#                # Compute spherical harmonics for each order
-#                self._compute_spherical_harmonics(ambisonics_ir, delay_samples, complex_amplitudes, theta, phi, ambisonic_order)
-#
-#                # Apply windowing
-#                window = np.hanning(ir_length)
-#                for ch in range(n_channels):
-#                    ambisonics_ir[ch] *= window
-#
-#                # Normalize
-#                max_val = np.max(np.abs(ambisonics_ir))
-#                if max_val > 0:
-#                    ambisonics_ir /= max_val
-#
-#                # Save impulse response
-#                output_dir = f"{config.system.cache_path}/impulse_responses"
-#                os.makedirs(output_dir, exist_ok=True)
-#
-#                filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
-#                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='FLOAT')
-#
-#                print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
-#                print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
-#                print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
-#
-#    def _compute_spherical_harmonics(self, ambisonics_ir: np.ndarray, delay_samples: np.ndarray, complex_amplitudes: np.ndarray, theta: np.ndarray, phi: np.ndarray, ambisonic_order: int):
-#        """Compute spherical harmonics and add to IR buffer."""
-#        n_rays = len(delay_samples)
-#
-#        if ambisonic_order >= 0:
-#            # Order 0: W channel (omnidirectional)
-#            Y_00 = 1.0 / np.sqrt(4 * np.pi)
-#            for i in range(n_rays):
-#                sample_idx = delay_samples[i]
-#                ambisonics_ir[0, sample_idx] += np.real(complex_amplitudes[i] * Y_00)
-#
-#        if ambisonic_order >= 1:
-#            # Order 1: X, Y, Z channels (ACN ordering)
-#            Y_1n1 = np.sqrt(3/(4*np.pi)) * np.sin(theta) * np.cos(phi)  # Y
-#            Y_10 = np.sqrt(3/(4*np.pi)) * np.sin(phi)                   # Z
-#            Y_11 = np.sqrt(3/(4*np.pi)) * np.cos(theta) * np.cos(phi)   # X
-#
-#            for i in range(n_rays):
-#                sample_idx = delay_samples[i]
-#                ambisonics_ir[1, sample_idx] += np.real(complex_amplitudes[i] * Y_1n1[i])
-#                ambisonics_ir[2, sample_idx] += np.real(complex_amplitudes[i] * Y_10[i])
-#                ambisonics_ir[3, sample_idx] += np.real(complex_amplitudes[i] * Y_11[i])
-#
-#        if ambisonic_order >= 2:
-#            # Order 2: Additional 5 channels
-#            sin_theta = np.sin(theta)
-#            cos_theta = np.cos(theta)
-#            sin_phi = np.sin(phi)
-#            cos_phi = np.cos(phi)
-#
-#            sqrt_15_4pi = np.sqrt(15/(4*np.pi))
-#
-#            Y_2n2 = sqrt_15_4pi * sin_theta * cos_theta * cos_phi**2      # R
-#            Y_2n1 = sqrt_15_4pi * sin_theta * sin_phi * cos_phi           # S
-#            Y_20 = np.sqrt(5/(16*np.pi)) * (3*sin_phi**2 - 1)              # T
-#            Y_21 = sqrt_15_4pi * cos_theta * sin_phi * cos_phi             # U
-#            Y_22 = sqrt_15_4pi * (cos_theta**2 - sin_theta**2) * cos_phi**2  # V
-#
-#            for i in range(n_rays):
-#                sample_idx = delay_samples[i]
-#                ambisonics_ir[4, sample_idx] += np.real(complex_amplitudes[i] * Y_2n2[i])
-#                ambisonics_ir[5, sample_idx] += np.real(complex_amplitudes[i] * Y_2n1[i])
-#                ambisonics_ir[6, sample_idx] += np.real(complex_amplitudes[i] * Y_20[i])
-#                ambisonics_ir[7, sample_idx] += np.real(complex_amplitudes[i] * Y_21[i])
-#                ambisonics_ir[8, sample_idx] += np.real(complex_amplitudes[i] * Y_22[i])
+    def _compute_and_save_ir(self, output_data: Any, frame_idx: int):
+        config = self.entity_manager.get('config')
+        frequency_bands = self.entity_manager.get('frequency_bands')
+        sample_rate = int(config.system.sample_rate)
+        source_idx, output_idx = self.combo
+        bands_idx = output_data.bands_idx
+
+        # Sort output by delay
+        sort_idx = np.argsort(output_data.delay.flatten())
+
+        delay = output_data.delay.flatten()[sort_idx]
+        energies = output_data.energies.flatten()[sort_idx]
+        phases = output_data.phases.flatten()[sort_idx]
+        directions = output_data.directions[sort_idx]
+
+        # Convert delay to samples
+        delay_samples = np.round(delay * sample_rate).astype(int)
+
+        # Determine max IR length
+        ir_length = int(np.ceil(np.max(delay_samples))) + 10
+
+        # Get ambisonic order for this output
+        ambisonic_order = 1  # default
+        for out_config in config.outputs:
+            if out_config.idx == output_idx:
+                ambisonic_order = out_config.order
+
+                n_channels = (ambisonic_order + 1) ** 2
+                ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
+
+                # Compute complex amplitudes
+                complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
+
+                # Convert directions to spherical coordinates
+                x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
+                theta = np.arctan2(y, x)  # Azimuth
+                phi = np.arcsin(z)  # Elevation
+
+                # Compute spherical harmonics for each order
+                self._compute_spherical_harmonics(ambisonics_ir, delay_samples, complex_amplitudes, theta, phi, ambisonic_order)
+
+                # Apply windowing
+                window = np.hanning(ir_length)
+                for ch in range(n_channels):
+                    ambisonics_ir[ch] *= window
+
+                # Normalize
+                max_val = np.max(np.abs(ambisonics_ir))
+                if max_val > 0:
+                    ambisonics_ir /= max_val
+
+                # Save impulse response
+                output_dir = f"{config.system.cache_path}/impulse_responses"
+                os.makedirs(output_dir, exist_ok=True)
+
+                filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
+                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='FLOAT')
+
+                print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
+                print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
+                print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
+
+    def _compute_spherical_harmonics(self, ambisonics_ir: np.ndarray, delay_samples: np.ndarray, complex_amplitudes: np.ndarray, theta: np.ndarray, phi: np.ndarray, ambisonic_order: int):
+        """Compute spherical harmonics and add to IR buffer."""
+        n_rays = len(delay_samples)
+
+        if ambisonic_order >= 0:
+            # Order 0: W channel (omnidirectional)
+            Y_00 = 1.0 / np.sqrt(4 * np.pi)
+            for i in range(n_rays):
+                sample_idx = delay_samples[i]
+                ambisonics_ir[0, sample_idx] += np.real(complex_amplitudes[i] * Y_00)
+
+        if ambisonic_order >= 1:
+            # Order 1: X, Y, Z channels (ACN ordering)
+            Y_1n1 = np.sqrt(3/(4*np.pi)) * np.sin(theta) * np.cos(phi)  # Y
+            Y_10 = np.sqrt(3/(4*np.pi)) * np.sin(phi)                   # Z
+            Y_11 = np.sqrt(3/(4*np.pi)) * np.cos(theta) * np.cos(phi)   # X
+
+            for i in range(n_rays):
+                sample_idx = delay_samples[i]
+                ambisonics_ir[1, sample_idx] += np.real(complex_amplitudes[i] * Y_1n1[i])
+                ambisonics_ir[2, sample_idx] += np.real(complex_amplitudes[i] * Y_10[i])
+                ambisonics_ir[3, sample_idx] += np.real(complex_amplitudes[i] * Y_11[i])
+
+        if ambisonic_order >= 2:
+            # Order 2: Additional 5 channels
+            sin_theta = np.sin(theta)
+            cos_theta = np.cos(theta)
+            sin_phi = np.sin(phi)
+            cos_phi = np.cos(phi)
+
+            sqrt_15_4pi = np.sqrt(15/(4*np.pi))
+
+            Y_2n2 = sqrt_15_4pi * sin_theta * cos_theta * cos_phi**2      # R
+            Y_2n1 = sqrt_15_4pi * sin_theta * sin_phi * cos_phi           # S
+            Y_20 = np.sqrt(5/(16*np.pi)) * (3*sin_phi**2 - 1)              # T
+            Y_21 = sqrt_15_4pi * cos_theta * sin_phi * cos_phi             # U
+            Y_22 = sqrt_15_4pi * (cos_theta**2 - sin_theta**2) * cos_phi**2  # V
+
+            for i in range(n_rays):
+                sample_idx = delay_samples[i]
+                ambisonics_ir[4, sample_idx] += np.real(complex_amplitudes[i] * Y_2n2[i])
+                ambisonics_ir[5, sample_idx] += np.real(complex_amplitudes[i] * Y_2n1[i])
+                ambisonics_ir[6, sample_idx] += np.real(complex_amplitudes[i] * Y_20[i])
+                ambisonics_ir[7, sample_idx] += np.real(complex_amplitudes[i] * Y_21[i])
+                ambisonics_ir[8, sample_idx] += np.real(complex_amplitudes[i] * Y_22[i])
