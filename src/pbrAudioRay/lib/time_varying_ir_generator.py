@@ -90,7 +90,7 @@ class TimeVaryingIRGenerator:
         """
         n_bands = len(band_sets)
         ir = np.zeros((n_samples, n_bands), dtype=np.complex128)
-        
+        ('interpolators/interpolators.pkl')
         for sample in nb.prange(n_samples):
             time = sample / sample_rate
             
@@ -105,7 +105,6 @@ class TimeVaryingIRGenerator:
                 if band.energy_interpolator is not None:
                     energy = band.energy_interpolator(time)
                     energy = max(energy, 0.0)
-                
                 if band.phase_interpolpolator is not None:
                     phase = band.phase_interpolator(time)
                     phase = np.mod(phase + np.pi, 2 * np.pi) - np.pi
@@ -190,8 +189,9 @@ class TimeVaryingIRGenerator:
             pickle.dump(serializable_data, f, protocol=pickle.HIGHEST_PROTOCOL)
         
         print(f"Saved interpolators to {filepath}")
-    
-    def load_interpolators(self, filepath: str):
+
+    @staticmethod
+    def load_interpolators(filepath: str):
         """
         Load interpolators from file.
         
@@ -199,6 +199,7 @@ class TimeVaryingIRGenerator:
             filepath: Path to load interpolators from
         """
         import pickle
+        interpolators = {}
         
         with open(filepath, 'rb') as f:
             serializable_data = pickle.load(f)
@@ -258,9 +259,10 @@ class TimeVaryingIRGenerator:
                 rotations = Rotation.from_quat(np.array(rs_data['rotations']))
                 rotation_spline = RotationSpline(times, rotations)
             
-            self.interpolators[key] = {
+            interpolators[key] = {
                 'band_interpolators': band_sets,
                 'rotation_spline': rotation_spline
             }
         
         print(f"Loaded interpolators from {filepath}")
+        return interpolators
