@@ -92,10 +92,7 @@ class AmbisonicIRInterpolator:
             n_updates = 2
             for idx in range(n_updates):
                 start_sample = hop_size * idx
-                if idx == 0:
-                    end_sample = start_sample + hop_size
-                else:
-                    end_sample = self.output_length
+                end_sample = min(start_sample + hop_size, self.output_length)
                 audio_segment = audio[start_sample:end_sample]
                 for ch in range(self.n_channels):
                     conv_result = convolve(audio_segment, self.bands_irs[bands_idx][idx][:,ch], mode='full')
