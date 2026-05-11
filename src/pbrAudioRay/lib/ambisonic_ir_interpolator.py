@@ -224,7 +224,7 @@ class AmbisonicIRInterpolator:
         subtype = config.system.bit_depth
         file_format = config.system.file_format.lower()
         os.makedirs(render_path, exist_ok=True)
-        filename = f"{self.src_name}_{self.out_name}.{file_format}"
+        filename = f"{render_path}/{self.src_name}_{self.out_name}.{file_format}"
         sf.write(filename, self.output, self.sample_rate, subtype=subtype)
 
         print(f"Saved convolved Audio: {filename} for source {self.src_name}, output {self.out_name}")
