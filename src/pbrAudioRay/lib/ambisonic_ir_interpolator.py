@@ -98,6 +98,10 @@ class AmbisonicIRInterpolator:
                     seg_end = min(start_sample + len(conv_result), output_length)
                     output[start_sample:seg_end, ch] += conv_result
 
+        filename = 'convolved.wav'
+        sf.write(filename, output, sample_rate, subtype='FLOAT')
+
+
 #            ir_sequence = []
 #            items = os.listdir(ir_path)
 #            items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")]

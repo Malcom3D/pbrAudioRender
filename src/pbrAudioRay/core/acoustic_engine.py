@@ -148,10 +148,10 @@ class AcousticEngine:
         interpolator = AmbisonicIRInterpolator(self.entity_manager, combo)
 
         # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
-        convolved_audio = interpolator.smooth_convolve()
+        #convolved_audio = interpolator.smooth_convolve()
 
         # save convolved audio
-        interpolator.save_output()
+        #interpolator.save_output()
         
     def _compute_frame(self, frame_idx: int):
         wave_propagators = self.entity_manager.get('wave_propagators')
