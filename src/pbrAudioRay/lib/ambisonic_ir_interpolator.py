@@ -58,6 +58,7 @@ class AmbisonicIRInterpolator:
                 self.audio_file = src_config.audio_file
                 self.src_name = src_config.name
 
+        bands_irs = []
         ir_path = f"{config.system.cache_path}/impulse_responses"
         for bands_idx in range(self.n_bands):
             ir_sequence = []
