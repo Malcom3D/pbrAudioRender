@@ -111,7 +111,16 @@ class AcousticRayTracer:
 
     def _apply_energy_threshold(self):
         """Apply energy threshold to terminate low-energy rays."""
-        termination_energy = 1e-16
+        db_value = -120
+        if config.wave_propagation.enable_termination:
+            if config.termination.termination_type == 'REVERBERATION_TIME'
+                time_value = config.termination.reverberation_time
+                if np.max(self.ray_data.delay):
+                    return self.output_data
+            elif config.termination.termination_type == 'ENERGY_THRESHOLD':
+                db_value = -config.termination.energy_threshold
+        termination_energy = 10 ** (db_value / 20)
+
         termination_mask = self.ray_data.energies > termination_energy
 
         self.ray_data.origins = self.ray_data.origins[termination_mask.reshape(-1,)]

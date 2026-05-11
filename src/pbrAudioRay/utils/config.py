@@ -162,15 +162,11 @@ class ResonanceConfig:
 
 @dataclass
 class TerminationConfig:
-    termination_type: str = "reverberation_time"  # "sample_end", "reverberation_time", "energy_threshold", "final_frame"
-    # sample_end
-    samples_after: int = 100  # Samples after end of last (minimum) active sources
-    min_active_sources: int = 1  # Minimum number of active sources to terminate
+    termination_type: str = "reverberation_time"  # "reverberation_time", "energy_threshold"
     # reverberation_time
-    max_reverberation_time: float = 2.0
+    reverberation_time: float = 2.0
     # energy_threshold
-    max_energy_threshold: float = 1e6 # Maximum energy to terminate
-    min_energy_threshold: float = 1e-6 # Minimum energy to terminate
+    energy_threshold: float = 120 # Minimum energy to terminate
 
 @dataclass
 class AudioRecorderConfig:
