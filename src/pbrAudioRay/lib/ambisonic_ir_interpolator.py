@@ -20,7 +20,7 @@ import os
 import numpy as np
 import soundfile as sf
 from scipy.signal import convolve
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import CubicSpline
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
@@ -92,17 +92,18 @@ class AmbisonicIRInterpolator:
             ir_datas += [ir_data]
 
         # Frame time positions in samples of IRs
-        times = np.arange(len(ir_datas)) * self.sample_rate / self.sfps
+        n_irs = len(ir_datas)
+        times = np.arange(len(n_irs)) * self.sample_rate / self.sfps
         
         # Initialize interpolator array
-        n_irs = len(ir_datas)
         band_interpolators = np.zeros((self.max_ir_length, self.n_channels), dtype=np.float32)
         for sample_idx in range(self.max_ir_length):
             for ch_idx in range(self.n_channels):
+                values = []
                 for ir_idx in range(n_irs):
                     values += [ir_datas[ir_idx][sample_idx,ch_idx]]
                     values = np.array(values)
-                    band_interpolators[sample_idx,ch_idx] = CubicSpline(times, value, extrapolate=1)
+                    band_interpolators[sample_idx,ch_idx] = CubicSpline(times, values, extrapolate=1)
 
         # Initialize interpolator array
         return band_interpolators

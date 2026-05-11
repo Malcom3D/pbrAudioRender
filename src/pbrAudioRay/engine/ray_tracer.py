@@ -111,9 +111,10 @@ class AcousticRayTracer:
 
     def _apply_energy_threshold(self):
         """Apply energy threshold to terminate low-energy rays."""
+        config = self.entity_manager.get('config')
         db_value = -120
         if config.wave_propagation.enable_termination:
-            if config.termination.termination_type == 'REVERBERATION_TIME'
+            if config.termination.termination_type == 'REVERBERATION_TIME':
                 time_value = config.termination.reverberation_time
                 if np.max(self.ray_data.delay):
                     return self.output_data
