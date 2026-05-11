@@ -77,9 +77,10 @@ class AmbisonicIRInterpolator:
                     ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0)
                 ir_datas += [ir_data]
             bands_irs += [ir_datas]
-        
-        audio_length = multi_bands_audio[0].shape[0]
-        output_length = audio_length + self.max_ir_length - 1
+ 
+        # Initialize output buffer
+        audio_data, sr = sf.read(self.audio_file)
+        output_length = audio_data.shape[0] + self.max_ir_length - 1
         self.output = np.zeros((output_length, self.n_channels))
 
     def smooth_convolve(self, hop_size=None):
