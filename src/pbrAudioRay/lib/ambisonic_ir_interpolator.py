@@ -20,12 +20,12 @@ import os
 import numpy as np
 import soundfile as sf
 from scipy.signal import convolve
-from scipy.interpolate import CubicSpline
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
 from pbrAudioRay.core.entity_manager import EntityManager
 from pbrAudioRay.lib.functions import _mono_to_bands
+#from pbrAudioRay.lib.varconvolve import varconvolve
 
 @dataclass
 class AmbisonicIRInterpolator:
@@ -38,7 +38,7 @@ class AmbisonicIRInterpolator:
     def __post_init__(self):
         config = self.entity_manager.get('config')
         self.sample_rate = int(config.system.sample_rate)
-        frequency_bands = self.entity_manager.get('frequency_bands')
+        self.frequency_bands = self.entity_manager.get('frequency_bands')
         self.n_bands = len(frequency_bands.get_bands())
 
         fps = config.system.fps
@@ -89,10 +89,14 @@ class AmbisonicIRInterpolator:
             hop_size = int(self.sample_rate / self.sfps)
             audio = multi_bands_audio[bands_idx]
             audio_length = audio.shape[0]
-            n_updates = 2
-            for idx in range(n_updates):
+#            n_frames = min(int(audio_length / hop_size), len(self.bands_irs[bands_idx]))
+            n_frames = len(self.bands_irs[bands_idx])
+            for idx in range(n_frames):
                 start_sample = hop_size * idx
-                end_sample = min(start_sample + hop_size, self.output_length)
+                if idx >= n_frames:
+                    end_sample = self.output_length
+                else:
+                    end_sample = min(start_sample + hop_size, self.output_length)
                 audio_segment = audio[start_sample:end_sample]
                 for ch in range(self.n_channels):
                     conv_result = convolve(audio_segment, self.bands_irs[bands_idx][idx][:,ch], mode='full')

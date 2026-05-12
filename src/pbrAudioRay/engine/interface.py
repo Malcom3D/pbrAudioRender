@@ -302,8 +302,8 @@ class InterfaceManager:
     def _compute_reflection_directions(self, incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray) -> np.ndarray:
         """Compute reflection direction vectors."""
         # Normalize inputs
-        incident_directions = incident_directions / max(np.linalg.norm(incident_directions, axis=1, keepdims=True), 1e-6)
-        normals = normals / max(np.linalg.norm(normals, axis=1, keepdims=True), 1e-6)
+        incident_directions = incident_directions / np.linalg.norm(incident_directions, axis=1, keepdims=True
+        normals = normals / np.linalg.norm(normals, axis=1, keepdims=True)
 
         # Compute components
         n_dot_i = np.sum(normals * incident_directions, axis=1, keepdims=True)
