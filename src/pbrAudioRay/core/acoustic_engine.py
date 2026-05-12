@@ -139,12 +139,15 @@ class AcousticEngine:
             self._compute_frame(frame_idx)
 
         # interpolate x bands_idx IRs for wave_propagators[index].combo
-        wave_propagators = self.entity_manager.get('wave_propagators')
-        ir_tasks = [self._interpolate_ir(wave_propagators[index].combo) for index in wave_propagators.keys()]
+        combos = []
+        for i in range(len(config.sources)):
+            for j in range(len(config.outputs)):
+                combos.append([config.sources[i].idx, config.outputs[j].idx])
+        ir_tasks = [self._render_audio(combo) for combo in combos]
         ir_results = compute(*ir_tasks)
 
     @delayed
-    def _interpolate_ir(self, combo):
+    def _render_audio(self, combo):
         interpolator = AmbisonicIRInterpolator(self.entity_manager, combo)
 
         # run acoustic_render.compute to convolve x source wave file with interpolated x bands_idx IRs
