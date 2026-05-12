@@ -161,7 +161,7 @@ class AmbisonicTimeVaryingConvolver:
         return output_buffer
     
     @staticmethod
-    @nb.jit(nopython=True, parallel=True, cache=True)
+#    @nb.jit(nopython=True, parallel=True, cache=True)
     def _simd_fast_convolution_fft_like(audio_segment: np.ndarray,
                                        ir_sequence: np.ndarray,
                                        interp_weights: np.ndarray,
