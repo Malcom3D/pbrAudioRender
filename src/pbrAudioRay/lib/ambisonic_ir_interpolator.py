@@ -19,216 +19,108 @@
 import os
 import numpy as np
 import soundfile as sf
-from scipy.signal import convolve
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
 from pbrAudioRay.core.entity_manager import EntityManager
 from pbrAudioRay.lib.functions import _mono_to_bands
-#from pbrAudioRay.lib.varconvolve import varconvolve
+from pbrAudioRay.lib.ambisonic_convolver import AmbisonicTimeVaryingConvolver, MultibandAmbisonicConvolver
 
 @dataclass
 class AmbisonicIRInterpolator:
+    """
+    Optimized ambisonic IR interpolator using SIMD-accelerated time-varying convolution.
+    """
     entity_manager: EntityManager
     combo: Tuple[int, int]
-    bands_irs: List[np.ndarray] = field(default_factory=lambda: [])
-    max_ir_length: int = 0
-    n_channels: int = 0
-
+    use_multiband: bool = True  # Toggle for single vs multiband processing
+    n_threads: int = 4
+    
     def __post_init__(self):
         config = self.entity_manager.get('config')
         self.sample_rate = int(config.system.sample_rate)
         self.frequency_bands = self.entity_manager.get('frequency_bands')
-        self.n_bands = len(frequency_bands.get_bands())
-
+        self.n_bands = len(self.frequency_bands.get_bands())
+        
         fps = config.system.fps
         fps_base = config.system.fps_base
         subframes = config.system.subframes
-        self.sfps = ( fps / fps_base ) * subframes # subframes per seconds
-
+        self.sfps = (fps / fps_base) * subframes
+        
         source_idx, output_idx = self.combo
+        
+        # Get output configuration
         for out_config in config.outputs:
             if out_config.idx == output_idx:
                 ambisonic_order = out_config.order
                 self.n_channels = (ambisonic_order + 1) ** 2
                 self.out_name = out_config.name
-
+                break
+        
+        # Get source configuration
         for src_config in config.sources:
             if src_config.idx == source_idx:
                 self.audio_file = src_config.audio_file
                 self.src_name = src_config.name
-
+                break
+        
+        # Initialize convolver
+        if self.use_multiband:
+            self.convolver = MultibandAmbisonicConvolver(
+                sample_rate=self.sample_rate,
+                ambisonic_order=ambisonic_order,
+                frequency_bands=self.frequency_bands.get_bands(),
+                hop_size=int(self.sample_rate / self.sfps),
+                n_threads=self.n_threads
+            )
+        else:
+            self.convolver = AmbisonicTimeVaryingConvolver(
+                sample_rate=self.sample_rate,
+                ambisonic_order=ambisonic_order,
+                hop_size=int(self.sample_rate / self.sfps),
+                n_bands=self.n_bands,
+                n_threads=self.n_threads
+            )
+        
+        # Load IR sequence
         ir_path = f"{config.system.cache_path}/impulse_responses"
-        for bands_idx in range(self.n_bands):
-            ir_sequence = []
-            items = os.listdir(ir_path)
-            items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")]
-            filenames = sorted(items, key=lambda x: int(''.join(filter(str.isdigit, x))))
-            for filename in filenames:
-                ir_data, sr = sf.read(f"{ir_path}/{filename}")
-                n_frames, n_channels = ir_data.shape
-                self.max_ir_length = max(self.max_ir_length, n_frames)
-                ir_sequence += [ir_data]
-            ir_datas = []
-            for ir_data in ir_sequence:
-                if not ir_data.shape[0] == self.max_ir_length:
-                    diff_samples = self.max_ir_length - ir_data.shape[0]
-                    ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0)
-                ir_datas += [ir_data]
-            self.bands_irs += [ir_datas]
- 
+        self.convolver.load_ir_sequence(ir_path, source_idx, output_idx)
+        
         # Initialize output buffer
         audio_data, sr = sf.read(self.audio_file)
-        self.output_length = audio_data.shape[0] + self.max_ir_length - 1
-        self.output = np.zeros((self.output_length, self.n_channels))
-
-    def smooth_convolve(self, hop_size=None):
-        frequency_bands = self.entity_manager.get('frequency_bands')
-        multi_bands_audio = _mono_to_bands(self.audio_file, self.sample_rate, frequency_bands.get_bands())
-        for bands_idx in range(self.n_bands):
-            hop_size = int(self.sample_rate / self.sfps)
-            audio = multi_bands_audio[bands_idx]
-            audio_length = audio.shape[0]
-#            n_frames = min(int(audio_length / hop_size), len(self.bands_irs[bands_idx]))
-            n_frames = len(self.bands_irs[bands_idx])
-            for idx in range(n_frames):
-                start_sample = hop_size * idx
-                if idx >= n_frames:
-                    end_sample = self.output_length
-                else:
-                    end_sample = min(start_sample + hop_size, self.output_length)
-                audio_segment = audio[start_sample:end_sample]
-                for ch in range(self.n_channels):
-                    conv_result = convolve(audio_segment, self.bands_irs[bands_idx][idx][:,ch], mode='full')
-                    seg_end = min(start_sample + len(conv_result), self.output_length)
-                    self.output[start_sample:seg_end, ch] += conv_result
-
-#            ir_sequence = []
-#            items = os.listdir(ir_path)
-#            items = [x for x in items if x.startswith(f"ambiIR_{ambisonic_order}") and x.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")]
-#            filenames = sorted(items, key=lambda x: int(''.join(filter(str.isdigit, x))))
-#            for filename in filenames:
-#                ir_data, sr = sf.read(f"{ir_path}/{filename}")
-#                n_frames, n_channels = ir_data.shape
-#                self.max_ir_length = max(self.max_ir_length, n_frames)
-#                ir_sequence += [ir_data]
-#
-#            # Pre-compute interpolation functions for each channel and sample
-#            self.interpolators += [self._build_interpolator(ir_sequence)]
-#
-#        # Initialize output buffer
-#        audio_data, sr = sf.read(self.audio_file)
-#        output_length = len(audio_data) + self.max_ir_length - 1
-#        self.output = np.zeros((output_length, self.n_channels))
-#
-#    def _build_interpolator(self, ir_sequence: List[np.ndarray]) -> np.ndarray:
-#        """
-#        Returns:
-#            Interpolated impulse response (samples x channels)
-#        """
-#        # Ensure all irs have the same length
-#        ir_datas = []
-#        for ir_data in ir_sequence:
-#            if not ir_data.shape[0] == self.max_ir_length:
-#                diff_samples = self.max_ir_length - ir_data.shape[0]
-#                ir_data = np.append(ir_data, np.zeros((diff_samples, ir_data.shape[1])), axis=0)
-#            ir_datas += [ir_data]
-#
-#        # Frame time positions in samples of IRs
-#        n_irs = len(ir_datas)
-#        times = np.arange(n_irs) * self.sample_rate / self.sfps
-#        
-#        # Initialize interpolator array
-#        band_interpolators = np.zeros((self.max_ir_length, self.n_channels), dtype=np.float32)
-#        for sample_idx in range(self.max_ir_length):
-#            for ch_idx in range(self.n_channels):
-#                values = []
-#                for ir_idx in range(n_irs):
-#                    values += [ir_datas[ir_idx][sample_idx,ch_idx]]
-#                values = np.array(values)
-#            if n_irs > 2:
-#                band_interpolators[sample_idx,ch_idx] = CubicSpline(times, values, extrapolate=1)
-#            elif n_irs == 2:
-#                band_interpolators[sample_idx,ch_idx] = interp1d(times, values)
-#
-#        # Initialize interpolator array
-#        return band_interpolators
-#
-# 
-#    def get_ir_sequence_at_times(self, time_samples: int, bands_idx: int):
-#        interpolator = self.interpolators[bands_idx]
-#        interpolated_ir = np.zeros((self.max_ir_length, self.n_channels), dtype=np.float32)
-#        for ch_idx in range(self.n_channels):
-#            for sample_idx in range(self.max_ir_length):
-#                interpolated_ir[sample_idx,ch_idx] = interpolator[sample_idx,ch_idx](time_samples)
-#
-#        return interpolated_ir
-#
-#    def smooth_convolve(self, hop_size=None):
-#        """
-#        Smoothly convolve audio with interpolated ambisonic IRs.
-#
-#        Parameters:
-#        -----------
-#        audio : np.ndarray
-#            Mono audio signal to convolve (n_samples,)
-#        hop_size : int, optional
-#            Number of audio samples between IR updates.
-##            Default: one IR per audio frame (sample_rate / fps)
-#
-#        Returns:
-#        --------
-#        np.ndarray : Convolved audio of shape (n_output_samples, n_channels)
-#        """
-#        config = self.entity_manager.get('config')
-#        frequency_bands = self.entity_manager.get('frequency_bands')
-#        n_bands = len(frequency_bands.get_bands())
-#
-#        multi_bands_audio = _mono_to_bands(self.audio_file, self.sample_rate, frequency_bands.get_bands())
-#
-#        for bands_idx in range(n_bands):
-#            audio = multi_bands_audio[bands_idx]
-#            audio_duration = len(audio)
-#
-#            # Calculate hop size (samples between IR updates)
-#            if hop_size is None:
-#                hop_size = int(self.sample_rate / self.sfps)
-#
-#            # Calculate number of IR updates needed
-#            n_updates = int(np.ceil(audio_duration / hop_size)) + 1
-#
-#            # Time points for IR updates
-#            update_times = np.linspace(0, audio_duration, n_updates)
-#
-#            # Get interpolated IRs at update times
-#            interpolated_ir = self.get_ir_sequence_at_times(update_times, bands_idx)
-#
-#            # Perform overlap-add convolution
-#            for i, (start_sample, ir) in enumerate(zip(update_times, interpolated_irs)):
-#                # Ensure we don't exceed audio bounds
-#                if start_sample >= len(audio):
-#                    break
-#
-#                # Extract audio segment for this IR
-#                end_sample = min(start_sample + hop_size, len(audio))
-#                audio_segment = audio[start_sample:end_sample]
-#
-#                # Convolve each channel
-#                for ch in range(self.n_channels):
-#                    conv_result = convolve(audio_segment, ir[:,ch], mode='full')
-#
-#                    # Add to output (with overlap)
-#                    seg_end = min(start_sample + len(conv_result), output_length)
-#                    seg_len = seg_end - start_sample
-#                    self.output[start_sample:seg_end, ch] += conv_result[seg_len:]
-#
+        self.output_length = audio_data.shape[0] + self.convolver.max_ir_length - 1
+        self.output = None
+    
+    def smooth_convolve(self):
+        """Perform time-varying multiband convolution."""
+        # Read audio file
+        audio_data, sr = sf.read(self.audio_file)
+        
+        # Ensure mono
+        if audio_data.ndim > 1:
+            audio_data = np.mean(audio_data, axis=1)
+        
+        # Resample if needed
+        if sr != self.sample_rate:
+            import resampy
+            audio_data = resampy.resample(audio_data, sr, self.sample_rate)
+        
+        # Perform convolution
+        self.output = self.convolver.convolve(audio_data)
+        
+        return self.output
+    
     def save_output(self):
+        """Save convolved audio to file."""
+        if self.output is None:
+            raise RuntimeError("No output to save. Call smooth_convolve() first.")
+        
         config = self.entity_manager.get('config')
         render_path = config.system.render_path
-        subtype = config.system.bit_depth
-        file_format = config.system.file_format.lower()
         os.makedirs(render_path, exist_ok=True)
-        filename = f"{render_path}/{self.src_name}_{self.out_name}.{file_format}"
-        sf.write(filename, self.output, self.sample_rate, subtype=subtype)
-
-        print(f"Saved convolved Audio: {filename} for source {self.src_name}, output {self.out_name}")
+        
+        filename = f"{self.src_name}_{self.out_name}.wav"
+        filepath = os.path.join(render_path, filename)
+        
+        sf.write(filepath, self.output, self.sample_rate, subtype='FLOAT')
+        print(f"Saved convolved Audio: {filepath} for source {self.src_name}, output {self.out_name}")
