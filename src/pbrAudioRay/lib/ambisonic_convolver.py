@@ -16,8 +16,6 @@
 # along with pbrAudio.  If not, see <https://www.gnu.org/licenses/>.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# ./lib/ambisonic_convolver.py
-
 import numpy as np
 import numba as nb
 from numba import prange

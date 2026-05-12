@@ -33,7 +33,7 @@ class AmbisonicIRInterpolator:
     """
     entity_manager: EntityManager
     combo: Tuple[int, int]
-    use_multiband: bool = True  # Toggle for single vs multiband processing
+    use_multiband: bool = False  # Toggle for single vs multiband processing
     n_threads: int = 4
     
     def __post_init__(self):
@@ -41,6 +41,9 @@ class AmbisonicIRInterpolator:
         self.sample_rate = int(config.system.sample_rate)
         self.frequency_bands = self.entity_manager.get('frequency_bands')
         self.n_bands = len(self.frequency_bands.get_bands())
+
+        if config.system.bands_per_octave > 0:
+            use_multiband = True
         
         fps = config.system.fps
         fps_base = config.system.fps_base
