@@ -37,11 +37,11 @@ class AmbisonicTimeVaryingConvolver:
                  hop_size: Optional[int] = None,
                  n_bands: int = 24,
                  n_threads: int = 4):
-        
+
         self.sample_rate = sample_rate
         self.ambisonic_order = ambisonic_order
         self.n_channels = (ambisonic_order + 1) ** 2
-        self.hop_size = hop_size or sample_rate // 24  # Default 1 frame at 24fps
+        self.hop_size = hop_size or sample_rate // 24
         self.n_bands = n_bands
         
         # Set numba thread count
@@ -55,7 +55,7 @@ class AmbisonicTimeVaryingConvolver:
     def load_ir_sequence(self, ir_path: str, source_idx: int, output_idx: int):
         """
         Load per-frame per-band ambisonic IR sequence from disk.
-        Optim Optimized with memory-mapped loading for large datasets.
+        Optimized with memory-mapped loading for large datasets.
         """
         # Find all IR files for this source-output pair
         ir_files = []
@@ -104,7 +104,7 @@ class AmbisonicTimeVaryingConvolver:
             self.interp_weights[i] = [1.0 - t, t]
     
     @staticmethod
-    @nb.jit(nopython=True, parallel=True, cache=True)
+#    @nb.jit(nopython=True, parallel=True, cache=True)
     def _simd_convolve_band(audio_segment: np.ndarray,
                            ir_sequence: np.ndarray,
                            interp_weights: np.ndarray,
@@ -291,7 +291,7 @@ class MultibandAmbisonicConvolver:
                  frequency_bands: List[Tuple[float, float]] = None,
                  hop_size: Optional[int] = None,
                  n_threads: int = 4):
-        
+
         self.sample_rate = sample_rate
         self.ambisonic_order = ambisonic_order
         self.n_channels = (ambisonic_order + 1) ** 2
