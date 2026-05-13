@@ -34,13 +34,13 @@ class ScatteringInterface:
         scat_phases = material_properties.scattering_phases[primID_filtered][:, ray_data.bands_idx]
 
         # Generate scattering rays
-        scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs, scat_phases)
+        scattered_data = self._generate_scattering_rays(material_properties, new_origins, normals, scat_coeffs, scat_phases, ray_data)
 
-    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray, scat_phases: np.ndarray) -> Dict[str, np.ndarray]:
+    def _generate_scattering_rays(self, material_properties: Any, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray, scat_phases: np.ndarray, ray_data: Any) -> Dict[str, np.ndarray]:
         """Generate scattering rays on hemisphere."""
         config = self.entity_manager.get('config')
         n_scat_origins = origins.shape[0]
-        max_scattering = int(config.interface.max_scattering*np.mean(self.ray_data.energies))
+        max_scattering = int(config.interface.max_scattering*np.mean(ray_data.energies))
 
         if max_scattering < 1:
             return {
@@ -57,7 +57,7 @@ class ScatteringInterface:
             n_scat_rays = np.random.randint(1, max_scattering, size=(n_scat_origins, 1))
 
         # Generate number of scattering rays
-        roughness = self.material_properties.roughness
+        roughness = material_properties.roughness
         n_samples = np.sum(n_scat_rays)
 
         # Initialize arrays
@@ -79,11 +79,11 @@ class ScatteringInterface:
 
             # Copy info array
             result['origins'][lo_idx:hi_idx] = origins[idx]
-            result['directions'][lo_idx:hi_idx] = self.ray_data.directions[idx]
+            result['directions'][lo_idx:hi_idx] = ray_data.directions[idx]
             result['normals'][lo_idx:hi_idx] = normals[idx]
-            result['energies'][lo_idx:hi_idx] = self.ray_data.energies[idx] * scat_coeffs.reshape(-1,1)
-            result['phases'][lo_idx:hi_idx] = self.ray_data.phases[idx] * -scat_phases.reshape(-1, 1) % (2 * np.pi)
-            result['delay'][lo_idx:hi_idx] = self.ray_data.delay[idx]
+            result['energies'][lo_idx:hi_idx] = ray_data.energies[idx] * scat_coeffs.reshape(-1,1)
+            result['phases'][lo_idx:hi_idx] = ray_data.phases[idx] * -scat_phases.reshape(-1, 1) % (2 * np.pi)
+            result['delay'][lo_idx:hi_idx] = ray_data.delay[idx]
 
             # Generate random directions on hemisphere
             random_dirs = np.random.uniform(-1, 1, (n_rays_this, 3))
