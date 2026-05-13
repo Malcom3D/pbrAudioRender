@@ -69,22 +69,9 @@ class AmbisonicIRInterpolator:
         
         # Initialize convolver
         if self.use_multiband:
-            self.convolver = MultibandAmbisonicConvolver(
-                sample_rate=self.sample_rate,
-                ambisonic_order=ambisonic_order,
-                frequency_bands=self.frequency_bands.get_bands(),
-                hop_size=int(self.sample_rate / self.sfps),
-                n_threads=self.n_threads
-            )
+            self.convolver = MultibandAmbisonicConvolver(sample_rate=self.sample_rate, ambisonic_order=ambisonic_order, frequency_bands=self.frequency_bands.get_bands(), hop_size=int(self.sample_rate / self.sfps), n_threads=self.n_threads)
         else:
-            self.convolver = AmbisonicTimeVaryingConvolver(
-                sample_rate=self.sample_rate,
-                ambisonic_order=ambisonic_order,
-                hop_size=int(self.sample_rate / self.sfps),
-                n_bands=self.n_bands,
-                n_threads=self.n_threads
-            )
-        
+            self.convolver = AmbisonicTimeVaryingConvolver(sample_rate=self.sample_rate, ambisonic_order=ambisonic_order, hop_size=int(self.sample_rate / self.sfps), n_threads=self.n_threads)
         # Load IR sequence
         ir_path = f"{config.system.cache_path}/impulse_responses"
         self.convolver.load_ir_sequence(ir_path, source_idx, output_idx)
