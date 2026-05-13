@@ -252,11 +252,13 @@ class InterfaceManager:
         if enable_reflection:
             reflected_energies, reflected_phases, reflected_directions = self.reflection_interface.compute(self.material_properties, primID_filtered, normals, self.ray_data, new_origins)
             reflected_origins = new_origins
+            reflected_delay = self.ray_data.delay
         else:
             reflected_origins = np.zeros((0,3), dtype=np.float32)
+            reflected_directions = np.zeros((0,3), dtype=np.float32)
             reflected_energies = np.zeros((0,1), dtype=np.float32)
             reflected_phases = np.zeros((0,1), dtype=np.float32)
-            reflected_directions = np.zeros((0,3), dtype=np.float32)
+            reflected_delay = np.zeros((0,1), dtype=np.float32)
 
         if enable_transmission:
             transmission_data = self.transmission_interface.compute(self.medium_objs, self.hits_obj_idx, self.material_properties, inters, primID_filtered, normals, self.ray_data, absorbed_energies, self.frame_idx)
@@ -295,7 +297,7 @@ class InterfaceManager:
         self.ray_data.directions = np.concatenate((reflected_directions, scattered_data['directions'], transmission_data['directions']), axis=0)
         self.ray_data.energies = np.concatenate((reflected_energies, scattered_data['energies'], transmission_data['energies']), axis=0)
         self.ray_data.phases = np.concatenate((reflected_phases, scattered_data['phases'], transmission_data['phases']), axis=0)
-        self.ray_data.delay = np.concatenate((self.ray_data.delay, scattered_data['delay'], transmission_data['delay']), axis=0)
+        self.ray_data.delay = np.concatenate((reflected_delay, scattered_data['delay'], transmission_data['delay']), axis=0)
 
     def _collect_output_data(self, intersect_mask: np.ndarray, path_length: np.ndarray):
         """Collect rays that reached output destinations."""
