@@ -21,6 +21,7 @@ import numba as nb
 from numba import prange
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
+from scipy.signal import fftconvolve
 import soundfile as sf
 import os
 
@@ -28,190 +29,85 @@ import os
 class AmbisonicTimeVaryingConvolver:
     """
     Time-varying ambisonic convolver optimized with SIMD and parallel processing.
-    Handles per-frame per-band ambisonic IR sequences for moving sources/listeners.
+    Handles per-frame single band ambisonic IR sequences for moving sources/listeners.
     """
     
-    def __init__(self, 
-                 sample_rate: int = 48000,
-                 ambisonic_order: int = 1,
-                 hop_size: Optional[int] = None,
-                 n_bands: int = 24,
-                 n_threads: int = 4):
+    def __init__(self, sample_rate: int = 48000, ambisonic_order: int = 1, hop_size: Optional[int] = None, bands_idx: int = 0, n_threads: int = 4):
 
         self.sample_rate = sample_rate
         self.ambisonic_order = ambisonic_order
         self.n_channels = (ambisonic_order + 1) ** 2
         self.hop_size = hop_size or sample_rate // 24
-        self.n_bands = n_bands
+        self.bands_idx = bands_idx
         
         # Set numba thread count
         nb.set_num_threads(n_threads)
         
         # Initialize buffers
-        self.bands_irs: List[List[np.ndarray]] = []  # [band][frame] -> (samples, channels)
+        self.bands_irs: List[np.ndarray] = []  # [frame] -> (samples, channels)
         self.max_ir_length = 0
         self.output_buffer: Optional[np.ndarray] = None
         
     def load_ir_sequence(self, ir_path: str, source_idx: int, output_idx: int):
         """
-        Load per-frame per-band ambisonic IR sequence from disk.
+        Load per-frame ambisonic IR sequence from disk.
         Optimized with memory-mapped loading for large datasets.
         """
         # Find all IR files for this source-output pair
-        ir_files = []
-        for bands_idx in range(self.n_bands):
-            pattern = f"ambiIR_{self.ambisonic_order}_*_{source_idx}_{output_idx}_{bands_idx:05}.wav"
-            band_files = sorted([f for f in os.listdir(ir_path) if f.startswith(f"ambiIR_{self.ambisonic_order}") 
-                                and f.endswith(f"_{source_idx}_{output_idx}_{bands_idx:05}.wav")],
-                               key=lambda x: int(''.join(filter(str.isdigit, x.split('_')[2]))))
-            ir_files.append(band_files)
+        pattern = f"ambiIR_{self.ambisonic_order}_*_{source_idx}_{output_idx}_{self.bands_idx:05}.wav"
+        ir_files = sorted([f for f in os.listdir(ir_path) if f.startswith(f"ambiIR_{self.ambisonic_order}") and f.endswith(f"_{source_idx}_{output_idx}_{self.bands_idx:05}.wav")], key=lambda x: int(''.join(filter(str.isdigit, x.split('_')[2]))))
         
         # Load IRs with memory mapping for efficiency
         self.bands_irs = []
-        for bands_idx in range(self.n_bands):
-            band_irs = []
-            for filename in ir_files[bands_idx]:
-                # Use memory mapping for large files
-                ir_data, sr = sf.read(f"{ir_path}/{filename}", always_2d=True)
-                self.max_ir_length = max(self.max_ir_length, ir_data.shape[0])
-                band_irs.append(ir_data)
-            self.bands_irs.append(band_irs)
+        for filename in ir_files:
+            # Use memory mapping for large files
+            ir_data, sr = sf.read(f"{ir_path}/{filename}", always_2d=True)
+            self.max_ir_length = max(self.max_ir_length, ir_data.shape[0])
+        self.bands_irs.append(ir_data)
         
         # Pad all IRs to same length for vectorized processing
         self._pad_irs_to_uniform_length()
         
-        # Pre-compute IR interpolation weights for smooth transitions
-        self._precompute_interpolation_weights()
-        
     def _pad_irs_to_uniform_length(self):
         """Pad all IRs to maximum length for SIMD-friendly processing."""
-        for bands_idx in range(self.n_bands):
-            for frame_idx in range(len(self.bands_irs[bands_idx])):
-                ir = self.bands_irs[bands_idx][frame_idx]
-                if ir.shape[0] < self.max_ir_length:
-                    pad_length = self.max_ir_length - ir.shape[0]
-                    self.bands_irs[bands_idx][frame_idx] = np.pad(ir, 
-                        ((0, pad_length), (0, 0)), mode='constant')
-    
-    def _precompute_interpolation_weights(self):
-        """Pre-compute linear interpolation weights for smooth IR transitions."""
-        n_frames = len(self.bands_irs[0]) if self.bands_irs else 0
-        self.interp_weights = np.zeros((n_frames, 2), dtype=np.float32)
-        
-        for i in range(n_frames):
-            # Linear crossfade weights
-            t = i / max(n_frames - 1, 1)
-            self.interp_weights[i] = [1.0 - t, t]
-    
-    @staticmethod
-#    @nb.jit(nopython=True, parallel=True, cache=True)
-    def _simd_convolve_band(audio_segment: np.ndarray,
-                           ir_sequence: np.ndarray,
-                           interp_weights: np.ndarray,
-                           hop_size: int,
-                           output_buffer: np.ndarray,
-                           n_channels: int):
-        """
-        SIMD-optimized convolution with time-varying IRs.
-        Uses numba parallel processing for multi-core execution.
-        """
-        n_frames = ir_sequence.shape[0]
-        ir_length = ir_sequence.shape[1]
-        audio_length = audio_segment.shape[0]
-        
-        # Process each frame in parallel
-        for frame_idx in prange(n_frames):
-            start_sample = frame_idx * hop_size
+        for frame_idx in range(len(self.bands_irs)):
+            ir = self.bands_irs[frame_idx]
+            if ir.shape[0] < self.max_ir_length:
+                pad_length = self.max_ir_length - ir.shape[0]
+                self.bands_irs[frame_idx] = np.pad(ir, ((0, pad_length), (0, 0)), mode='constant')
+
+    def _time_varing_convolve(audio_data, ir_sequence):
+        n_frames = len(ir_sequence)
+        ir_length = ir_sequence[0].shape[0]
+        audio_length = audio_data.shape[0]
+        output_length = self.output_buffer.shape[0]
+        fade_in = np.linspace(0.0, 1.0, int(self.hop_size/2))
+        fade_out = np.linspace(1.0, 0.0, int(self.hop_size/2))
+        for frame_idx in range(n_frames):
+            start_sample = int((frame_idx * self.hop_size) - (self.hop_size / 2))
+            start_sample = start_sample if start_sample > 0 else 0
             if start_sample >= audio_length:
                 break
-            
-            end_sample = min(start_sample + hop_size, audio_length)
-            seg_length = end_sample - start_sample
-            
-            # Get current and next IR for interpolation
-            current_ir = ir_sequence[frame_idx]
-            next_ir = ir_sequence[min(frame_idx + 1, n_frames - 1)]
-            
-            # Interpolate IRs for smooth transition
-            weight = interp_weights[frame_idx, 0]
-            interpolated_ir = weight * current_ir + (1.0 - weight) * next_ir
-            
-            # Convolve audio segment with interpolated IR per channel
-            for ch in prange(n_channels):
-                # Direct convolution using SIMD-friendly operations
-                conv_length = seg_length + ir_length - 1
-                conv_result = np.zeros(conv_length, dtype=np.float32)
-                
-                for i in range(seg_length):
-                    ir_start = 0
-                    ir_end = min(ir_length, conv_length - i)
-                    
-                    # Vectorized convolution for this sample
-                    for j in range(ir_start, ir_end):
-                        conv_result[i + j] += audio_segment[start_sample + i] * interpolated_ir[j, ch]
-                
-                # Add to output buffer
-                out_start = start_sample
-                out_end = min(start_sample + conv_length, output_buffer.shape[0])
-                actual_length = out_end - out_start
-                
-                for i in range(actual_length):
-                    output_buffer[out_start + i, ch] += conv_result[i]
-        
-        return output_buffer
-    
-    @staticmethod
-#    @nb.jit(nopython=True, parallel=True, cache=True)
-    def _simd_fast_convolution_fft_like(audio_segment: np.ndarray,
-                                       ir_sequence: np.ndarray,
-                                       interp_weights: np.ndarray,
-                                       hop_size: int,
-                                       output_buffer: np.ndarray,
-                                       n_channels: int):
-        """
-        Optimized convolution using overlap-add approach with SIMD.
-        More efficient than direct convolution for longer IRs.
-        """
-        n_frames = ir_sequence.shape[0]
-        ir_length = ir_sequence.shape[1]
-        audio_length = audio_segment.shape[0]
-        
-        # Use block processing for better cache utilization
-        block_size = 1024  # Optimal block size for CPU cache
-        
-        for frame_idx in prange(n_frames):
-            start_sample = frame_idx * hop_size
-            if start_sample >= audio_length:
-                break
-            
-            end_sample = min(start_sample + hop_size, audio_length)
-            
-            # Get interpolated IR
-            current_ir = ir_sequence[frame_idx]
-            next_ir = ir_sequence[min(frame_idx + 1, n_frames - 1)]
-            weight = interp_weights[frame_idx, 0]
-            interpolated_ir = weight * current_ir + (1.0 - weight) * next_ir
-            
-            # Process audio in blocks for better cache performance
-            for block_start in range(start_sample, end_sample, block_size):
-                block_end = min(block_start + block_size, end_sample)
-                block = audio_segment[block_start:block_end]
-                block_length = block_end - block_start
-                
-                # Convolve block with IR per channel
-                for ch in prange(n_channels):
-                    # Use vectorized operations
-                    for i in range(block_length):
-                        ir_end = min(ir_length, output_buffer.shape[0] - block_start - i)
-                        if ir_end <= 0:
-                            continue
-                        
-                        # Vectorized inner loop
-                        for j in range(ir_end):
-                            output_buffer[block_start + i + j, ch] += block[i] * interpolated_ir[j, ch]
-        
-        return output_buffer
-    
+            end_sample = int(min(start_sample + (3/2 * self.hop_size), audio_length))
+            if frame_idx == (n_frames -1) and (end_sample + self.hop_size) < audio_length:
+                end_sample = audio_length
+            audio_block = audio_data[start_sample:end_sample].reshape(-1,)
+            for ch in range(self.n_channels):
+                ir = ir_sequence[frame_idx][:,ch]
+                convolved = fftconvolve(audio_block, ir, mode='full')
+                if not (end_sample == audio_length) or not (frame_idx == (n_frames -1) and (end_sample + self.hop_size) < audio_length):
+                    fade_start = int(end_sample-(self.hop_size/2))
+                    convolved[fade_start:end_sample] *= fade_out
+                    conv_end = end_sample
+                    print('fade_out:', start_sample, fade_start, conv_end)
+                else:
+                    conv_end = output_length
+                if start_sample > 0:
+                    fade_end = int(start_sample+(self.hop_size/2))
+                    convolved[start_sample:fade_end] *= fade_in
+                conv_end = int(convolved.shape[0] + start_sample)
+                self.output_buffer[start_sample:conv_end, ch] += convolved.astype(np.float64)
+
     def convolve(self, audio_data: np.ndarray) -> np.ndarray:
         """
         Perform time-varying ambisonic convolution.
@@ -229,15 +125,14 @@ class AmbisonicTimeVaryingConvolver:
         output_length = audio_length + self.max_ir_length - 1
         
         # Initialize output buffer
-        self.output_buffer = np.zeros((output_length, self.n_channels), dtype=np.float32)
+        self.output_buffer = np.zeros((output_length, self.n_channels), dtype=np.float64)
         
         # Convert IR sequence to numpy array for SIMD processing
-        n_frames = len(self.bands_irs[0])
+        n_frames = len(self.bands_irs)
         ir_sequence = np.zeros((n_frames, self.max_ir_length, self.n_channels), dtype=np.float32)
         
         for frame_idx in range(n_frames):
-            for bands_idx in range(self.n_bands):
-                ir_sequence[frame_idx] += self.bands_irs[bands_idx][frame_idx]
+            ir_sequence[frame_idx] += self.bands_irs[frame_idx]
         
         # Normalize IR sequence
         for frame_idx in range(n_frames):
@@ -245,28 +140,7 @@ class AmbisonicTimeVaryingConvolver:
             if max_val > 0:
                 ir_sequence[frame_idx] /= max_val
         
-        # Choose optimal convolution method based on IR length
-        if self.max_ir_length > 2048:
-            # Use FFT-like approach for longer IRs
-            self._simd_fast_convolution_fft_like(
-                audio_data.astype(np.float32),
-                ir_sequence,
-                self.interp_weights,
-                self.hop_size,
-                self.output_buffer,
-                self.n_channels
-            )
-        else:
-            # Use direct convolution for shorter IRs
-            self._simd_convolve_band(
-                audio_data.astype(np.float32),
-                ir_sequence,
-                self.interp_weights,
-                self.hop_size,
-                self.output_buffer,
-                self.n_channels
-            )
-        
+        self._time_varing_convolve(audio_data.astype(np.float32), ir_sequence)
         return self.output_buffer
     
     def save_output(self, output_path: str, filename: str):
@@ -285,12 +159,7 @@ class MultibandAmbisonicConvolver:
     Processes each frequency band independently for better spectral accuracy.
     """
     
-    def __init__(self,
-                 sample_rate: int = 48000,
-                 ambisonic_order: int = 1,
-                 frequency_bands: List[Tuple[float, float]] = None,
-                 hop_size: Optional[int] = None,
-                 n_threads: int = 4):
+    def __init__(self,sample_rate: int = 48000, ambisonic_order: int = 1, frequency_bands: List[Tuple[float, float]] = None, hop_size: Optional[int] = None, n_threads: int = 4):
 
         self.sample_rate = sample_rate
         self.ambisonic_order = ambisonic_order
@@ -302,20 +171,12 @@ class MultibandAmbisonicConvolver:
         nb.set_num_threads(n_threads)
         
         # Per-band convolvers
-        self.band_convolvers = [AmbisonicTimeVaryingConvolver(
-            sample_rate=sample_rate,
-            ambisonic_order=ambisonic_order,
-            hop_size=hop_size,
-            n_bands=1,
-            n_threads=n_threads
-        ) for _ in range(self.n_bands)]
+        self.band_convolvers = [AmbisonicTimeVaryingConvolver(sample_rate=sample_rate, ambisonic_order=ambisonic_order, hop_size=hop_size, bands_idx=bands_idx, n_threads=n_threads) for bands_idx in range(self.n_bands)]
         
     def load_ir_sequence(self, ir_path: str, source_idx: int, output_idx: int):
         """Load IR sequence for all bands."""
         for bands_idx in range(self.n_bands):
-            self.band_convolvers[bands_idx].load_ir_sequence(
-                ir_path, source_idx, output_idx
-            )
+            self.band_convolvers[bands_idx].load_ir_sequence(ir_path, source_idx, output_idx)
     
     def convolve(self, audio_data: np.ndarray) -> np.ndarray:
         """
