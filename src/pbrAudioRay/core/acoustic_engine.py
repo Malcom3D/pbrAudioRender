@@ -202,8 +202,8 @@ class AcousticEngine:
             absorption_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             reflection_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             reflection_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
-            refraction_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
-            refraction_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            transmission_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
+            transmission_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             scattering_coeffs=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             scattering_phases=np.full((n_faces, n_bands), 0.0, dtype=np.float32),
             roughness=np.full((n_faces, 1), 0.0, dtype=np.float32)
@@ -235,7 +235,7 @@ class AcousticEngine:
             roughness = obj_config.acoustic_shader.roughness
             self.material_properties.roughness = np.append(self.material_properties.roughness, np.full((n_faces, 1), [roughness], dtype=np.float32), axis=0)
 
-            for prop_name in ['absorption', 'reflection', 'refraction', 'scattering']:
+            for prop_name in ['absorption', 'reflection', 'transmission', 'scattering']:
                 if hasattr(obj_config.acoustic_shader.acoustic_properties, prop_name):
                     prop = getattr(obj_config.acoustic_shader.acoustic_properties, prop_name)
                     coeffs, phases = prop.get_bands_avg(frequency_bands.get_bands())

@@ -27,7 +27,7 @@ from ...core.entity_manager import EntityManager
 class AbsorptionInterface:
     entity_manager: EntityManager
 
-    def compute_absorption(self, material_properties, primID_filtered, normals, ray_data):
+    def compute(self, material_properties: Any, primID_filtered: np.ndarray, normals: np.ndarray, ray_data: Any):
         abs_coeffs = material_properties.absorption_coeffs[primID_filtered][:, ray_data.bands_idx]
         abs_phases = material_properties.absorption_phases[primID_filtered][:, ray_data.bands_idx]
 

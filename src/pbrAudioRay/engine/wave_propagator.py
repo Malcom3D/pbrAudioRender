@@ -112,7 +112,7 @@ class WavePropagator:
             n_faces = vertices[faces].shape[0]
             self.material_properties.roughness = np.append(self.material_properties.roughness, np.full((n_faces, 1), 0.0, dtype=np.float32), axis=0)
 
-            for prop_name in ['absorption', 'reflection', 'refraction', 'scattering']:
+            for prop_name in ['absorption', 'reflection', 'transmission', 'scattering']:
                 coeffs = getattr(self.material_properties, f'{prop_name}_coeffs')
                 phases = getattr(self.material_properties, f'{prop_name}_phases')
 

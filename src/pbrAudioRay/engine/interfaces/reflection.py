@@ -28,14 +28,19 @@ class ReflectionInterface:
     """Handle rays reflection at objects boundaries"""
     entity_manager: EntityManager
 
-    def compute(self, material_properties, primID_filtered, normals, ray_data, new_origins):
+    def compute(self, material_properties: Any, primID_filtered: np.ndarray, normals: np.ndarray, ray_data: Any, new_origins: np.ndarray):
         refl_coeffs = material_properties.reflection_coeffs[primID_filtered][:, ray_data.bands_idx]
         refl_phases = material_properties.reflection_phases[primID_filtered][:, ray_data.bands_idx]
+
+        # Compute incident angles
+        dot_projection = np.sum(ray_data.directions * normals, axis=1)
+        incident_angles = np.arccos(-dot_projection)
 
         # Compute reflection energies and phases
         reflected_energies = ray_data.energies * refl_coeffs.reshape(-1, 1)
         reflected_phases = ray_data.phases * -refl_phases.reshape(-1, 1) % (2 * np.pi)
 
+        # Compute incident directions
         incident_directions = ray_data.origins - new_origins
         reflected_directions = self._compute_reflection_directions(incident_directions, normals, incident_angles)
 

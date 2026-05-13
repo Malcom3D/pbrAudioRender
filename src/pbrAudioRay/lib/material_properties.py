@@ -26,8 +26,8 @@ class MaterialProperties:
     absorption_phases: np.ndarray
     reflection_coeffs: np.ndarray
     reflection_phases: np.ndarray
-    refraction_coeffs: np.ndarray
-    refraction_phases: np.ndarray
+    transmission_coeffs: np.ndarray
+    transmission_phases: np.ndarray
     scattering_coeffs: np.ndarray
     scattering_phases: np.ndarray
     roughness: np.ndarray

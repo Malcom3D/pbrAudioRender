@@ -158,7 +158,7 @@ class AcousticCoefficients:
 class AcousticProperties:
     """Container for acoustic properties."""
     absorption: Union[float, Optional[AcousticCoefficients]] = None
-    refraction: Union[float, Optional[AcousticCoefficients]] = None
+    transmission: Union[float, Optional[AcousticCoefficients]] = None
     reflection: Union[float, Optional[AcousticCoefficients]] = None
     scattering: Union[float, Optional[AcousticCoefficients]] = None
 
