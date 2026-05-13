@@ -28,40 +28,77 @@ class ScatteringInterface:
     """Handle sound wave scattering at rough surfaces after reflections"""
     entity_manager: EntityManager
 
-    def compute(self, energies: np.ndarray, phases: np.ndarray, normals: np.ndarray, roughness_factor: np.ndarray, scat_coeffs: np.ndarray, scat_phases: np.ndarray):
-        # Compute scattered directions (random direction in hemisphere)
-        scattered_directions = self._random_hemisphere_directions(normals)
+    def compute(self, material_properties, primID_filtered, normals, ray_data, new_origins):
+        # Compute scattering energies and phases
+        scat_coeffs = material_properties.scattering_coeffs[primID_filtered][:, ray_data.bands_idx]
+        scat_phases = material_properties.scattering_phases[primID_filtered][:, ray_data.bands_idx]
 
-        # Compute intersection scattering energies and phase shift
-        scattered_energy = energies * scat_coeffs * roughness_factor / max(scattered_directions.shape[0], 1e-10)
-        scattered_phase = phases + scat_phases % (2 * np.pi)
- 
-    @staticmethod
-#    @nb.njit(fastmath=True)
-    def _random_hemisphere_directions(normals: np.ndarray) -> np.ndarray:
-        """
-        Generate random directions on hemispheres oriented along the normals.
+        # Generate scattering rays
+        scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs)
 
-        Args:
-            normals: Surface normals
-            n_samples: Number of samples to generate
+    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
+        """Generate scattering rays on hemisphere."""
+        config = self.entity_manager.get('config')
+        n_scat_origins = origins.shape[0]
+        max_scattering = int(config.interface.max_scattering*np.mean(self.ray_data.energies))
 
-        Returns:
-            Array of sampled directions
-        """
-        n_samples = max(normals.shape[0], 1)
-        directions = np.random.uniform(-1,1,(n_samples,3))
-        directions /= np.linalg.norm(directions)
+        if max_scattering < 1:
+            return {
+                'origins': np.zeros((0, 3), dtype=np.float32),
+                'directions': np.zeros((0, 3), dtype=np.float32),
+                'normals': np.zeros((0, 3), dtype=np.float32),
+                'energies': np.zeros((0, 1), dtype=np.float32),
+                'phases': np.zeros((0, 1), dtype=np.float32),
+                'delay': np.zeros((0, 1), dtype=np.float32)
+            }
+        elif max_scattering == 1:
+            n_scat_rays = np.full((n_scat_origins, 1), [1], dtype=np.int32)
+        else:
+            n_scat_rays = np.random.randint(1, max_scattering, size=(n_scat_origins, 1))
 
-        while not np.all(directions[:, 0]**2 + directions[:, 1]**2 + directions[:, 2]**2 < 1):
-            directions = np.random.uniform(-1,1,(n_samples,3))
+        # Generate number of scattering rays
+        roughness = self.material_properties.roughness
+        n_samples = np.sum(n_scat_rays)
 
-            # Project onto hemisphere oriented along normals
-            directions /= np.linalg.norm(directions)
+        # Initialize arrays
+        result = {
+            'origins': np.zeros((n_samples, 3), dtype=np.float32),
+            'directions': np.zeros((n_samples, 3), dtype=np.float32),
+            'normals': np.zeros((n_samples, 3), dtype=np.float32),
+            'energies': np.zeros((n_samples, 1), dtype=np.float32),
+            'phases': np.zeros((n_samples, 1), dtype=np.float32),
+            'delay': np.zeros((n_samples, 1), dtype=np.float32)
+        }
 
-        # Flip if pointing away from normals
-        if not np.any(np.sum(directions * normals, axis=1) < 0):
-            mask = np.sum(directions * normals, axis=1) < 0
-            directions[mask] = -directions[mask]
+        # Generate random directions on hemisphere
+        hi_idx = 0
+        for idx in range(n_scat_origins):
+            lo_idx = hi_idx
+            hi_idx = lo_idx + int(n_scat_rays[idx])
+            n_rays_this = hi_idx - lo_idx
 
-        return directions
+            # Copy info array
+            result['origins'][lo_idx:hi_idx] = origins[idx]
+            result['directions'][lo_idx:hi_idx] = self.ray_data.directions[idx]
+            result['normals'][lo_idx:hi_idx] = normals[idx]
+            result['energies'][lo_idx:hi_idx] = self.ray_data.energies[idx] * scat_coeffs.reshape(-1,1)
+            result['phases'][lo_idx:hi_idx] = self.ray_data.phases[idx] * -scat_phases.reshape(-1, 1) % (2 * np.pi)
+            result['delay'][lo_idx:hi_idx] = self.ray_data.delay[idx]
+
+            # Generate random directions on hemisphere
+            random_dirs = np.random.uniform(-1, 1, (n_rays_this, 3))
+            random_dirs /= np.linalg.norm(random_dirs, axis=1, keepdims=True)
+
+            # Ensure directions point along hemisphere oriented by normal
+            normal = normals[idx]
+            dot_products = np.sum(random_dirs * normal, axis=1)
+            flip_mask = dot_products < 0
+            random_dirs[flip_mask] = -random_dirs[flip_mask]
+
+            result['directions'][lo_idx:hi_idx] = random_dirs
+
+            # Distribute energy among scattering rays
+            result['energies'][lo_idx:hi_idx] = scat_coeffs[idx] / n_rays_this
+
+        return result
+

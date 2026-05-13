@@ -29,9 +29,9 @@ from ..lib.ray_data import RayData
 from ..lib.functions import _compute_rayleigh_damping
 
 #from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface, DiffusionInterface
-#from .interfaces.absorption import AbsorptionInterface
-#from .interfaces.reflection import ReflectionInterface
-#from .interfaces.scattering import ScatteringInterface
+from .interfaces.absorption import AbsorptionInterface
+from .interfaces.reflection import ReflectionInterface
+from .interfaces.scattering import ScatteringInterface
 
 @dataclass
 class InterfaceManager:
@@ -50,9 +50,9 @@ class InterfaceManager:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
-#        self.absorption_interface = AbsorptionInterface(self.entity_manager)
-#        self.reflection_interface = ReflectionInterface(self.entity_manager)
-#        self.scattering_interface = ScatteringInterface(self.entity_manager)
+        self.absorption_interface = AbsorptionInterface(self.entity_manager)
+        self.reflection_interface = ReflectionInterface(self.entity_manager)
+        self.scattering_interface = ScatteringInterface(self.entity_manager)
 
     def compute(self, res: Dict[str, np.ndarray], ray_inter: np.ndarray):
         """
@@ -233,49 +233,25 @@ class InterfaceManager:
 
         primID_filtered = primID[intersect_mask]
 
-        # Get material properties
-        if enable_absorption:
-            abs_coeffs = self.material_properties.absorption_coeffs[primID_filtered][:, self.ray_data.bands_idx]
-            abs_phases = self.material_properties.absorption_phases[primID_filtered][:, self.ray_data.bands_idx]
-        if enable_reflection:
-            refl_coeffs = self.material_properties.reflection_coeffs[primID_filtered][:, self.ray_data.bands_idx]
-            refl_phases = self.material_properties.reflection_phases[primID_filtered][:, self.ray_data.bands_idx]
-        if enable_scattering:
-            scat_coeffs = self.material_properties.scattering_coeffs[primID_filtered][:, self.ray_data.bands_idx]
-            scat_phases = self.material_properties.scattering_phases[primID_filtered][:, self.ray_data.bands_idx]
-
-        # Compute incident angles
-        dot_projection = np.sum(self.ray_data.directions * normals, axis=1)
-        incident_angles = np.arccos(-dot_projection)
-        if enable_absorption:
-            angle_factor = np.cos(incident_angles)
-            angle_factor[angle_factor == 0] = 1e-16
-            absorbed_energies = self.ray_data.energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
-        else:
-            absorbed_energies = self.ray_data.energies
-
-        # Compute reflection and scattering
-        if enable_reflection:
-            reflected_energies = self.ray_data.energies * refl_coeffs.reshape(-1, 1)
-            reflected_phases = self.ray_data.phases * -refl_phases.reshape(-1, 1) % (2 * np.pi)
-        else:
-            reflected_energies = np.zeros((0,1), dtype=np.float32)
-            reflected_phases = np.zeros((0,1), dtype=np.float32)
-
         # Compute new origins
         new_origins = inters + (0.01 * normals)
         new_origins = new_origins.astype(np.float32)
 
-        # Compute reflection directions
-        if enable_reflection:
-            incident_directions = self.ray_data.origins - new_origins
-            reflected_directions = self._compute_reflection_directions(incident_directions, normals, incident_angles)
+        # Get material properties
+        if enable_absorption:
+            absorbed_energies = self.absorption_interface.compute(self.material_properties, primID_filtered, normals, self.ray_data)
         else:
+            absorbed_energies = self.ray_data.energies
+
+        if enable_reflection:
+            reflected_energies, reflected_phases, reflected_directions = self.reflection_interface.compute(self.material_properties, primID_filtered, normals, self.ray_data, new_origins)
+        else:
+            reflected_energies = np.zeros((0,1), dtype=np.float32)
+            reflected_phases = np.zeros((0,1), dtype=np.float32)
             reflected_directions = np.zeros((0,3), dtype=np.float32)
 
-        # Generate scattering rays
         if enable_scattering:
-            scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs)
+            scattered_data = self.scattering_interface.compute(material_properties, primID_filtered, normals, ray_data, new_origins)
         else:
             scattered_data = {
                 'origins': np.zeros((0, 3), dtype=np.float32),
@@ -299,92 +275,6 @@ class InterfaceManager:
         self.ray_data.energies = np.append(reflected_energies, scattered_data['energies'], axis=0)
         self.ray_data.phases = np.append(reflected_phases, scattered_data['phases'], axis=0)
         self.ray_data.delay = np.append(self.ray_data.delay, scattered_data['delay'], axis=0)
-
-    def _compute_reflection_directions(self, incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray) -> np.ndarray:
-        """Compute reflection direction vectors."""
-        # Normalize inputs
-        incident_directions = incident_directions / np.linalg.norm(incident_directions, axis=1, keepdims=True)
-        normals = normals / np.linalg.norm(normals, axis=1, keepdims=True)
-
-        # Compute components
-        n_dot_i = np.sum(normals * incident_directions, axis=1, keepdims=True)
-        incident_normals = n_dot_i * normals
-        incident_tangent = incident_directions - incident_normals
-
-        # Normalize tangent
-        tangent_norm = np.linalg.norm(incident_tangent, axis=1, keepdims=True)
-        incident_tangent_unit = incident_tangent / (tangent_norm + 1e-10)
-
-        # Compute reflection direction
-        reflection_directions = (np.cos(incident_angles.reshape(-1, 1)) * incident_normals - np.sin(incident_angles.reshape(-1, 1)) * incident_tangent_unit)
-
-        return reflection_directions / np.linalg.norm(reflection_directions, axis=1, keepdims=True)
-
-    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
-        """Generate scattering rays on hemisphere."""
-        config = self.entity_manager.get('config')
-        n_scat_origins = origins.shape[0]
-        max_scattering = int(config.interface.max_scattering*np.mean(self.ray_data.energies))
-
-        if max_scattering < 1:
-            return {
-                'origins': np.zeros((0, 3), dtype=np.float32),
-                'directions': np.zeros((0, 3), dtype=np.float32),
-                'normals': np.zeros((0, 3), dtype=np.float32),
-                'energies': np.zeros((0, 1), dtype=np.float32),
-                'phases': np.zeros((0, 1), dtype=np.float32),
-                'delay': np.zeros((0, 1), dtype=np.float32)
-            }
-        elif max_scattering == 1:
-            n_scat_rays = np.full((n_scat_origins, 1), [1], dtype=np.int32)
-        else:
-            n_scat_rays = np.random.randint(1, max_scattering, size=(n_scat_origins, 1))
-
-        # Generate number of scattering rays
-        roughness = self.material_properties.roughness
-        n_samples = np.sum(n_scat_rays)
-
-        # Initialize arrays
-        result = {
-            'origins': np.zeros((n_samples, 3), dtype=np.float32),
-            'directions': np.zeros((n_samples, 3), dtype=np.float32),
-            'normals': np.zeros((n_samples, 3), dtype=np.float32),
-            'energies': np.zeros((n_samples, 1), dtype=np.float32),
-            'phases': np.zeros((n_samples, 1), dtype=np.float32),
-            'delay': np.zeros((n_samples, 1), dtype=np.float32)
-        }
-
-        # Generate random directions on hemisphere
-        hi_idx = 0
-        for idx in range(n_scat_origins):
-            lo_idx = hi_idx
-            hi_idx = lo_idx + int(n_scat_rays[idx])
-            n_rays_this = hi_idx - lo_idx
-
-            # Copy info array
-            result['origins'][lo_idx:hi_idx] = origins[idx]
-            result['directions'][lo_idx:hi_idx] = self.ray_data.directions[idx]
-            result['normals'][lo_idx:hi_idx] = normals[idx]
-            result['energies'][lo_idx:hi_idx] = self.ray_data.energies[idx]
-            result['phases'][lo_idx:hi_idx] = self.ray_data.phases[idx]
-            result['delay'][lo_idx:hi_idx] = self.ray_data.delay[idx]
-
-            # Generate random directions on hemisphere
-            random_dirs = np.random.uniform(-1, 1, (n_rays_this, 3))
-            random_dirs /= np.linalg.norm(random_dirs, axis=1, keepdims=True)
-
-            # Ensure directions point along hemisphere oriented by normal
-            normal = normals[idx]
-            dot_products = np.sum(random_dirs * normal, axis=1)
-            flip_mask = dot_products < 0
-            random_dirs[flip_mask] = -random_dirs[flip_mask]
-
-            result['directions'][lo_idx:hi_idx] = random_dirs
-
-            # Distribute energy among scattering rays
-            result['energies'][lo_idx:hi_idx] = scat_coeffs[idx] / n_rays_this
-
-        return result
 
     def _collect_output_data(self, hits_obj_idx: np.ndarray, intersect_mask: np.ndarray, path_length: np.ndarray):
         """Collect rays that reached output destinations."""

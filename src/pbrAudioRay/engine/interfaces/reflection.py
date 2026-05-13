@@ -28,14 +28,36 @@ class ReflectionInterface:
     """Handle rays reflection at objects boundaries"""
     entity_manager: EntityManager
 
-    def compute(self, normals: np.ndarray, directions: np.ndarray, energies: np.ndarray, phases: np.ndarray, refl_coeffs: np.ndarray, refl_phases: np.ndarray, ray_data: Any):
-        # Compute incident angles and reflected directions
-        dot = np.sum(directions * normals, axis=1)
-        incident_angles = np.arccos(-dot)
-        reflected_directions = directions - 2 * dot[:, np.newaxis] * normals
+    def compute(self, material_properties, primID_filtered, normals, ray_data, new_origins):
+        refl_coeffs = material_properties.reflection_coeffs[primID_filtered][:, ray_data.bands_idx]
+        refl_phases = material_properties.reflection_phases[primID_filtered][:, ray_data.bands_idx]
 
-        # Compute intersection reflection energies and phase shift
-        reflected_energy = energies * refl_coeffs
-        reflected_phase = phases + refl_phases % (2 * np.pi)
+        # Compute reflection energies and phases
+        reflected_energies = ray_data.energies * refl_coeffs.reshape(-1, 1)
+        reflected_phases = ray_data.phases * -refl_phases.reshape(-1, 1) % (2 * np.pi)
 
-        return reflected_energy, reflected_phase, incident_angles, reflected_directions
+        incident_directions = ray_data.origins - new_origins
+        reflected_directions = self._compute_reflection_directions(incident_directions, normals, incident_angles)
+
+    return reflected_energies, reflected_phases, reflected_directions
+
+    def _compute_reflection_directions(self, incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray) -> np.ndarray:
+        """Compute reflection direction vectors."""
+        # Normalize inputs
+        incident_directions = incident_directions / np.linalg.norm(incident_directions, axis=1, keepdims=True)
+        normals = normals / np.linalg.norm(normals, axis=1, keepdims=True)
+
+        # Compute components
+        n_dot_i = np.sum(normals * incident_directions, axis=1, keepdims=True)
+        incident_normals = n_dot_i * normals
+        incident_tangent = incident_directions - incident_normals
+
+        # Normalize tangent
+        tangent_norm = np.linalg.norm(incident_tangent, axis=1, keepdims=True)
+        incident_tangent_unit = incident_tangent / (tangent_norm + 1e-10)
+
+        # Compute reflection direction
+        reflection_directions = (np.cos(incident_angles.reshape(-1, 1)) * incident_normals - np.sin(incident_angles.reshape(-1, 1)) * incident_tangent_unit)
+
+        return reflection_directions / np.linalg.norm(reflection_directions, axis=1, keepdims=True)
+
