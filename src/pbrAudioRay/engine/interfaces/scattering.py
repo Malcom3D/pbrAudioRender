@@ -83,8 +83,8 @@ class ScatteringInterface:
             result['origins'][lo_idx:hi_idx] = origins[idx]
             result['directions'][lo_idx:hi_idx] = ray_data.directions[idx]
             result['normals'][lo_idx:hi_idx] = normals[idx]
-            result['energies'][lo_idx:hi_idx] = ray_data.energies[idx] * scat_coeffs.reshape(-1,1)
-            result['phases'][lo_idx:hi_idx] = ray_data.phases[idx] * -scat_phases.reshape(-1, 1) % (2 * np.pi)
+            result['energies'][lo_idx:hi_idx] = ray_data.energies[idx] * scat_coeffs[idx].reshape(-1,1)
+            result['phases'][lo_idx:hi_idx] = ray_data.phases[idx] * -scat_phases[idx].reshape(-1, 1) % (2 * np.pi)
             result['delay'][lo_idx:hi_idx] = ray_data.delay[idx]
 
             # Generate random directions on hemisphere
