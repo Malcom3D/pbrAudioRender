@@ -132,8 +132,8 @@ class InterfaceConfig:
     max_reflection: int = 5
     enable_scattering: bool = True
     max_scattering: int = 5
-    enable_refraction: bool = True
-    max_refraction: int = 5
+    enable_transmission: bool = True
+    max_transmission: int = 5
     enable_diffraction: bool = True
     max_diffraction: int = 5
     min_impedance_ratio: float = 0.1
@@ -258,13 +258,13 @@ class Config:
                 coefficients=np.array(abs_data['coefficients'])
             )
         
-        if 'refraction' in acoustic_props_data:
-            refr_data = acoustic_props_data['refraction']
+        if 'transmission' in acoustic_props_data:
+            refr_data = acoustic_props_data['transmission']
             if isinstance(refr_data, float):
                 frequencies = np.linspace(shader_data.get('low_frequency', 1.0), shader_data.get('high_frequency', 24000.0), 5)
                 refr_data = [refr_data for _ in range(5)]
                 refr_data = {"frequencies": frequencies, "coefficients": refr_data, "phases": []}
-            acoustic_properties.refraction = AcousticCoefficients(
+            acoustic_properties.transmission = AcousticCoefficients(
                 frequencies=np.array(refr_data['frequencies']),
                 coefficients=np.array(refr_data['coefficients'])
             )

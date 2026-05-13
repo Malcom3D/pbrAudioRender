@@ -28,15 +28,15 @@ class ScatteringInterface:
     """Handle sound wave scattering at rough surfaces after reflections"""
     entity_manager: EntityManager
 
-    def compute(self, material_properties, primID_filtered, normals, ray_data, new_origins):
+    def compute(self, material_properties: Any, primID_filtered: np.ndarray, normals: np.ndarray, ray_data: Any, new_origins: np.ndarray):
         # Compute scattering energies and phases
         scat_coeffs = material_properties.scattering_coeffs[primID_filtered][:, ray_data.bands_idx]
         scat_phases = material_properties.scattering_phases[primID_filtered][:, ray_data.bands_idx]
 
         # Generate scattering rays
-        scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs)
+        scattered_data = self._generate_scattering_rays(new_origins, normals, scat_coeffs, scat_phases)
 
-    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray) -> Dict[str, np.ndarray]:
+    def _generate_scattering_rays(self, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray, scat_phases: np.ndarray) -> Dict[str, np.ndarray]:
         """Generate scattering rays on hemisphere."""
         config = self.entity_manager.get('config')
         n_scat_origins = origins.shape[0]

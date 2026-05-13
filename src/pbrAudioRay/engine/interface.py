@@ -28,10 +28,11 @@ from ..core.entity_manager import EntityManager
 from ..lib.ray_data import RayData
 from ..lib.functions import _compute_rayleigh_damping
 
-#from .interfaces import AbsorptionInterface, ReflectionInterface, RefractionInterface, ScatteringInterface, DiffractionInterface, DiffusionInterface
+#from .interfaces import AbsorptionInterface, ReflectionInterface, TransmissionInterface, ScatteringInterface, DiffractionInterface
 from .interfaces.absorption import AbsorptionInterface
 from .interfaces.reflection import ReflectionInterface
 from .interfaces.scattering import ScatteringInterface
+from .interfaces.transmission import TransmissionInterface
 
 @dataclass
 class InterfaceManager:
@@ -53,6 +54,7 @@ class InterfaceManager:
         self.absorption_interface = AbsorptionInterface(self.entity_manager)
         self.reflection_interface = ReflectionInterface(self.entity_manager)
         self.scattering_interface = ScatteringInterface(self.entity_manager)
+        self.transmission_interface = TransmissionInterface(self.entity_manager)
 
     def compute(self, res: Dict[str, np.ndarray], ray_inter: np.ndarray):
         """
@@ -131,6 +133,7 @@ class InterfaceManager:
         n_rays = self.ray_data.origins.shape[0]
 
         # Default medium properties (air)
+        self.medium_objs = np.full((n_rays, 1), [-1], dtype=np.int32)
         medium_speed = np.full((n_rays, 1), self.medium_properties.speed, dtype=np.float32)
         medium_alpha = np.full((n_rays, n_bands), self.medium_properties.alpha, dtype=np.float32)
         medium_beta = np.full((n_rays, n_bands), self.medium_properties.beta, dtype=np.float32)
@@ -154,6 +157,7 @@ class InterfaceManager:
 
                         alpha, beta = self._compute_object_coefficients(sound_speed, density, young_modulus, poisson_ratio, damping)
 
+                        self.medium_objs[medium_mask] = obj_config.idx
                         medium_speed[medium_mask] = sound_speed
                         medium_alpha[medium_mask] = np.full((1,n_bands), [alpha], dtype=np.float32)
                         medium_beta[medium_mask] = np.full((1,n_bands), [beta], dtype=np.float32)
@@ -230,6 +234,7 @@ class InterfaceManager:
         enable_absorption = config.interface.enable_absorption
         enable_reflection = config.interface.enable_reflection
         enable_scattering = config.interface.enable_scattering
+        enable_transmission = config.interface.enable_transmission
 
         primID_filtered = primID[intersect_mask]
 
@@ -250,6 +255,18 @@ class InterfaceManager:
             reflected_phases = np.zeros((0,1), dtype=np.float32)
             reflected_directions = np.zeros((0,3), dtype=np.float32)
 
+        if enable_transmission:
+            transmission_data = self.transmission_interface.compute(self.medium_objs, self.material_properties, primID_filtered, normals, self.ray_data, absorbed_energies)
+        else:
+            transmission_data = {
+                'origins': np.zeros((0, 3), dtype=np.float32),
+                'directions': np.zeros((0, 3), dtype=np.float32),
+                'normals': np.zeros((0, 3), dtype=np.float32),
+                'energies': np.zeros((0, 1), dtype=np.float32),
+                'phases': np.zeros((0, 1), dtype=np.float32),
+                'delay': np.zeros((0, 1), dtype=np.float32)
+            }
+
         if enable_scattering:
             scattered_data = self.scattering_interface.compute(material_properties, primID_filtered, normals, ray_data, new_origins)
         else:
@@ -267,6 +284,7 @@ class InterfaceManager:
         scale = np.sum(self.ray_data.energies) / total_out
         absorbed_energies *= scale
         reflected_energies *= scale
+        transmission_data['energies'] *= scale
         scattered_data['energies'] *= scale
 
         # Combine reflected and scattered rays
