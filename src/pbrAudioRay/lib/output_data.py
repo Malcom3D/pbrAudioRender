@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 @dataclass
 class OutputData:
     """Holds accumulated output data."""
-    frame_idx = None
+    frame_idx: int = None
     bands_idx: int = None
     source_idx: int = None
     output_idx: int = None

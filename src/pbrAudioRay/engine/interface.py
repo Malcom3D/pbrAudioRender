@@ -239,6 +239,7 @@ class InterfaceManager:
         enable_transmission = config.interface.enable_transmission
 
         primID_filtered = primID[intersect_mask]
+        self.medium_objs = self.medium_objs[intersect_mask]
 
         # Compute new origins
         new_origins = inters + (0.01 * normals)
@@ -258,7 +259,7 @@ class InterfaceManager:
             reflected_directions = np.zeros((0,3), dtype=np.float32)
 
         if enable_transmission:
-            transmission_data = self.transmission_interface.compute(self.medium_objs, self.hits_obj_idx, self.material_properties, primID_filtered, normals, self.ray_data, absorbed_energies)
+            transmission_data = self.transmission_interface.compute(self.medium_objs, self.hits_obj_idx, self.material_properties, inters, primID_filtered, normals, self.ray_data, absorbed_energies, self.frame_idx)
         else:
             transmission_data = {
                 'origins': np.zeros((0, 3), dtype=np.float32),
@@ -289,12 +290,12 @@ class InterfaceManager:
         transmission_data['energies'] *= scale
         scattered_data['energies'] *= scale
 
-        # Combine reflected and scattered rays
-        self.ray_data.origins = np.append(new_origins, scattered_data['origins'], axis=0)
-        self.ray_data.directions = np.append(reflected_directions, scattered_data['directions'], axis=0)
-        self.ray_data.energies = np.append(reflected_energies, scattered_data['energies'], axis=0)
-        self.ray_data.phases = np.append(reflected_phases, scattered_data['phases'], axis=0)
-        self.ray_data.delay = np.append(self.ray_data.delay, scattered_data['delay'], axis=0)
+        # Combine reflected, transmitted and scattered rays
+        self.ray_data.origins = np.concatenate((new_origins, scattered_data['origins'], transmission_data['origins']), axis=0)
+        self.ray_data.directions = np.concatenate((reflected_directions, scattered_data['directions'], transmission_data['directions']), axis=0)
+        self.ray_data.energies = np.concatenate((reflected_energies, scattered_data['energies'], transmission_data['energies']), axis=0)
+        self.ray_data.phases = np.concatenate((reflected_phases, scattered_data['phases'], transmission_data['phases']), axis=0)
+        self.ray_data.delay = np.concatenate((self.ray_data.delay, scattered_data['delay'], transmission_data['delay']), axis=0)
 
     def _collect_output_data(self, intersect_mask: np.ndarray, path_length: np.ndarray):
         """Collect rays that reached output destinations."""

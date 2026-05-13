@@ -44,7 +44,7 @@ class ReflectionInterface:
         incident_directions = ray_data.origins - new_origins
         reflected_directions = self._compute_reflection_directions(incident_directions, normals, incident_angles)
 
-    return reflected_energies, reflected_phases, reflected_directions
+        return reflected_energies, reflected_phases, reflected_directions
 
     def _compute_reflection_directions(self, incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray) -> np.ndarray:
         """Compute reflection direction vectors."""

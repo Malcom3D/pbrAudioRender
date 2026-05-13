@@ -73,6 +73,8 @@ class AcousticRayTracer:
 
     @delayed
     def compute(self, frame_idx: int):
+        self.output_data.frame_idx = frame_idx
+
         # Initialize interface manager
         self.interface = InterfaceManager(self.entity_manager, self.geometry_data, self.material_properties, self.medium_properties, self.ray_data, self.output_data, frame_idx)
 
