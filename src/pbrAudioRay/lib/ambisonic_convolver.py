@@ -76,7 +76,7 @@ class AmbisonicTimeVaryingConvolver:
                 pad_length = self.max_ir_length - ir.shape[0]
                 self.bands_irs[frame_idx] = np.pad(ir, ((0, pad_length), (0, 0)), mode='constant')
 
-    def _time_varing_convolve(audio_data, ir_sequence):
+    def _time_varing_convolve(self, audio_data, ir_sequence):
         n_frames = len(ir_sequence)
         ir_length = ir_sequence[0].shape[0]
         audio_length = audio_data.shape[0]
@@ -99,7 +99,6 @@ class AmbisonicTimeVaryingConvolver:
                     fade_start = int(end_sample-(self.hop_size/2))
                     convolved[fade_start:end_sample] *= fade_out
                     conv_end = end_sample
-                    print('fade_out:', start_sample, fade_start, conv_end)
                 else:
                     conv_end = output_length
                 if start_sample > 0:
