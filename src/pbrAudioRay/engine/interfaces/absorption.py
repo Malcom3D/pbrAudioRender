@@ -26,55 +26,18 @@ from ...core.entity_manager import EntityManager
 @dataclass
 class AbsorptionInterface:
     entity_manager: EntityManager
-    acoustic_scene: Any  # AcousticScene
 
-#    def compute_attenuation(self, energies: np.ndarray, phases: np.ndarray, origins: np.ndarray, hit_points: np.ndarray, medium: np.ndarray, bands_idx: int, ray_data: Any):
-    def compute_attenuation(self, initial_energy: np.ndarray, initial_phase: np.ndarray, origins: np.ndarray, hit_points: np.ndarray, bands_idx: int, ray_data: Any):
-        """Apply frequency-dependent medium attenuation."""
+    def compute_absorption(self, material_properties, primID_filtered, normals, ray_data):
+        abs_coeffs = material_properties.absorption_coeffs[primID_filtered][:, ray_data.bands_idx]
+        abs_phases = material_properties.absorption_phases[primID_filtered][:, ray_data.bands_idx]
 
-        # Get main medium properties
-        ac_sound_speed = self.acoustic_scene.ac_sound_speed
-        ac_density = self.acoustic_scene.ac_density
-        ac_attenuation = self.acoustic_scene.ac_attenuation[bands_idx]
+        # Compute incident angles
+        dot_projection = np.sum(ray_data.directions * normals, axis=1)
+        incident_angles = np.arccos(-dot_projection)
 
-        # Compute traveled path length
-        path_length = np.sqrt(np.sum((hit_points - origins)**2, axis=1)).reshape(-1,1)
-        ray_data.path_length += path_length
-
-        # Compute dalay in main medium
-        delay = path_length * ac_sound_speed # all path are on the acoustic domain
-        ray_data.delay += delay
-
-        # Compute energy attenuation and phase shift after traveled path using exponential decay
-        # E = E0 * exp(-alpha * distance)
-        # where alpha is in nepers/m
-        attenuation = np.exp(-ac_attenuation[0] * path_length)
-        rays_energies = initial_energy * attenuation
-
-        # Calculate phase shift
-        # Phase = beta * distance (in radians)
-        phase_shift = ac_attenuation[1] * path_length
-        rays_phases = (initial_phase + phase_shift) % (2 * np.pi)
-
-        # Wrap phase to [-π, π] range for better numerical representation
-        rays_phases = np.mod(rays_phases + np.pi, 2 * np.pi) - np.pi
-
-        rays_energies = rays_energies.reshape(-1,1)
-        rays_phases = rays_phases.reshape(-1,1)
-
-        return rays_energies, rays_phases
-
-    def compute(self, energies: np.ndarray, phases: np.ndarray, incident_angles: np.ndarray, absorption_coeffs: np.ndarray, absorption_phases: np.ndarray, ray_data: Any):
-        """Apply frequency-dependent intersections absorption."""
-
-        # Compute intersection absorption energies (no phase shift)
+        # Compute absorbed energies
         angle_factor = np.cos(incident_angles)
-        angle_factor[angle_factor == 0] = 1e-10
-        absorbed_energy = energies * absorption_coeffs * angle_factor.reshape(-1,1)
+        angle_factor[angle_factor == 0] = 1e-16
+        absorbed_energies = ray_data.energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
 
-        print('absorbed_energy', absorbed_energy.shape, energies.shape, angle_factor.shape)
-
-        absorbed_energy = absorbed_energy.reshape(-1,1)
-        phases = phases.reshape(-1,1)
-
-        return absorbed_energy, phases
+    return absorbed_energies
