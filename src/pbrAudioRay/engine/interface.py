@@ -251,7 +251,9 @@ class InterfaceManager:
 
         if enable_reflection:
             reflected_energies, reflected_phases, reflected_directions = self.reflection_interface.compute(self.material_properties, primID_filtered, normals, self.ray_data, new_origins)
+            reflected_origins = new_origins
         else:
+            reflected_origins = np.zeros((0,3), dtype=np.float32)
             reflected_energies = np.zeros((0,1), dtype=np.float32)
             reflected_phases = np.zeros((0,1), dtype=np.float32)
             reflected_directions = np.zeros((0,3), dtype=np.float32)
@@ -289,7 +291,7 @@ class InterfaceManager:
         scattered_data['energies'] *= scale
 
         # Combine reflected, transmitted and scattered rays
-        self.ray_data.origins = np.concatenate((new_origins, scattered_data['origins'], transmission_data['origins']), axis=0)
+        self.ray_data.origins = np.concatenate((reflected_origins, scattered_data['origins'], transmission_data['origins']), axis=0)
         self.ray_data.directions = np.concatenate((reflected_directions, scattered_data['directions'], transmission_data['directions']), axis=0)
         self.ray_data.energies = np.concatenate((reflected_energies, scattered_data['energies'], transmission_data['energies']), axis=0)
         self.ray_data.phases = np.concatenate((reflected_phases, scattered_data['phases'], transmission_data['phases']), axis=0)
