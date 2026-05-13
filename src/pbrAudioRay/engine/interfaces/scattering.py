@@ -36,6 +36,8 @@ class ScatteringInterface:
         # Generate scattering rays
         scattered_data = self._generate_scattering_rays(material_properties, new_origins, normals, scat_coeffs, scat_phases, ray_data)
 
+        return scattered_data
+
     def _generate_scattering_rays(self, material_properties: Any, origins: np.ndarray, normals: np.ndarray, scat_coeffs: np.ndarray, scat_phases: np.ndarray, ray_data: Any) -> Dict[str, np.ndarray]:
         """Generate scattering rays on hemisphere."""
         config = self.entity_manager.get('config')

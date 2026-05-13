@@ -40,4 +40,4 @@ class AbsorptionInterface:
         angle_factor[angle_factor == 0] = 1e-16
         absorbed_energies = ray_data.energies * angle_factor.reshape(-1,1) * abs_coeffs.reshape(-1,1)
 
-    return absorbed_energies
+        return absorbed_energies

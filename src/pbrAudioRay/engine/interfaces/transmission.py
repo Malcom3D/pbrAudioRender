@@ -27,7 +27,7 @@ from ...core.entity_manager import EntityManager
 class TransmissionInterface:
     entity_manager: EntityManager
 
-    def compute(self, medium_objs: np.ndarray, hits_obj_idx: np.ndarray, material_properties: Any, primID_filtered: np.ndarray, normals: np.ndarray, ray_data: Any, absorbed_energies: np.ndarray):
+    def compute(self, medium_objs: np.ndarray, hits_obj_idx: np.ndarray, material_properties: Any, inters: np.ndarray, primID_filtered: np.ndarray, normals: np.ndarray, ray_data: Any, absorbed_energies: np.ndarray, frame_idx: int):
         """
         Compute transmission of rays through objects.
         
@@ -47,7 +47,7 @@ class TransmissionInterface:
         objects = self.entity_manager.get('objects')
 
         # Compute max number of transmitted rays
-        n_rays = ray_data.origins.shape[0]
+        n_ray = ray_data.origins.shape[0]
         max_transmission = int(n_rays * config.interface.max_transmission)
 
         # Compute transmission energies and phases
@@ -58,12 +58,12 @@ class TransmissionInterface:
         dot_projection = np.sum(ray_data.directions * normals, axis=1)
         incident_angles = np.arccos(-dot_projection)
 
-        # Compute incident directions
-        incident_directions = ray_data.origins - transmission_origins
-
         # Compute transmission origins
         transmission_origins = inters - (0.01 * normals)
         transmission_origins = transmission_origins.astype(np.float32)
+
+        # Compute incident directions
+        incident_directions = ray_data.origins - transmission_origins
 
         # Get sound speeds for Snell's law
         medium_speeds = self._get_medium_speeds(medium_objs, ray_data.bands_idx)
@@ -71,10 +71,10 @@ class TransmissionInterface:
         # Find next medium for transmitted rays
         new_medium_speed = np.full((n_rays, 1), config.acoustic_domain.acoustic_shader.sound_speed, dtype=np.float32)
         for key in objects:
-            mesh = objects[key].get_mesh(self.frame_idx)
+            mesh = objects[key].get_mesh(frame_idx)
             for obj_config in config.objects:
                 if obj_config.idx == objects[key].obj_idx:
-                    medium_mask = mesh.contains(self.ray_data.origins)
+                    medium_mask = mesh.contains(transmission_origins)
                     if np.any(medium_mask):
                         new_medium_speed[medium_mask] = obj_config.acoustic_shader.sound_speed
 
@@ -106,7 +106,7 @@ class TransmissionInterface:
             'normals': normals[transmission_mask],
             'energies': transmitted_energies,
             'phases': transmitted_phases,
-            'delay': transmission_delay
+            'delay': ray_data.delay
         }
 
     def _compute_transmission_mask(self, trans_coeffs: np.ndarray, incident_angles: np.ndarray, medium_speeds: np.ndarray, new_medium_speed: np.ndarray, max_transmission: int) -> np.ndarray:
@@ -158,7 +158,7 @@ class TransmissionInterface:
         """
         Compute transmission directions using Snell's Law with SIMD optimization.
         
-        Snell's Law: n1 * sin(θ1) = n2 * sin(θ2)
+        Snell's Law: v2 * sin(θ1) = v1 * sin(θ2)
         where n = c0 / c (refractive index)
         """
         n_rays = incident_directions.shape[0]
@@ -170,7 +170,7 @@ class TransmissionInterface:
         return transmission_directions
 
     @staticmethod
-    @nb.jit(nopython=True, parallel=True, fastmath=True)
+#    @nb.jit(nopython=True, parallel=True, fastmath=True)
     def _compute_transmission_directions_numba(incident_directions: np.ndarray, normals: np.ndarray, incident_angles: np.ndarray, medium_speeds: np.ndarray, new_medium_speed: np.ndarray, transmission_directions: np.ndarray):
         """
         Numba-accelerated computation of transmission directions using Snell's Law.
@@ -178,7 +178,7 @@ class TransmissionInterface:
         n_rays = incident_directions.shape[0]
         c0 = new_medium_speed
         
-        for i in prange(n_rays):
+        for i in nb.prange(n_rays):
             # Normalize inputs
             incident_dir = incident_directions[i] / np.linalg.norm(incident_directions[i])
             normal = normals[i] / np.linalg.norm(normals[i])
@@ -190,7 +190,7 @@ class TransmissionInterface:
             
             # Snell's Law: v2 * sin(θ1) = v1 * sin(θ2)
             sin_theta_i = np.sin(theta_i)
-            sin_theta_t = (n2 / n1) * sin_theta_i
+            sin_theta_t = (v2 / v1) * sin_theta_i
             
             # Check for total internal reflection
             if sin_theta_t > 1.0:
