@@ -56,6 +56,7 @@ class InterfaceManager:
         self.scattering_interface = ScatteringInterface(self.entity_manager)
         self.transmission_interface = TransmissionInterface(self.entity_manager)
 
+
     def compute(self, res: Dict[str, np.ndarray], ray_inter: np.ndarray):
         """
         Process ray hits and deliver data to interface subclasses.
@@ -80,6 +81,7 @@ class InterfaceManager:
         inters = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Save ray data
+        # ToDo: only for the first frame.....
         if config.system.view_ray and self.ray_data.bands_idx == 0:
             self._save_ray_data(self.ray_data.origins, inters)
 
@@ -115,11 +117,11 @@ class InterfaceManager:
         self._update_medium_properties(path_length)
 
         # Get object indices and filter
-        hits_obj_idx = self.geometry_data.scene_info[primID]
-        intersect_mask = hits_obj_idx >= 0
+        self.hits_obj_idx = self.geometry_data.scene_info[primID]
+        intersect_mask = self.hits_obj_idx >= 0
 
         # Collect output data
-        self._collect_output_data(hits_obj_idx, intersect_mask, path_length)
+        self._collect_output_data(intersect_mask, path_length)
 
         # Continue with remaining rays
         if np.any(intersect_mask):
@@ -256,7 +258,7 @@ class InterfaceManager:
             reflected_directions = np.zeros((0,3), dtype=np.float32)
 
         if enable_transmission:
-            transmission_data = self.transmission_interface.compute(self.medium_objs, self.material_properties, primID_filtered, normals, self.ray_data, absorbed_energies)
+            transmission_data = self.transmission_interface.compute(self.medium_objs, self.hits_obj_idx, self.material_properties, primID_filtered, normals, self.ray_data, absorbed_energies)
         else:
             transmission_data = {
                 'origins': np.zeros((0, 3), dtype=np.float32),
@@ -294,9 +296,9 @@ class InterfaceManager:
         self.ray_data.phases = np.append(reflected_phases, scattered_data['phases'], axis=0)
         self.ray_data.delay = np.append(self.ray_data.delay, scattered_data['delay'], axis=0)
 
-    def _collect_output_data(self, hits_obj_idx: np.ndarray, intersect_mask: np.ndarray, path_length: np.ndarray):
+    def _collect_output_data(self, intersect_mask: np.ndarray, path_length: np.ndarray):
         """Collect rays that reached output destinations."""
-        output_mask = hits_obj_idx <= -3
+        output_mask = self.hits_obj_idx <= -3
 
         if np.any(output_mask):
             self.output_data.energies = np.append(self.output_data.energies, self.ray_data.energies[output_mask], axis=0).astype(np.float32)
