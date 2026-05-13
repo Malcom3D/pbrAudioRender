@@ -133,7 +133,7 @@ class InterfaceConfig:
     enable_scattering: bool = True
     max_scattering: int = 5
     enable_transmission: bool = True
-    max_transmission: int = 5
+    max_transmission: float = 0.75
     enable_diffraction: bool = True
     max_diffraction: int = 5
     min_impedance_ratio: float = 0.1
