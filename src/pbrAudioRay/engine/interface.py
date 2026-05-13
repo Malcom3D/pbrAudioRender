@@ -149,8 +149,6 @@ class InterfaceManager:
                 if obj_config.idx == objects[key].obj_idx:
                     medium_mask = mesh.contains(self.ray_data.origins)
                     if np.any(medium_mask):
-                        print(f'Get medium object properties for {obj_config.name}')
-
                         sound_speed = obj_config.acoustic_shader.sound_speed
                         density = obj_config.acoustic_shader.density
                         young_modulus = obj_config.acoustic_shader.young_modulus
@@ -271,7 +269,7 @@ class InterfaceManager:
             }
 
         if enable_scattering:
-            scattered_data = self.scattering_interface.compute(material_properties, primID_filtered, normals, ray_data, new_origins)
+            scattered_data = self.scattering_interface.compute(self.material_properties, primID_filtered, normals, self.ray_data, new_origins)
         else:
             scattered_data = {
                 'origins': np.zeros((0, 3), dtype=np.float32),

@@ -47,7 +47,7 @@ class TransmissionInterface:
         objects = self.entity_manager.get('objects')
 
         # Compute max number of transmitted rays
-        n_ray = ray_data.origins.shape[0]
+        n_rays = ray_data.origins.shape[0]
         max_transmission = int(n_rays * config.interface.max_transmission)
 
         # Compute transmission energies and phases
@@ -101,12 +101,12 @@ class TransmissionInterface:
             transmitted_energies *= scale
         
         return {
-            'origins': transmission_origins,
+            'origins': transmission_origins[transmission_mask],
             'directions': transmission_directions,
             'normals': normals[transmission_mask],
             'energies': transmitted_energies,
             'phases': transmitted_phases,
-            'delay': ray_data.delay
+            'delay': ray_data.delay[transmission_mask]
         }
 
     def _compute_transmission_mask(self, trans_coeffs: np.ndarray, incident_angles: np.ndarray, medium_speeds: np.ndarray, new_medium_speed: np.ndarray, max_transmission: int) -> np.ndarray:
