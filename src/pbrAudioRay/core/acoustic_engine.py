@@ -138,6 +138,9 @@ class AcousticEngine:
         for frame_idx in range(end_frame - start_frame):
             self._compute_frame(frame_idx)
 
+        self.render()
+
+    def render(self):
         # interpolate x bands_idx IRs for wave_propagators[index].combo
         combos = []
         for i in range(len(config.sources)):
