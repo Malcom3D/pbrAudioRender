@@ -142,6 +142,7 @@ class AcousticEngine:
         self.render()
 
     def render(self):
+        config = self.entity_manager.get('config')
         # interpolate x bands_idx IRs for wave_propagators[index].combo
         combos = []
         for i in range(len(config.sources)):
