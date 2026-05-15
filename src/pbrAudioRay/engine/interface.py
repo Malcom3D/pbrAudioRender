@@ -101,6 +101,8 @@ class InterfaceManager:
         with open(filepath, 'w') as f:
             json.dump(data_dict, f, indent=2)
 
+        self.recursion_idx += 1
+
     def _filter_intersected_rays(self, ray_inter: np.ndarray, primID: np.ndarray, inters: np.ndarray):
         """Filter and process intersected rays."""
         # Filter all ray data
