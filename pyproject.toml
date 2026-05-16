@@ -56,4 +56,10 @@ manylinux-x86_64-image = "manylinux2014"
 archs = ["x86_64"]
 
 [tool.setuptools_scm]
-write_to = "__version__.py"
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
+write_to_template = '''
+"""Version information."""
+__version__ = "{version}"
+'''
+write_to = "__version.py"
