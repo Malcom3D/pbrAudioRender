@@ -127,7 +127,7 @@ class AcousticRayTracer:
         termination_mask = self.ray_data.energies > termination_energy
 
         """Apply threshold to rays number."""
-        if config.termination.min_rays_num > np.count_nonzero(termination_mask):
+        if config.termination.min_rays_number > np.count_nonzero(termination_mask):
             termination_mask = np.full(self.ray_data.energies.shape, False)
 
         n_terminated = np.count_nonzero(~termination_mask)
