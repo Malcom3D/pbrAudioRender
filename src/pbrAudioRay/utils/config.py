@@ -167,6 +167,8 @@ class TerminationConfig:
     reverberation_time: float = 2.0
     # energy_threshold
     energy_threshold: float = 120 # Minimum energy to terminate
+    # minimum active rays number
+    min_rays_number: int = 3
 
 @dataclass
 class AudioRecorderConfig:
