@@ -77,14 +77,20 @@ class AmbisonicIRInterpolator:
         self.convolver.load_ir_sequence(ir_path, source_idx, output_idx)
         
         # Initialize output buffer
-        audio_data, sr = sf.read(self.audio_file)
+        if self.audio_file.endswith('.wav'):
+            audio_data, sr = sf.read(self.audio_file)
+        elif self.audio_file.endswith('.raw'):
+            audio_data, sr = sf.read(self.audio_file, channels=1, samplerate=self.sample_rate, subtype='FLOAT')
         self.output_length = audio_data.shape[0] + self.convolver.max_ir_length - 1
         self.output = None
     
     def smooth_convolve(self):
         """Perform time-varying multiband convolution."""
         # Read audio file
-        audio_data, sr = sf.read(self.audio_file)
+        if self.audio_file.endswith('.wav'):
+            audio_data, sr = sf.read(self.audio_file)
+        elif self.audio_file.endswith('.raw'):
+            audio_data, sr = sf.read(self.audio_file, channels=1, samplerate=self.sample_rate, subtype='FLOAT')
         
         # Ensure mono
         if audio_data.ndim > 1:
