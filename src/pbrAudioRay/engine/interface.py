@@ -95,7 +95,9 @@ class InterfaceManager:
             'hit_points': hit_points.tolist()
         }
 
-        os.makedirs('ray_datas', exist_ok=True)
+        config = self.entity_manager.get('config')
+        config.system.cache_path
+        os.makedirs(f"{config.system.cache_path}/ray_datas", exist_ok=True)
         filepath = f"ray_datas/embreex_{self.recursion_idx:04}.json"
 
         with open(filepath, 'w') as f:
