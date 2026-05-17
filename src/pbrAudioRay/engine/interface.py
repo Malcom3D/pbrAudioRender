@@ -98,7 +98,7 @@ class InterfaceManager:
         config = self.entity_manager.get('config')
         config.system.cache_path
         os.makedirs(f"{config.system.cache_path}/ray_datas", exist_ok=True)
-        filepath = f"ray_datas/embreex_{self.recursion_idx:04}.json"
+        filepath = f"{config.system.cache_path}/ray_datas/embreex_{self.recursion_idx:04}.json"
 
         with open(filepath, 'w') as f:
             json.dump(data_dict, f, indent=2)
