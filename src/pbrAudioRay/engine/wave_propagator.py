@@ -198,7 +198,7 @@ class WavePropagator:
                 os.makedirs(output_dir, exist_ok=True)
 
                 filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
-                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='FLOAT')
+                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='PCM_24')
 
                 print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
                 print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
