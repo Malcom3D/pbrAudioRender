@@ -25,7 +25,7 @@ from ..utils.config import Config
 
 class EntityManager:
     _instance = None
-    _lock = threading.Lock()
+#    _lock = threading.Lock()
     _initialized = False
     
     def __new__(cls, *args, **kwargs):
@@ -35,52 +35,52 @@ class EntityManager:
         return cls._instance
     
     def __init__(self, config: str):
-        with self._lock:
-            if not self._initialized:
-                self._sources = {}
-                self._objects = {}
-                self._outputs = {}
-                self._output_datas = {}
-                self._wave_propagators = {}
-                self._layer_managers = {}
-                self._trajectories = {}
-                self._collisions = {}
-                self._forces = {}
-                self._modal_vertices = {}
-                self._score_tracks = {}
-                self._rigidbody_synth = {}
-                self._resonance_synth = {}
-                self._singleton = {}
-                self._initialized = True
+#        with self._lock:
+        if not self._initialized:
+            self._sources = {}
+            self._objects = {}
+            self._outputs = {}
+            self._output_datas = {}
+            self._wave_propagators = {}
+            self._layer_managers = {}
+            self._trajectories = {}
+            self._collisions = {}
+            self._forces = {}
+            self._modal_vertices = {}
+            self._score_tracks = {}
+            self._rigidbody_synth = {}
+            self._resonance_synth = {}
+            self._singleton = {}
+            self._initialized = True
 
-                self.sigleton_map = {
-                    'config': 'Config',
-                    'frames': 'FrameCounter',
-                    'sample_counter': 'SampleCounter',
-                    'connected_buffer': 'ConnectedBuffer',
-                    'frequency_bands': 'FrequencyBands',
-                    'soxel_grid': 'SoxelGrid',
-                    'geometry_data': 'GeometryData',
-                    'material_properties': 'MaterialProperties',
-                    'medium_properties': 'MediumProperties'
-                }
-                self.entities_map = {
-                    'sources': ['SphericalSource', 'PlanarSource'],
-                    'objects': ['AcousticObject'],
-                    'outputs': ['AmbisonicOutput', 'OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
-                    'wave_propagators': 'WavePropagator',
-                    'output_datas': 'OutputData',
-                    'trajectories': ['TrajectoryData', 'tmpTrajectoryData'],
-                    'collisions': [ 'CollisionData'],
-                    'forces': [ 'ForceData', 'ForceDataSequence'],
-                    'modal_vertices': 'ModalVertices',
-                    'score_tracks': 'ScoreTrack',
-                    'rigidbody_synth': 'RigidBodySynth',
-                    'resonance_synth': 'ResonanceSynth'
-                }
+            self.sigleton_map = {
+                'config': 'Config',
+                'frames': 'FrameCounter',
+                'sample_counter': 'SampleCounter',
+                'connected_buffer': 'ConnectedBuffer',
+                'frequency_bands': 'FrequencyBands',
+                'soxel_grid': 'SoxelGrid',
+                'geometry_data': 'GeometryData',
+                'material_properties': 'MaterialProperties',
+                'medium_properties': 'MediumProperties'
+            }
+            self.entities_map = {
+                'sources': ['SphericalSource', 'PlanarSource'],
+                'objects': ['AcousticObject'],
+                'outputs': ['AmbisonicOutput', 'OmnidirectionalOutput', 'Figure8Output', 'CardioidOutput', 'HypercardioidOutput'],
+                'wave_propagators': 'WavePropagator',
+                'output_datas': 'OutputData',
+                'trajectories': ['TrajectoryData', 'tmpTrajectoryData'],
+                'collisions': [ 'CollisionData'],
+                'forces': [ 'ForceData', 'ForceDataSequence'],
+                'modal_vertices': 'ModalVertices',
+                'score_tracks': 'ScoreTrack',
+                'rigidbody_synth': 'RigidBodySynth',
+                'resonance_synth': 'ResonanceSynth'
+            }
 
-                config = Config(config)
-                self.register('config', config)
+            config = Config(config)
+            self.register('config', config)
 
     # Dispatcher:
     def register(self, entity: str, obj: Any) -> int:
