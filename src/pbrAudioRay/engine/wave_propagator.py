@@ -206,16 +206,16 @@ class WavePropagator:
                     n_channels = (ambisonic_order + 1) ** 2
                     ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
 
-                # Save impulse response
-                output_dir = f"{config.system.cache_path}/impulse_responses"
-                os.makedirs(output_dir, exist_ok=True)
+        # Save impulse response
+        output_dir = f"{config.system.cache_path}/impulse_responses"
+        os.makedirs(output_dir, exist_ok=True)
 
-                filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
-                sf.write(filename, ambisonics_ir.T, sample_rate, subtype='PCM_24')
+        filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
+        sf.write(filename, ambisonics_ir.T, sample_rate, subtype='PCM_24')
 
-                print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
-                print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
-                print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
+        print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
+        print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
+        print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
 
     def _compute_spherical_harmonics(self, ambisonics_ir: np.ndarray, delay_samples: np.ndarray, complex_amplitudes: np.ndarray, theta: np.ndarray, phi: np.ndarray, ambisonic_order: int):
         """Compute spherical harmonics and add to IR buffer."""
