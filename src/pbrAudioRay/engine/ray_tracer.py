@@ -58,7 +58,7 @@ class AcousticRayTracer:
         # Set initial directions towards destinations
         main_dir = self.ray_data.destinations[0] - self.ray_data.origins[0]
         main_dir_norm = np.linalg.norm(main_dir)
-        main_dir_norm = max(main_dir_norm, 1e-10)
+        main_dir_norm = max(main_dir_norm, 1e-16)
         main_dir = main_dir / main_dir_norm
 
         directions[0] = main_dir

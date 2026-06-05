@@ -149,50 +149,62 @@ class WavePropagator:
         source_idx, output_idx = self.combo
         bands_idx = output_data.bands_idx
 
-        # Sort output by delay
-        sort_idx = np.argsort(output_data.delay.flatten())
+        if output_data.delay.shape[0] > 0:
+            # Sort output by delay
+            sort_idx = np.argsort(output_data.delay.flatten())
 
-        delay = output_data.delay.flatten()[sort_idx]
-        energies = output_data.energies.flatten()[sort_idx]
-        phases = output_data.phases.flatten()[sort_idx]
-        directions = output_data.directions[sort_idx]
+            delay = output_data.delay.flatten()[sort_idx]
+            energies = output_data.energies.flatten()[sort_idx]
+            phases = output_data.phases.flatten()[sort_idx]
+            directions = output_data.directions[sort_idx]
 
-        # Convert delay to samples
-        delay_samples = np.round(delay * sample_rate).astype(int)
-        print('delay_samples', delay_samples)
+            # Convert delay to samples
+            delay_samples = np.round(delay * sample_rate).astype(int)
 
-        # Determine max IR length
-        ir_length = int(np.ceil(np.max(delay_samples))) + 10
+            # Determine max IR length
+            ir_length = int(np.ceil(np.max(delay_samples))) + 10
 
-        # Get ambisonic order for this output
-        ambisonic_order = 1  # default
-        for out_config in config.outputs:
-            if out_config.idx == output_idx:
-                ambisonic_order = out_config.order
+            # Get ambisonic order for this output
+            ambisonic_order = 1  # default
+            for out_config in config.outputs:
+                if out_config.idx == output_idx:
+                    ambisonic_order = out_config.order
 
-                n_channels = (ambisonic_order + 1) ** 2
-                ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
+                    n_channels = (ambisonic_order + 1) ** 2
+                    ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
 
-                # Compute complex amplitudes
-                complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
+                    # Compute complex amplitudes
+                    complex_amplitudes = np.sqrt(energies) * np.exp(1j * phases)
 
-                # Convert directions to spherical coordinates
-                x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
-                theta = np.arctan2(y, x)  # Azimuth
-                phi = np.arcsin(z)  # Elevation
+                    # Convert directions to spherical coordinates
+                    x, y, z = directions[:, 0], directions[:, 1], directions[:, 2]
+                    theta = np.arctan2(y, x)  # Azimuth
+                    phi = np.arcsin(z)  # Elevation
 
-                # Compute spherical harmonics for each order
-                self._compute_spherical_harmonics(ambisonics_ir, delay_samples, complex_amplitudes, theta, phi, ambisonic_order)
+                    # Compute spherical harmonics for each order
+                    self._compute_spherical_harmonics(ambisonics_ir, delay_samples, complex_amplitudes, theta, phi, ambisonic_order)
 
-                # Apply windowing
-                window = np.hanning(ir_length)
-                for ch in range(n_channels):
-                    ambisonics_ir[ch] *= window
+                    # Apply windowing
+                    window = np.hanning(ir_length)
+                    for ch in range(n_channels):
+                        ambisonics_ir[ch] *= window
 
-                # Normalize
-                max_val = np.max(np.abs(ambisonics_ir))
-                if max_val > 0:
-                    ambisonics_ir /= max_val
+#                    # Normalize: Normalize at render time
+#                    max_val = np.max(np.abs(ambisonics_ir))
+#                    if max_val > 0:
+#                        ambisonics_ir /= max_val
+
+        else:
+            # No output_data: ir_length = 0
+            ir_length = 0
+            # Get ambisonic order for this output
+            ambisonic_order = 1  # default
+            for out_config in config.outputs:
+                if out_config.idx == output_idx:
+                    ambisonic_order = out_config.order
+
+                    n_channels = (ambisonic_order + 1) ** 2
+                    ambisonics_ir = np.zeros((n_channels, ir_length), dtype=np.float32)
 
                 # Save impulse response
                 output_dir = f"{config.system.cache_path}/impulse_responses"
