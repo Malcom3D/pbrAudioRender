@@ -159,6 +159,7 @@ class WavePropagator:
 
         # Convert delay to samples
         delay_samples = np.round(delay * sample_rate).astype(int)
+        print('delay_samples', delay_samples)
 
         # Determine max IR length
         ir_length = int(np.ceil(np.max(delay_samples))) + 10
