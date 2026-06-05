@@ -42,18 +42,18 @@ class BaseOutput:
         self.subframes = self.config.system.subframes
         self.fps = self.config.system.fps
     
-    def get_impulse_response(self, source_idx: int):
-        """Retrieve the impulse response computed for this output and given source."""
-        # The impulse response is stored in the wave propagator for this source-output pair
-        # The propagator is registered as 'wave_propagators'
-        wave_propagator = self.entity_manager.get('wave_propagators')
-        if wave_propagator is None:
-            raise RuntimeError("No wave propagators found")
-        # Find propagator for this source and output
-        for wp in wave_propagator.values():
-            if wp.source_idx == source_idx and wp.output_idx == self.config_idx:
-                return wp.get_impulse_response()
-        raise RuntimeError(f"No wave propagator for source {source_idx} and output {self.config_idx}")
+#    def get_impulse_response(self, source_idx: int):
+#        """Retrieve the impulse response computed for this output and given source."""
+#        # The impulse response is stored in the wave propagator for this source-output pair
+#        # The propagator is registered as 'wave_propagators'
+#        wave_propagator = self.entity_manager.get('wave_propagators')
+#        if wave_propagator is None:
+#            raise RuntimeError("No wave propagators found")
+#        # Find propagator for this source and output
+#        for wp in wave_propagator.values():
+#            if wp.source_idx == source_idx and wp.output_idx == self.config_idx:
+#                return wp.get_impulse_response()
+#        raise RuntimeError(f"No wave propagator for source {source_idx} and output {self.config_idx}")
     
     def record_audio(self, source_audio: np.ndarray, source_idx: int, output_file: str):
         """Convolve source audio with impulse response and save."""
