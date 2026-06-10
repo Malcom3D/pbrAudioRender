@@ -81,7 +81,6 @@ class InterfaceManager:
         inters = (np.vstack(w) * a + np.vstack(u) * b + np.vstack(v) * c)
 
         # Save ray data
-        # ToDo: only for the first frame.....
         if config.system.view_ray and self.ray_data.bands_idx == 0 and (self.frame_idx == 0 or self.frame_idx == config.system.start_frame):
             self._save_ray_data(self.ray_data.origins, inters)
 
