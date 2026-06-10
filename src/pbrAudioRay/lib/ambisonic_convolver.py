@@ -190,10 +190,10 @@ class MultibandAmbisonicConvolver:
             band_output = self.band_convolvers[bands_idx].convolve(audio_data)
             combined_output += band_output
         
-        # Normalize to prevent clipping
-        max_val = np.max(np.abs(combined_output))
-        if max_val > 0:
-            combined_output /= max_val
+#        # Normalize to prevent clipping
+#        max_val = np.max(np.abs(combined_output))
+#        if max_val > 0:
+#            combined_output /= max_val
         
         return combined_output
     
