@@ -47,7 +47,8 @@ class TransmissionInterface:
         objects = self.entity_manager.get('objects')
 
         # Compute max number of transmitted rays
-        n_rays = ray_data.origins.shape[0]
+#        n_rays = ray_data.origins.shape[0]
+        n_rays = inters.shape[0]
         max_transmission = int(n_rays * config.interface.max_transmission)
 
         # Compute transmission energies and phases
@@ -83,9 +84,6 @@ class TransmissionInterface:
 
         if not np.any(transmission_mask):
             return self._empty_result()
-
-        # Filter for transmitting rays
-        n_transmitting = np.count_nonzero(transmission_mask)
 
         # Compute transmission directions using Snell's Law
         transmission_directions = self._compute_transmission_directions(ray_data.directions[transmission_mask], normals[transmission_mask], incident_angles[transmission_mask], medium_speeds[transmission_mask], new_medium_speed[transmission_mask])
