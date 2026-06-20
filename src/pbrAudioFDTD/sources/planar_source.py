@@ -18,7 +18,7 @@
 
 
 import os
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 from typing import Tuple, List
 from dataclasses import dataclass, field
 

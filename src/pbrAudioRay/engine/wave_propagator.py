@@ -20,7 +20,7 @@ import os
 import sys
 import math
 import copy 
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 import numba as nb
 import trimesh
 import soundfile as sf
