@@ -16,7 +16,7 @@ sys.path.append('../src/pbrAudioRender')
 import dask.array as da
 from dask import delayed, compute
 
-import numpy as np
+from pbrAudioCommon import np
 
 from lib.soxel import Soxel
 from lib.acoustic_field import AcousticField, FrequencyLimitedField, VelocityVectors
@@ -224,7 +224,7 @@ for source_config in config.sources:
 
 
 from lib.acoustic_field import VelocityVectors, FrequencyLimitedField, AcousticField
-import numpy as np
+from pbrAudioCommon import np
 
 vel = VelocityVectors(x=23.4, y=12.5, z=9.23)
 ac = AcousticField()
@@ -288,7 +288,7 @@ from utils.config import Config
 
 
 import sys, os
-import numpy as np
+from pbrAudioCommon import np
 sys.path.append(os.getcwd())
 from typing import List, Dict, Any, Optional, Tuple, Union
 

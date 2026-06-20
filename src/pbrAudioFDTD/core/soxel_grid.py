@@ -18,7 +18,7 @@
 
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
-import numpy as np
+from pbrAudioCommon import np
 import math
 import os
 

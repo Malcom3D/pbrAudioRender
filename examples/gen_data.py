@@ -6,7 +6,7 @@ directivity patterns, and 3D objects.
 """
 
 import os
-import numpy as np
+from pbrAudioCommon import np
 import soundfile as sf
 from scipy import signal
 import json
