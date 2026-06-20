@@ -19,7 +19,7 @@
 
 import os
 import resampy
-import numpy as np
+from pbrAudioCommon import np
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 import soundfile as sf

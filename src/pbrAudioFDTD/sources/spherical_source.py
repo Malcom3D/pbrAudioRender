@@ -18,7 +18,7 @@
 
 
 import os
-import numpy as np
+from pbrAudioCommon import np
 from typing import Tuple, Optional
 from dataclasses import dataclass, field
 

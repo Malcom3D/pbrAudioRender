@@ -18,7 +18,7 @@
 
 import os
 import json
-import numpy as np
+from pbrAudioCommon import np
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Any
 from pathlib import Path
