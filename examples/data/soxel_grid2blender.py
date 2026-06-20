@@ -1,10 +1,10 @@
 import bpy
 import bmesh
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 from mathutils import Vector, Matrix
 
 import sys, os
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 sys.path.append(os.getcwd())
 from typing import List, Dict, Any, Optional, Tuple, Union
 

@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 import resampy
 import soundfile as sf
 import numba as nb

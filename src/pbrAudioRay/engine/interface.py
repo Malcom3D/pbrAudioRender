@@ -18,7 +18,7 @@
 
 import os
 import json
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 import numba as nb
 from dask import delayed, compute
 from typing import Tuple, Optional, List, Any, Dict

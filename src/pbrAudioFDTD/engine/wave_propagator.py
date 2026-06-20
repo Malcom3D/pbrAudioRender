@@ -18,7 +18,7 @@
 
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
-from pbrAudioCommon import np
+from pbrAudioCommon.lib.import_helper import np
 
 from ..core.entity_manager import EntityManager
 
