@@ -18,7 +18,7 @@
 
 from dataclasses import dataclass, field
 from typing import Union, Optional, Any, List, Tuple
-from pbrAudioCommon.lib.import_helper import np
+import numpy as np
 import numba as nb
 
 from ..lib.interpolator import FrequencyInterpolator

@@ -18,7 +18,7 @@
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
-from pbrAudioCommon.lib.import_helper import np
+import numpy as np
 
 from ..lib.interpolator import Frequency3DInterpolator
 from ..lib.functions import _degrees_to_radians
