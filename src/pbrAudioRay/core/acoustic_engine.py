@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import trimesh
-from pbrAudioCommon.lib.import_helper import np
+import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple
 

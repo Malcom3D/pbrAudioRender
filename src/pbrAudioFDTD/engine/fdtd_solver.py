@@ -20,7 +20,7 @@ import warnings
 
 from dask import delayed, compute
 
-from pbrAudioCommon.lib.import_helper import np
+import numpy as np
 import numba as nb
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field

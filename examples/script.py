@@ -1,5 +1,5 @@
 import sys, os
-from pbrAudioCommon.lib.import_helper import np
+import numpy as np
 sys.path.append(os.getcwd())
 from typing import List, Dict, Any, Optional, Tuple, Union
 
