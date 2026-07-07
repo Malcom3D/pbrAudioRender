@@ -33,9 +33,14 @@ class SystemConfig:
     subframes: int = 1 # video subframes
     start_frame: int = None
     end_frame: int = None
-    file_format: str = 'RAW'
+    file_format: str = 'WAV'
+    output_format: str = 'AMBISONIC'
+    surround_format: str = None
+    enable_vog: bool = False
+    stereo_hrtf: bool = False
     cache_path: str = "./pbrAudioCache/"
     render_path: str = "/tmp/"
+    output_path: str = "/tmp/"
     number_of_rays: int = 16 # Number of rays to be emitted per entity
     direction_seed: int = 1 # Rays random isotropic direction seed
     bands_per_octave: int = 24 # frequency steps per octave

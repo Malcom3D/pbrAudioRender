@@ -140,6 +140,8 @@ class AcousticEngine:
             self._compute_frame(frame_idx)
 
         self.render()
+        if not config.system.output_format == 'AMBISONIC':
+            self._ambisonic_post_process()
 
     def render(self):
         config = self.entity_manager.get('config')
@@ -150,6 +152,11 @@ class AcousticEngine:
                 combos.append([config.sources[i].idx, config.outputs[j].idx])
         ir_tasks = [self._render_audio(combo) for combo in combos]
         ir_results = compute(*ir_tasks)
+
+    def _ambisonic_post_process(self):
+        from postProcess import AmbisonicPostProcessEngine
+        ambisonic_processor = AmbisonicPostProcessEngine(self.entity_manager)
+        ambisonic_processor.process()
 
     @delayed
     def _render_audio(self, combo):
