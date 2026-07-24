@@ -21,7 +21,7 @@ from dataclasses import dataclass
 
 @dataclass
 class MaterialProperties:
-    """Holds acoustic properties for materials."""
+    """Holds acoustic properties of materials for EmbreeX in pbrAudioRay."""
     absorption_coeffs: np.ndarray
     absorption_phases: np.ndarray
     reflection_coeffs: np.ndarray
