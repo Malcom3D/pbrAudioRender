@@ -30,7 +30,7 @@ import numpy as np
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from physicsSolver import EntityManager
+from pbrAudioCommon import EntityManager
 from rigidBody.lib.post_process import PostProcess, PostProcessConfig
 
 
