@@ -22,8 +22,8 @@ import trimesh
 from typing import Tuple, Optional, List, Any
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-from ..lib.functions import _load_mesh
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import _load_mesh
 
 @dataclass
 class AcousticObject:

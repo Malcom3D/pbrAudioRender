@@ -22,9 +22,10 @@ import soundfile as sf
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
-from pbrAudioRay.core.entity_manager import EntityManager
-from pbrAudioRay.lib.functions import _mono_to_bands
-from pbrAudioRay.lib.ambisonic_convolver import AmbisonicTimeVaryingConvolver, MultibandAmbisonicConvolver
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import _mono_to_bands
+
+from .ambisonic_convolver import AmbisonicTimeVaryingConvolver, MultibandAmbisonicConvolver
 
 @dataclass
 class AmbisonicIRInterpolator:

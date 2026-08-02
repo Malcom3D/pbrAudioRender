@@ -21,8 +21,8 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-from ..lib.interpolator import FrequencyInterpolator
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import FrequencyInterpolator
 
 @dataclass
 class BaseOutput:

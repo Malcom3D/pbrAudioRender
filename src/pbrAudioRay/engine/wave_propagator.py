@@ -29,14 +29,14 @@ from dask import delayed, compute
 from typing import List, Tuple, Any
 from dataclasses import dataclass
 
-from pbrAudioRay.core.entity_manager import EntityManager
-from pbrAudioRay.engine.ray_tracer import AcousticRayTracer
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import _load_pose
 
-from pbrAudioRay.lib.functions import _load_pose
-from pbrAudioRay.lib.ray_data import RayData
-from pbrAudioRay.lib.geometry_data import GeometryData
-from pbrAudioRay.lib.material_properties import MaterialProperties
-from pbrAudioRay.lib.medium_properties import MediumProperties
+from .ray_tracer import AcousticRayTracer
+from ..lib.ray_data import RayData
+from ..lib.geometry_data import GeometryData
+from ..lib.material_properties import MaterialProperties
+from ..lib.medium_properties import MediumProperties
 
 @dataclass
 class WavePropagator:
