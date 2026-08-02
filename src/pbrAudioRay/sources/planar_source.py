@@ -21,8 +21,8 @@ import numpy as np
 from typing import Tuple, List
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-from ..lib.functions import _cartesian_to_spherical
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import _cartesian_to_spherical
 
 @dataclass
 class PlanarSource:

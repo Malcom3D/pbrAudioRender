@@ -24,14 +24,13 @@ from dataclasses import dataclass, field
 
 from dask import delayed, compute
 
-from ..core.entity_manager import EntityManager
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import FrequencyInterpolator
 
 from ..outputs.omnidirectional_output import OmnidirectionalOutput
 from ..outputs.cardioid_output import CardioidOutput
 from ..outputs.hypercardioid_output import HypercardioidOutput
 from ..outputs.figure8_output import Figure8Output
-
-from ..lib.interpolator import FrequencyInterpolator
 
 @dataclass
 class AmbisonicOutput:

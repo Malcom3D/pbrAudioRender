@@ -27,15 +27,14 @@ from dask import config as dask_config
 #dask_config.set(scheduler='processes', num_workers=1024)
 dask_config.set({'num_workers': 1024, 'optimization.fuse.active': True, 'optimization.fuse.max_depth': 10,})
 
-from pbrAudioRay.core.entity_manager import EntityManager
-
-from pbrAudioRay.lib.frequency_bands import FrequencyBands
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import FrequencyBands
+from pbrAudioCommon import _mono_to_bands
 from pbrAudioRay.lib.acoustic_object import AcousticObject
 from pbrAudioRay.lib.geometry_data import GeometryData
 from pbrAudioRay.lib.medium_properties import MediumProperties
 from pbrAudioRay.lib.material_properties import MaterialProperties
 
-from pbrAudioRay.lib.functions import _mono_to_bands
 
 from pbrAudioRay.lib.ambisonic_ir_interpolator import AmbisonicIRInterpolator
 

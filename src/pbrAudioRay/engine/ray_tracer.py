@@ -25,9 +25,9 @@ from typing import Dict, List, Tuple, Optional, Any
 from embreex import rtcore_scene as rtcs
 from embreex.mesh_construction import TriangleMesh
 
-from pbrAudioRay.core.entity_manager import EntityManager
-from pbrAudioRay.engine.interface import InterfaceManager
-from pbrAudioRay.lib.output_data import OutputData
+from pbrAudioCommon import EntityManager
+from .interface import InterfaceManager
+from ..lib.output_data import OutputData
 
 @dataclass
 class AcousticRayTracer:

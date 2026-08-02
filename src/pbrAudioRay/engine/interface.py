@@ -24,11 +24,10 @@ from dask import delayed, compute
 from typing import Tuple, Optional, List, Any, Dict
 from dataclasses import dataclass, field
 
-from ..core.entity_manager import EntityManager
-from ..lib.ray_data import RayData
-from ..lib.functions import _compute_rayleigh_damping
+from pbrAudioCommon import EntityManager
+from pbrAudioCommon import _compute_rayleigh_damping
 
-#from .interfaces import AbsorptionInterface, ReflectionInterface, TransmissionInterface, ScatteringInterface, DiffractionInterface
+from ..lib.ray_data import RayData
 from .interfaces.absorption import AbsorptionInterface
 from .interfaces.reflection import ReflectionInterface
 from .interfaces.scattering import ScatteringInterface
