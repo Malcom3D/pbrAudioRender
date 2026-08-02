@@ -20,8 +20,12 @@ import trimesh
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple
-
 from dask import delayed, compute
+
+# Configure Dask to use more threads
+from dask import config as dask_config
+#dask_config.set(scheduler='processes', num_workers=1024)
+dask_config.set({'num_workers': 1024, 'optimization.fuse.active': True, 'optimization.fuse.max_depth': 10,})
 
 from pbrAudioRay.core.entity_manager import EntityManager
 
@@ -45,12 +49,6 @@ from pbrAudioRay.outputs.omnidirectional_output import OmnidirectionalOutput
 from pbrAudioRay.outputs.cardioid_output import CardioidOutput
 from pbrAudioRay.outputs.hypercardioid_output import HypercardioidOutput
 from pbrAudioRay.outputs.figure8_output import Figure8Output
-
-# Configure Dask to use more threads
-from dask import config as dask_config
-#dask_config.set(scheduler='threads', num_workers=1024)
-#dask_config.set(scheduler='processes', num_workers=1024)
-dask_config.set(num_workers=1024)
 
 @dataclass
 class AcousticEngine:
