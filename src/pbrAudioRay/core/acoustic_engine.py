@@ -30,24 +30,24 @@ dask_config.set({'num_workers': 1024, 'optimization.fuse.active': True, 'optimiz
 from pbrAudioCommon import EntityManager
 from pbrAudioCommon import FrequencyBands
 from pbrAudioCommon import _mono_to_bands
-from pbrAudioRay.lib.acoustic_object import AcousticObject
-from pbrAudioRay.lib.geometry_data import GeometryData
-from pbrAudioRay.lib.medium_properties import MediumProperties
-from pbrAudioRay.lib.material_properties import MaterialProperties
+from .lib.acoustic_object import AcousticObject
+from .lib.geometry_data import GeometryData
+from .lib.medium_properties import MediumProperties
+from .lib.material_properties import MaterialProperties
 
 
-from pbrAudioRay.lib.ambisonic_ir_interpolator import AmbisonicIRInterpolator
+from .lib.ambisonic_ir_interpolator import AmbisonicIRInterpolator
 
-from pbrAudioRay.sources.spherical_source import SphericalSource
-from pbrAudioRay.sources.planar_source import PlanarSource
+from .sources.spherical_source import SphericalSource
+from .sources.planar_source import PlanarSource
 
-from pbrAudioRay.engine.wave_propagator import WavePropagator
+from .engine.wave_propagator import WavePropagator
 
-from pbrAudioRay.outputs.ambisonic_output import AmbisonicOutput
-from pbrAudioRay.outputs.omnidirectional_output import OmnidirectionalOutput
-from pbrAudioRay.outputs.cardioid_output import CardioidOutput
-from pbrAudioRay.outputs.hypercardioid_output import HypercardioidOutput
-from pbrAudioRay.outputs.figure8_output import Figure8Output
+from .outputs.ambisonic_output import AmbisonicOutput
+from .outputs.omnidirectional_output import OmnidirectionalOutput
+from .outputs.cardioid_output import CardioidOutput
+from .outputs.hypercardioid_output import HypercardioidOutput
+from .outputs.figure8_output import Figure8Output
 
 @dataclass
 class AcousticEngine:
