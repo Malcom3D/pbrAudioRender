@@ -24,6 +24,7 @@ from typing import List, Tuple, Optional
 
 from pbrAudioCommon import EntityManager
 from pbrAudioCommon import _mono_to_bands
+from pbrAudioCommon import debug_print, set_debug, set_debug_prefix
 
 from .ambisonic_convolver import AmbisonicTimeVaryingConvolver, MultibandAmbisonicConvolver
 
@@ -39,6 +40,10 @@ class AmbisonicIRInterpolator:
     
     def __post_init__(self):
         config = self.entity_manager.get('config')
+
+        set_debug(config.system.debug)
+        set_debug_prefix(self.__class__.__name__)
+
         self.sample_rate = int(config.system.sample_rate)
         self.frequency_bands = self.entity_manager.get('frequency_bands')
         self.n_bands = len(self.frequency_bands.get_bands())
@@ -120,4 +125,4 @@ class AmbisonicIRInterpolator:
         filepath = os.path.join(render_path, filename)
         
         sf.write(filepath, self.output, self.sample_rate, subtype='FLOAT')
-        print(f"Saved convolved Audio: {filepath} for source {self.src_name}, output {self.out_name}")
+        debug_print(f"Saved convolved Audio: {filepath} for source {self.src_name}, output {self.out_name}")

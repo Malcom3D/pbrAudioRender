@@ -30,6 +30,7 @@ dask_config.set({'num_workers': 1024, 'optimization.fuse.active': True, 'optimiz
 from pbrAudioCommon import EntityManager
 from pbrAudioCommon import FrequencyBands
 from pbrAudioCommon import _mono_to_bands
+from pbrAudioCommon import debug_print, set_debug, set_debug_prefix
 from ..lib.acoustic_object import AcousticObject
 from ..lib.geometry_data import GeometryData
 from ..lib.medium_properties import MediumProperties
@@ -56,6 +57,9 @@ class AcousticEngine:
     def __post_init__(self):
         config = self.entity_manager.get('config')
 
+        set_debug(config.system.debug)
+        set_debug_prefix(self.__class__.__name__)
+
         frequency_bands = FrequencyBands(self.entity_manager)
         self.entity_manager.register('frequency_bands', frequency_bands)
 
@@ -64,7 +68,7 @@ class AcousticEngine:
         tasks += [self._add_output(output) for output in config.outputs]
         compute(*tasks)
 
-        print('AcousticEngine: configuration loaded...')
+        debug_print('AcousticEngine: configuration loaded...')
 
         # Initialize geometry
         self.geometry_data: Optional[GeometryData] = None
@@ -78,7 +82,7 @@ class AcousticEngine:
         self.entity_manager.register('material_properties', self.material_properties)
         self.entity_manager.register('medium_properties', self.medium_properties)
 
-        print('AcousticEngine: acoustic scene loaded...')
+        debug_print('AcousticEngine: acoustic scene loaded...')
 
         combos = []
         for i in range(len(config.sources)):
@@ -87,7 +91,7 @@ class AcousticEngine:
         tasks = [self._add_solvers(combo) for combo in combos]
         compute(*tasks)
 
-        print('AcousticEngine: wave propagator engine ready...')
+        debug_print('AcousticEngine: wave propagator engine ready...')
 
     @delayed
     def _add_source(self, config):
