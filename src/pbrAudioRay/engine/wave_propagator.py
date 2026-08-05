@@ -31,6 +31,7 @@ from dataclasses import dataclass
 
 from pbrAudioCommon import EntityManager
 from pbrAudioCommon import _load_pose
+from pbrAudioCommon import debug_print, set_debug, set_debug_prefix
 
 from .ray_tracer import AcousticRayTracer
 from ..lib.ray_data import RayData
@@ -46,6 +47,10 @@ class WavePropagator:
     
     def __post_init__(self):
         config = self.entity_manager.get('config')
+
+        set_debug(config.system.debug)
+        set_debug_prefix(self.__class__.__name__)
+
         max_interactions = config.wave_propagation.max_interactions
         if max_interactions > sys.getrecursionlimit():
             sys.setrecursionlimit(max_interactions*2)
@@ -140,7 +145,7 @@ class WavePropagator:
         # compute x bands_idx IRs for wave_propagators[index].combo
         for output_data in results:
             self._compute_and_save_ir(output_data, frame_idx)
-            print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
+            debug_print(f"Wave propagator {self.combo} bands_idx {output_data.bands_idx} ended")
 
     def _compute_and_save_ir(self, output_data: Any, frame_idx: int):
         config = self.entity_manager.get('config')
@@ -213,9 +218,9 @@ class WavePropagator:
         filename = f"{output_dir}/ambiIR_{ambisonic_order}_{frame_idx:05}_{source_idx}_{output_idx}_{bands_idx:05}.wav"
         sf.write(filename, ambisonics_ir.T, sample_rate, subtype='PCM_24')
 
-        print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
-        print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
-        print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
+        debug_print(f"Saved ambisonic IR: {filename} for source {source_idx}, output {output_idx}, bands {frequency_bands.get_bands()[bands_idx]} frame {frame_idx}.")
+        debug_print(f"  Shape: {ambisonics_ir.T.shape} (samples, channels)")
+        debug_print(f"  Duration: {ir_length / sample_rate:.2f} seconds")
 
     def _compute_spherical_harmonics(self, ambisonics_ir: np.ndarray, delay_samples: np.ndarray, complex_amplitudes: np.ndarray, theta: np.ndarray, phi: np.ndarray, ambisonic_order: int):
         """Compute spherical harmonics and add to IR buffer."""

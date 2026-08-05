@@ -26,6 +26,7 @@ from embreex import rtcore_scene as rtcs
 from embreex.mesh_construction import TriangleMesh
 
 from pbrAudioCommon import EntityManager
+from pbrAudioCommon import debug_print, set_debug, set_debug_prefix
 from .interface import InterfaceManager
 from ..lib.output_data import OutputData
 
@@ -42,6 +43,10 @@ class AcousticRayTracer:
     def __post_init__(self):
         """Initialize ray directions using Fibonacci sphere distribution."""
         config = self.entity_manager.get('config')
+
+        set_debug(config.system.debug)
+        set_debug_prefix(self.__class__.__name__)
+
         n_rays = config.system.number_of_rays
         self.max_interactions = config.wave_propagation.max_interactions
 
@@ -95,7 +100,7 @@ class AcousticRayTracer:
         res = self.scene.run(self.ray_data.origins.astype(np.float32), self.ray_data.directions.astype(np.float32), output=1)
 
         ray_inter = res["geomID"] >= 0
-        print(f"Recursion {self.recursion_idx}: {sum(ray_inter)} rays intersect geometry (over {self.ray_data.origins.shape[0]})")
+        debug_print(f"Recursion {self.recursion_idx}: {sum(ray_inter)} rays intersect geometry (over {self.ray_data.origins.shape[0]})")
 
         if not np.any(ray_inter) or self.recursion_idx == self.max_interactions:
             return self.output_data
@@ -132,7 +137,7 @@ class AcousticRayTracer:
 
         n_terminated = np.count_nonzero(~termination_mask)
         if n_terminated > 0:
-            print(f'Terminated {n_terminated} rays below energy threshold')
+            debug_print(f'Terminated {n_terminated} rays below energy threshold')
 
         self.ray_data.origins = self.ray_data.origins[termination_mask.reshape(-1,)]
         self.ray_data.directions = self.ray_data.directions[termination_mask.reshape(-1,)]

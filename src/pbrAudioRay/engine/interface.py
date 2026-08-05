@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 
 from pbrAudioCommon import EntityManager
 from pbrAudioCommon import _compute_rayleigh_damping
+from pbrAudioCommon import debug_print, set_debug, set_debug_prefix
 
 from ..lib.ray_data import RayData
 from .interfaces.absorption import AbsorptionInterface
@@ -49,6 +50,9 @@ class InterfaceManager:
     
     def __post_init__(self):
         config = self.entity_manager.get('config')
+
+        set_debug(config.system.debug)
+        set_debug_prefix(self.__class__.__name__)
 
         self.absorption_interface = AbsorptionInterface(self.entity_manager)
         self.reflection_interface = ReflectionInterface(self.entity_manager)
@@ -311,4 +315,4 @@ class InterfaceManager:
             self.output_data.delay = np.append(self.output_data.delay, self.ray_data.delay[output_mask], axis=0).astype(np.float32)
             self.output_data.origins = np.append(self.output_data.origins, self.ray_data.origins[output_mask], axis=0).astype(np.float32)
             self.output_data.directions = np.append(self.output_data.directions, self.ray_data.directions[output_mask], axis=0).astype(np.float32)
-            print(f'Output: {np.count_nonzero(output_mask)}, 'f'{self.output_data.energies.shape[0]}')
+            debug_print(f'Output: {np.count_nonzero(output_mask)}, 'f'{self.output_data.energies.shape[0]}')
