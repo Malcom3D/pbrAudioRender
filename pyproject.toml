@@ -37,8 +37,8 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "dask", "scipy", "numba", "numpy <=2.3.5",
-    "resampy", "soundfile", "trimesh", "blosc2", "networkx", "rtree"
+    "dask", "scipy", "numba", "numpy <=2.3.5", "packaging >=25.0", "rich >=14.1.0", "soundfile >=0.13.1", "llvmlite >=0.45.0", "urllib3 >=2.5.0", "idna >=3.18", "certifi >=2026.6.17"
+    "resampy", "soundfile", "trimesh", "blosc2", "networkx", "rtree", "numba >=0.62.1", "scipy >=1.16.2", "psutil >=7.1.0", "threadpoolctl >=3.6.0", "numexpr >=2.14.2"
 ]
 
 [project.optional-dependencies]
