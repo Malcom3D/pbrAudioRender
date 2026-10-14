@@ -1,1 +1,4 @@
 This project includes code for and/or from the following open-source projects:
+
+- Python trimesh, Copyright (c) 2023 Michael Dawson-Haggerty [mikedh], licensed under the MIT License (MIT).
+- Python EmbreeX (https://github.com/trimesh/embreex), from trimesh, organization maintainer of trimesh's dependencies, licensed under a 2-Clause BSD license.
