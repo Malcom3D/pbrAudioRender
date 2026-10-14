@@ -315,9 +315,3 @@ pose_data = {
 }
 np.savez('poses/source.npz', **pose_data)
 ```
-
-## License
-
-This project is licensed under the **GNU General Public License v3.0 or later**.
-
-See the [LICENSE](LICENSE) file for the full text.
