@@ -156,9 +156,9 @@ class AcousticEngine:
 
     def _ambisonic_post_process(self):
         pass
-        from postProcess import AmbisonicPostProcessEngine
-        ambisonic_processor = AmbisonicPostProcessEngine(self.entity_manager)
-        ambisonic_processor.process()
+#        from postProcess import AmbisonicPostProcessEngine
+#        ambisonic_processor = AmbisonicPostProcessEngine(self.entity_manager)
+#        ambisonic_processor.process()
 
     @delayed
     def _render_audio(self, combo):
