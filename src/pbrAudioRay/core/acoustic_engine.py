@@ -155,6 +155,7 @@ class AcousticEngine:
         ir_results = compute(*ir_tasks)
 
     def _ambisonic_post_process(self):
+        pass
         from postProcess import AmbisonicPostProcessEngine
         ambisonic_processor = AmbisonicPostProcessEngine(self.entity_manager)
         ambisonic_processor.process()
