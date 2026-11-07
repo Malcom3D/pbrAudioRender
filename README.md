@@ -47,5 +47,5 @@ If you use this software in your research, please cite:
 
 ## Supporters & Credits
 
-Thanks to everyone who has supported pbrAudio! See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) and [CREDITS](CREDITS) for the full list.
+Thanks to everyone who has supported pbrAudio! See [ACKNOWLEDGMENTS](ACKNOWLEDGMENTS.md) and [CREDITS](CREDITS) for the full list.
 
