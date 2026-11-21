@@ -1,1 +1,3 @@
 __version.py
+*.swp
+*.swo
